@@ -40,13 +40,13 @@ type Provider struct {
 
 func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, error) {
 	var resultingCluster Cluster
-	err := c.request("POST", "clusters", cluster, &resultingCluster)
+	err := c.request(http.MethodPost, "clusters", cluster, &resultingCluster)
 	return &resultingCluster, err
 }
 
 func (c *HTTPClient) TerminateCluster(name string) error {
 	path := fmt.Sprintf("clusters/%s", name)
-	return c.request("DELETE", path, nil, nil)
+	return c.request(http.MethodDelete, path, nil, nil)
 }
 
 func (c *HTTPClient) GetCluster(name string) (*Cluster, error) {
