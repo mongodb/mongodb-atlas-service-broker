@@ -51,7 +51,6 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(json))
 
 		data = bytes.NewBuffer(json)
 	}
@@ -80,9 +79,6 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 	}
 	defer resp.Body.Close()
 
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(resp.Body)
-	fmt.Println(buf.String())
 
 	// Decode the response from JSON
 	json.NewDecoder(resp.Body).Decode(response)
