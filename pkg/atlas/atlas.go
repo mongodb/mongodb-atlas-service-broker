@@ -27,6 +27,9 @@ type HTTPClient struct {
 var (
 	ErrClusterNotFound      = errors.New("Cluster not found")
 	ErrClusterAlreadyExists = errors.New("Cluster already exists")
+
+	ErrUserNotFound      = errors.New("User not found")
+	ErrUserAlreadyExists = errors.New("User already exists")
 )
 
 func NewClient(baseUrl string, groupID string, publicKey string, privateKey string) (*HTTPClient, error) {
@@ -79,11 +82,20 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 	}
 	defer resp.Body.Close()
 
+	// Decode response if request was successful
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		json.NewDecoder(resp.Body).Decode(response)
+		return nil
+	}
 
-	// Decode the response from JSON
-	json.NewDecoder(resp.Body).Decode(response)
+	// Decode error if request was unsuccessful
+	var errorResponse struct {
+		Code        string `json:"errorCode"`
+		Description string `json:"detail"`
+	}
+	json.NewDecoder(resp.Body).Decode(&errorResponse)
 
-	return nil
+	return errorFromErrorCode(errorResponse.Code, errorResponse.Description)
 }
 
 // digestAuth performs an unauthenticated request to retrieve a digest nonce.
@@ -116,4 +128,24 @@ func (c *HTTPClient) digestAuth(method string, endpoint string) (string, error) 
 	parts["password"] = c.privateKey
 
 	return getDigestAuthrization(parts), nil
+}
+
+// errorFromErrorCode converts an Atlas API error code into an error
+func errorFromErrorCode(code string, description string) error {
+	errorsByCode := map[string]error{
+		"CLUSTER_NOT_FOUND":                  ErrClusterNotFound,
+		"CLUSTER_ALREADY_REQUESTED_DELETION": ErrClusterNotFound,
+
+		"DUPLICATE_CLUSTER_NAME": ErrClusterAlreadyExists,
+
+		"USER_ALREADY_EXISTS": ErrUserAlreadyExists,
+	}
+
+	// Default to an error wrapping the Atlas error description
+	err := errorsByCode[code]
+	if err == nil {
+		return errors.New("Atlas error: " + description)
+	}
+
+	return err
 }
