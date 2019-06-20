@@ -7,6 +7,7 @@ import (
 
 type MockAtlasClient struct {
 	Clusters map[string]*atlas.Cluster
+	Users    map[string]*atlas.User
 }
 
 func (m MockAtlasClient) CreateCluster(cluster atlas.Cluster) (*atlas.Cluster, error) {
@@ -32,9 +33,28 @@ func (m MockAtlasClient) TerminateCluster(name string) error {
 	return nil
 }
 
+func (m MockAtlasClient) GetCluster(name string) (*atlas.Cluster, error) {
+	cluster := m.Clusters[name]
+	if cluster == nil {
+		return nil, atlas.ErrClusterNotFound
+	}
+
+	return cluster, nil
+}
+
+func (m MockAtlasClient) CreateUser(user atlas.User) (*atlas.User, error) {
+	if m.Users[user.Username] != nil {
+		return nil, atlas.ErrUserAlreadyExists
+	}
+
+	m.Users[user.Username] = &user
+	return &user, nil
+}
+
 func SetupTest() (*Broker, MockAtlasClient) {
 	client := MockAtlasClient{
 		Clusters: make(map[string]*atlas.Cluster),
+		Users:    make(map[string]*atlas.User),
 	}
 	broker := NewBroker(client, zap.NewNop().Sugar())
 	return broker, client

@@ -13,6 +13,9 @@ import (
 type Client interface {
 	CreateCluster(cluster Cluster) (*Cluster, error)
 	TerminateCluster(name string) error
+	GetCluster(name string) (*Cluster, error)
+
+	CreateUser(user User) (*User, error)
 }
 
 // HTTPClient is the main implementation of the Client interface which

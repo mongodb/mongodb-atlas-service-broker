@@ -10,11 +10,15 @@ import (
 	"go.uber.org/zap"
 )
 
+// Broker is responsible for translating OSB calls to Atlas API calls.
+// Implements the Broker interface from brokerapi making it easy to spin up an
+// API server.
 type Broker struct {
 	logger *zap.SugaredLogger
 	atlas  atlas.Client
 }
 
+// NewBroker creates a new Broker with the specified Atlas client and logger.
 func NewBroker(client atlas.Client, logger *zap.SugaredLogger) *Broker {
 	return &Broker{
 		logger: logger,
@@ -22,6 +26,7 @@ func NewBroker(client atlas.Client, logger *zap.SugaredLogger) *Broker {
 	}
 }
 
+// Services generates the service catalog which will be presented to consumers of the API.
 func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	plans := Plans()
 	servicePlans := make([]brokerapi.ServicePlan, len(plans))
@@ -108,32 +113,6 @@ func (b *Broker) GetInstance(ctx context.Context, instanceID string) (spec broke
 	return
 }
 
-// Connect/bind an application to an Atlas cluster
-// Should create/find a database user and provide a connection URI
-// Credentials will be placed in a Kubernetes secret (how do we make this not dependent on K8S?)
-func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
-	b.logger.Infof("Creating binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
-
-	return brokerapi.Binding{
-		Credentials: brokerapi.BrokerCredentials{
-			Username: "username",
-			Password: "password",
-		},
-	}, nil
-}
-
-// Disconnect/unbind an application from an Atlas cluster
-func (b *Broker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
-	b.logger.Infof("Releasing binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
-	return brokerapi.UnbindSpec{}, nil
-}
-
-func (b *Broker) GetBinding(ctx context.Context, instanceID string, bindingID string) (spec brokerapi.GetBindingSpec, err error) {
-	b.logger.Infof("Retrieving binding \"%s\" for instance \"%s\"", bindingID, instanceID)
-	err = brokerapi.NewFailureResponse(fmt.Errorf("Unknown binding ID %s", bindingID), 404, "get-binding")
-	return
-}
-
 func (b *Broker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
 	b.logger.Infof("Updating instance \"%s\" with details %+v", instanceID, details)
 	return brokerapi.UpdateServiceSpec{
@@ -159,6 +138,8 @@ func atlasToAPIError(err error) error {
 		return apiresponses.ErrInstanceDoesNotExist
 	case atlas.ErrClusterAlreadyExists:
 		return apiresponses.ErrInstanceAlreadyExists
+	case atlas.ErrUserAlreadyExists:
+		return apiresponses.ErrBindingAlreadyExists
 	}
 
 	// Fall back on invalid params error if no other match

@@ -1,6 +1,9 @@
 package atlas
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 var (
 	ClusterStateIdle      = "IDLE"
@@ -44,4 +47,12 @@ func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, error) {
 func (c *HTTPClient) TerminateCluster(name string) error {
 	path := fmt.Sprintf("clusters/%s", name)
 	return c.request("DELETE", path, nil, nil)
+}
+
+func (c *HTTPClient) GetCluster(name string) (*Cluster, error) {
+	path := fmt.Sprintf("clusters/%s", name)
+
+	var cluster *Cluster
+	err := c.request(http.MethodGet, path, nil, cluster)
+	return cluster, err
 }
