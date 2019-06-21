@@ -38,9 +38,10 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 	// TODO: Place credentials in some sort of secrets manager.
 
 	spec = brokerapi.Binding{
-		Credentials: brokerapi.BrokerCredentials{
+		Credentials: ConnectionDetails{
 			Username: bindingID,
 			Password: password,
+			URI:      cluster.URI,
 		},
 	}
 	return
