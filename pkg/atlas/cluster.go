@@ -58,7 +58,7 @@ func (c *HTTPClient) TerminateCluster(name string) error {
 func (c *HTTPClient) GetCluster(name string) (*Cluster, error) {
 	path := fmt.Sprintf("clusters/%s", name)
 
-	var cluster *Cluster
-	err := c.request(http.MethodGet, path, nil, cluster)
-	return cluster, err
+	var cluster Cluster
+	err := c.request(http.MethodGet, path, nil, &cluster)
+	return &cluster, err
 }
