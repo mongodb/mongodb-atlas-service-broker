@@ -63,6 +63,7 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 
 	url := c.url(path)
 
+	// Prepare API request
 	req, err := http.NewRequest(method, url, data)
 	if err != nil {
 		return err

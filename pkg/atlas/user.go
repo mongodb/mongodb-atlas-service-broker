@@ -28,6 +28,7 @@ const (
 
 // CreateUser will create a new database user with read/write access to all
 // databases.
+// Endpoint: POST /databaseUsers
 func (c *HTTPClient) CreateUser(user User) (*User, error) {
 	req := createUserRequest{
 		Username:     user.Username,

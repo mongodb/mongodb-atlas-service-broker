@@ -38,17 +38,23 @@ type Provider struct {
 	Region   string `json:"regionName"`
 }
 
+// CreateCluster will create a new cluster asynchronously
+// POST /clusters
 func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, error) {
 	var resultingCluster Cluster
 	err := c.request(http.MethodPost, "clusters", cluster, &resultingCluster)
 	return &resultingCluster, err
 }
 
+// TerminateCluster will terminate a cluster asynchronously
+// DELETE /clusters/{CLUSTER-NAME}
 func (c *HTTPClient) TerminateCluster(name string) error {
 	path := fmt.Sprintf("clusters/%s", name)
 	return c.request(http.MethodDelete, path, nil, nil)
 }
 
+// GetCluster will find a cluster by name.
+// GET /clusters/{CLUSTER-NAME}
 func (c *HTTPClient) GetCluster(name string) (*Cluster, error) {
 	path := fmt.Sprintf("clusters/%s", name)
 
