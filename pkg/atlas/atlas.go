@@ -25,6 +25,8 @@ type HTTPClient struct {
 	groupID    string
 	publicKey  string
 	privateKey string
+
+	HTTP *http.Client
 }
 
 var (
@@ -41,6 +43,8 @@ func NewClient(baseUrl string, groupID string, publicKey string, privateKey stri
 		groupID:    groupID,
 		publicKey:  publicKey,
 		privateKey: privateKey,
+
+		HTTP: &http.Client{},
 	}, nil
 }
 
@@ -79,8 +83,7 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 	req.Header.Set("Content-Type", "application/json")
 
 	// Perform HTTP request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return err
 	}
@@ -88,7 +91,15 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 
 	// Decode response if request was successful
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		json.NewDecoder(resp.Body).Decode(response)
+		if response != nil {
+			err = json.NewDecoder(resp.Body).Decode(response)
+
+			// EOF error means the response body was empty
+			if err != io.EOF {
+				return nil
+			}
+		}
+
 		return nil
 	}
 
@@ -97,7 +108,10 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 		Code        string `json:"errorCode"`
 		Description string `json:"detail"`
 	}
-	json.NewDecoder(resp.Body).Decode(&errorResponse)
+	err = json.NewDecoder(resp.Body).Decode(&errorResponse)
+	if err != nil {
+		return err
+	}
 
 	return errorFromErrorCode(errorResponse.Code, errorResponse.Description)
 }
@@ -105,14 +119,12 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 // digestAuth performs an unauthenticated request to retrieve a digest nonce.
 // It returns the full authentication header constructed from the server response.
 func (c *HTTPClient) digestAuth(method string, endpoint string) (string, error) {
-	client := &http.Client{}
-
 	authReq, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := client.Do(authReq)
+	resp, err := c.HTTP.Do(authReq)
 	if err != nil {
 		return "", err
 	}
