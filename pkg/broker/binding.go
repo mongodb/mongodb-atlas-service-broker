@@ -9,12 +9,18 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 )
 
+type ConnectionDetails struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	URI      string `json:"uri"`
+}
+
 // Bind will create a new database user with a username matching the binding ID
 // and a randomly generated password. The user credentials will be returned back.
 func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (spec brokerapi.Binding, err error) {
 	b.logger.Infof("Creating binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
 
-	_, err = b.atlas.GetCluster(instanceID)
+	cluster, err := b.atlas.GetCluster(instanceID)
 	if err != nil {
 		err = atlasToAPIError(err)
 		return

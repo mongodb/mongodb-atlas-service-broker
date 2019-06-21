@@ -28,6 +28,7 @@ type Cluster struct {
 	Name     string   `json:"name"`
 	State    string   `json:"stateName,omitempty"`
 	Type     string   `json:"clusterType,omitempty"`
+	URI      string   `json:"mongoURI"`
 	Provider Provider `json:"providerSettings"`
 }
 
