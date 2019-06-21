@@ -67,3 +67,55 @@ func TestBindMissingInstance(t *testing.T) {
 		t.Errorf("Expected instance does not exist error, got %v", err)
 	}
 }
+
+func TestUnbind(t *testing.T) {
+	broker, client := SetupTest()
+
+	instanceID := "instance"
+	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		ServiceID: "mongodb",
+		PlanID:    "AWS-M10",
+	}, true)
+
+	bindingID := "binding"
+	broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+
+	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+
+	if err != nil {
+		t.Fatalf("Expected error to be nil, got %v", err)
+	}
+
+	if client.Users[bindingID] != nil {
+		t.Fatalf("Expected user to be removed")
+	}
+}
+
+func TestUnbindMissing(t *testing.T) {
+	broker, _ := SetupTest()
+
+	instanceID := "instance"
+	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		ServiceID: "mongodb",
+		PlanID:    "AWS-M10",
+	}, true)
+
+	bindingID := "binding"
+	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+
+	if err != apiresponses.ErrBindingDoesNotExist {
+		t.Fatalf("Expected binding does not exist error, got %v", err)
+	}
+}
+
+func TestUnbindMissingInstance(t *testing.T) {
+	broker, _ := SetupTest()
+
+	instanceID := "instance"
+	bindingID := "binding"
+	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+
+	if err != apiresponses.ErrInstanceDoesNotExist {
+		t.Errorf("Expected instance does not exist error, got %v", err)
+	}
+}

@@ -48,9 +48,23 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 }
 
 // Disconnect/unbind an application from an Atlas cluster
-func (b *Broker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
+func (b *Broker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (spec brokerapi.UnbindSpec, err error) {
 	b.logger.Infof("Releasing binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
-	return brokerapi.UnbindSpec{}, nil
+
+	_, err = b.atlas.GetCluster(instanceID)
+	if err != nil {
+		err = atlasToAPIError(err)
+		return
+	}
+
+	err = b.atlas.DeleteUser(bindingID)
+	if err != nil {
+		err = atlasToAPIError(err)
+		return
+	}
+
+	spec = brokerapi.UnbindSpec{}
+	return
 }
 
 func (b *Broker) GetBinding(ctx context.Context, instanceID string, bindingID string) (spec brokerapi.GetBindingSpec, err error) {

@@ -140,8 +140,11 @@ func atlasToAPIError(err error) error {
 		return apiresponses.ErrInstanceAlreadyExists
 	case atlas.ErrUserAlreadyExists:
 		return apiresponses.ErrBindingAlreadyExists
+	case atlas.ErrUserNotFound:
+		return apiresponses.ErrBindingDoesNotExist
 	}
 
-	// Fall back on invalid params error if no other match
-	return apiresponses.ErrRawParamsInvalid
+	// Fall back on returning the error again if no others match
+	// Will result in a 500 Internal Server Error
+	return err
 }

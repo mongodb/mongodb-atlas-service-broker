@@ -143,6 +143,7 @@ func errorFromErrorCode(code string, description string) error {
 		"DUPLICATE_CLUSTER_NAME": ErrClusterAlreadyExists,
 
 		"USER_ALREADY_EXISTS": ErrUserAlreadyExists,
+		"USER_NOT_FOUND":      ErrUserNotFound,
 	}
 
 	// Default to an error wrapping the Atlas error description

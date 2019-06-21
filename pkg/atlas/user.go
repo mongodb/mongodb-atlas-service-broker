@@ -1,6 +1,9 @@
 package atlas
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 // User represents a single Atlas database user.
 type User struct {
@@ -44,4 +47,11 @@ func (c *HTTPClient) CreateUser(user User) (*User, error) {
 
 	err := c.request(http.MethodPost, "databaseUsers", req, nil)
 	return &user, err
+}
+
+// DeleteUser will delete an existing database user.
+// Endpoint: DELETE /databaseUsers/{USERNAME}
+func (c *HTTPClient) DeleteUser(name string) error {
+	path := fmt.Sprintf("databaseUsers/admin/%s", name)
+	return c.request(http.MethodDelete, path, nil, nil)
 }

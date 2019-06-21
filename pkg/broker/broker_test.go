@@ -51,6 +51,16 @@ func (m MockAtlasClient) CreateUser(user atlas.User) (*atlas.User, error) {
 	return &user, nil
 }
 
+func (m MockAtlasClient) DeleteUser(name string) error {
+	if m.Users[name] == nil {
+		return atlas.ErrUserNotFound
+	}
+
+	m.Users[name] = nil
+
+	return nil
+}
+
 func SetupTest() (*Broker, MockAtlasClient) {
 	client := MockAtlasClient{
 		Clusters: make(map[string]*atlas.Cluster),
