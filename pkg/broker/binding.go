@@ -2,8 +2,10 @@ package broker
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
 	"fmt"
-	"math/rand"
 
 	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
@@ -28,7 +30,13 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 
 	// Create a new user with the binding ID as its username and a randomly
 	// generated password.
-	password := generatePassword()
+	password, err := generatePassword()
+	if err != nil {
+		b.logger.Error("Failed to generate password", err)
+		err = errors.New("Failed to generate binding password")
+		return
+	}
+
 	_, err = b.atlas.CreateUser(atlas.User{Username: bindingID, Password: password})
 	if err != nil {
 		err = atlasToAPIError(err)
@@ -73,16 +81,16 @@ func (b *Broker) GetBinding(ctx context.Context, instanceID string, bindingID st
 	return
 }
 
-// generatePassword will generate a fixed length password consisting of
-// alphanumerical characters.
-func generatePassword() string {
-	const randomPasswordLength = 50
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+// generatePassword will generate a cryptographically secure password.
+// The password will be base64 encoded for easy usage.
+func generatePassword() (string, error) {
+	const numberOfBytes = 32
+	b := make([]byte, numberOfBytes)
 
-	password := make([]rune, randomPasswordLength)
-	for i := range password {
-		password[i] = chars[rand.Intn(len(chars))]
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
 	}
 
-	return string(password)
+	return base64.URLEncoding.EncodeToString(b), nil
 }
