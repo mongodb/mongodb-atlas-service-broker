@@ -24,7 +24,7 @@ type createUserRequest struct {
 }
 
 const (
-	// The default database in Atlas is "admin"
+	// The default database in Atlas is "admin".
 	defaultDatabaseName = "admin"
 	defaultRole         = "readWriteAnyDatabase"
 )

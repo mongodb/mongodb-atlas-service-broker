@@ -23,7 +23,7 @@ type ClustersResponse struct {
 	Clusters []Cluster `json:"results"`
 }
 
-// Cluster represents a single cluster in Atlas
+// Cluster represents a single cluster in Atlas.
 type Cluster struct {
 	Name     string   `json:"name"`
 	State    string   `json:"stateName,omitempty"`
@@ -32,14 +32,14 @@ type Cluster struct {
 	Provider Provider `json:"providerSettings"`
 }
 
-// Provider represents the provider setting for a cluster
+// Provider represents the provider setting for a cluster.
 type Provider struct {
 	Name     string `json:"providerName"`
 	Instance string `json:"instanceSizeName"`
 	Region   string `json:"regionName"`
 }
 
-// CreateCluster will create a new cluster asynchronously
+// CreateCluster will create a new cluster asynchronously.
 // POST /clusters
 func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, error) {
 	var resultingCluster Cluster
@@ -47,7 +47,7 @@ func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, error) {
 	return &resultingCluster, err
 }
 
-// TerminateCluster will terminate a cluster asynchronously
+// TerminateCluster will terminate a cluster asynchronously.
 // DELETE /clusters/{CLUSTER-NAME}
 func (c *HTTPClient) TerminateCluster(name string) error {
 	path := fmt.Sprintf("clusters/%s", name)

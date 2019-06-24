@@ -11,6 +11,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 )
 
+// ConnectionDetails will be returned when a new binding is created.
 type ConnectionDetails struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -22,14 +23,14 @@ type ConnectionDetails struct {
 func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (spec brokerapi.Binding, err error) {
 	b.logger.Infof("Creating binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
 
+	// Fetch the cluster from Atlas to ensure it exists.
 	cluster, err := b.atlas.GetCluster(instanceID)
 	if err != nil {
 		err = atlasToAPIError(err)
 		return
 	}
 
-	// Create a new user with the binding ID as its username and a randomly
-	// generated password.
+	// Generate a cryptographically secure random password.
 	password, err := generatePassword()
 	if err != nil {
 		b.logger.Error("Failed to generate password", err)
@@ -37,6 +38,7 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 		return
 	}
 
+	// Create a new user with the binding ID as its username.
 	_, err = b.atlas.CreateUser(atlas.User{Username: bindingID, Password: password})
 	if err != nil {
 		err = atlasToAPIError(err)
@@ -44,6 +46,8 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 	}
 
 	// TODO: Place credentials in some sort of secrets manager.
+	// This might not be necessary if we set bindings retrievable to false
+	// in the service catalog.
 
 	spec = brokerapi.Binding{
 		Credentials: ConnectionDetails{
@@ -55,16 +59,19 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 	return
 }
 
-// Disconnect/unbind an application from an Atlas cluster
+// Unbind will delete the database user for a specific binding. The database
+// user should have the binding ID as its username.
 func (b *Broker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (spec brokerapi.UnbindSpec, err error) {
 	b.logger.Infof("Releasing binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
 
+	// Fetch the cluster from Atlas to ensure it exists.
 	_, err = b.atlas.GetCluster(instanceID)
 	if err != nil {
 		err = atlasToAPIError(err)
 		return
 	}
 
+	// Delete database user which has the binding ID as its username.
 	err = b.atlas.DeleteUser(bindingID)
 	if err != nil {
 		err = atlasToAPIError(err)
@@ -75,10 +82,19 @@ func (b *Broker) Unbind(ctx context.Context, instanceID string, bindingID string
 	return
 }
 
+// GetBinding is currently not supported as specificed by the
+// BindingsRetrievable setting in the service catalog.
 func (b *Broker) GetBinding(ctx context.Context, instanceID string, bindingID string) (spec brokerapi.GetBindingSpec, err error) {
 	b.logger.Infof("Retrieving binding \"%s\" for instance \"%s\"", bindingID, instanceID)
+
 	err = brokerapi.NewFailureResponse(fmt.Errorf("Unknown binding ID %s", bindingID), 404, "get-binding")
 	return
+}
+
+// LastBindingOperation should fetch the status of the last creation/deletion
+// of a database user.
+func (b *Broker) LastBindingOperation(ctx context.Context, instanceID string, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
+	panic("not implemented")
 }
 
 // generatePassword will generate a cryptographically secure password.

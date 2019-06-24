@@ -67,13 +67,13 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 
 	url := c.url(path)
 
-	// Prepare API request
+	// Prepare API request.
 	req, err := http.NewRequest(method, url, data)
 	if err != nil {
 		return err
 	}
 
-	// Perform digest authentication to retrieve single-use credentials
+	// Perform digest authentication to retrieve single-use credentials.
 	auth, err := c.digestAuth(method, url)
 	if err != nil {
 		return err
@@ -82,28 +82,28 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// Perform HTTP request
+	// Perform HTTP request.
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	// Decode response if request was successful
+	// Decode response if request was successful.
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		if response != nil {
 			err = json.NewDecoder(resp.Body).Decode(response)
 
-			// EOF error means the response body was empty
+			// EOF error means the response body was empty.
 			if err != io.EOF {
-				return nil
+				return err
 			}
 		}
 
 		return nil
 	}
 
-	// Decode error if request was unsuccessful
+	// Decode error if request was unsuccessful.
 	var errorResponse struct {
 		Code        string `json:"errorCode"`
 		Description string `json:"detail"`
@@ -146,7 +146,7 @@ func (c *HTTPClient) digestAuth(method string, endpoint string) (string, error) 
 	return getDigestAuthrization(parts), nil
 }
 
-// errorFromErrorCode converts an Atlas API error code into an error
+// errorFromErrorCode converts an Atlas API error code into an error.
 func errorFromErrorCode(code string, description string) error {
 	errorsByCode := map[string]error{
 		"CLUSTER_NOT_FOUND":                  ErrClusterNotFound,
@@ -158,7 +158,7 @@ func errorFromErrorCode(code string, description string) error {
 		"USER_NOT_FOUND":      ErrUserNotFound,
 	}
 
-	// Default to an error wrapping the Atlas error description
+	// Default to an error wrapping the Atlas error description.
 	err := errorsByCode[code]
 	if err == nil {
 		return errors.New("Atlas error: " + description)

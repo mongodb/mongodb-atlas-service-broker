@@ -68,11 +68,12 @@ func (p *Plan) Provider() atlas.Provider {
 	return atlas.Provider{
 		Name:     p.ProviderName,
 		Instance: p.Instance,
-		Region:   "EU_WEST_1",
+		// TODO: Make region a parameter during provisioning
+		Region: "EU_WEST_1",
 	}
 }
 
-// Plans return all available plans across all providers
+// Plans return all available plans across all providers.
 func Plans() []Plan {
 	return append(providerPlans("AWS"), providerPlans("GCP")...)
 }
@@ -96,7 +97,7 @@ func providerPlans(provider string) []Plan {
 	return plans
 }
 
-// findPlan search all available plans by ID
+// findPlan search all available plans by ID.
 func findPlan(id string) *Plan {
 	for _, plan := range Plans() {
 		if plan.ID == id {
@@ -107,31 +108,7 @@ func findPlan(id string) *Plan {
 	return nil
 }
 
-func (b *Broker) GetInstance(ctx context.Context, instanceID string) (spec brokerapi.GetInstanceDetailsSpec, err error) {
-	b.logger.Infof("Fetching instance \"%s\"", instanceID)
-	err = brokerapi.NewFailureResponse(fmt.Errorf("Unknown instance ID %s", instanceID), 404, "get-instance")
-	return
-}
-
-func (b *Broker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
-	b.logger.Infof("Updating instance \"%s\" with details %+v", instanceID, details)
-	return brokerapi.UpdateServiceSpec{
-		IsAsync: true,
-	}, nil
-}
-
-func (b *Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
-	b.logger.Infof("Fetching state of last operation for instance \"%s\" with details %+v", instanceID, details)
-	return brokerapi.LastOperation{
-		State: brokerapi.Succeeded,
-	}, nil
-}
-
-func (b *Broker) LastBindingOperation(ctx context.Context, instanceID string, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
-	panic("not implemented")
-}
-
-// atlasToAPIError converts an Atlas error to a OSB response error
+// atlasToAPIError converts an Atlas error to a OSB response error.
 func atlasToAPIError(err error) error {
 	switch err {
 	case atlas.ErrClusterNotFound:
@@ -144,7 +121,7 @@ func atlasToAPIError(err error) error {
 		return apiresponses.ErrBindingDoesNotExist
 	}
 
-	// Fall back on returning the error again if no others match
-	// Will result in a 500 Internal Server Error
+	// Fall back on returning the error again if no others match.
+	// Will result in a 500 Internal Server Error.
 	return err
 }
