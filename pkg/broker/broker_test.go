@@ -42,6 +42,15 @@ func (m MockAtlasClient) GetCluster(name string) (*atlas.Cluster, error) {
 	return cluster, nil
 }
 
+func (m MockAtlasClient) SetClusterState(name string, state string) {
+	cluster := m.Clusters[name]
+	if cluster == nil {
+		return
+	}
+
+	cluster.State = state
+}
+
 func (m MockAtlasClient) CreateUser(user atlas.User) (*atlas.User, error) {
 	if m.Users[user.Username] != nil {
 		return nil, atlas.ErrUserAlreadyExists
@@ -61,7 +70,7 @@ func (m MockAtlasClient) DeleteUser(name string) error {
 	return nil
 }
 
-func SetupTest() (*Broker, MockAtlasClient) {
+func setupTest() (*Broker, MockAtlasClient) {
 	client := MockAtlasClient{
 		Clusters: make(map[string]*atlas.Cluster),
 		Users:    make(map[string]*atlas.User),

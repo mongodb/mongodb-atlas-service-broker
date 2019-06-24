@@ -9,7 +9,7 @@ import (
 )
 
 func TestBind(t *testing.T) {
-	broker, client := SetupTest()
+	broker, client := setupTest()
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
@@ -39,7 +39,7 @@ func TestBind(t *testing.T) {
 }
 
 func TestBindAlreadyExisting(t *testing.T) {
-	broker, _ := SetupTest()
+	broker, _ := setupTest()
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
@@ -57,7 +57,7 @@ func TestBindAlreadyExisting(t *testing.T) {
 }
 
 func TestBindMissingInstance(t *testing.T) {
-	broker, _ := SetupTest()
+	broker, _ := setupTest()
 
 	instanceID := "instance"
 	bindingID := "binding"
@@ -69,7 +69,7 @@ func TestBindMissingInstance(t *testing.T) {
 }
 
 func TestUnbind(t *testing.T) {
-	broker, client := SetupTest()
+	broker, client := setupTest()
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
@@ -92,7 +92,7 @@ func TestUnbind(t *testing.T) {
 }
 
 func TestUnbindMissing(t *testing.T) {
-	broker, _ := SetupTest()
+	broker, _ := setupTest()
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
@@ -109,7 +109,7 @@ func TestUnbindMissing(t *testing.T) {
 }
 
 func TestUnbindMissingInstance(t *testing.T) {
-	broker, _ := SetupTest()
+	broker, _ := setupTest()
 
 	instanceID := "instance"
 	bindingID := "binding"

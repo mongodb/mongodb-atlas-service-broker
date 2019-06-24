@@ -4,12 +4,14 @@ import (
 	"context"
 	"testing"
 
+	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProvision(t *testing.T) {
-	broker, client := SetupTest()
+	broker, client := setupTest()
 
 	// Provision a valid instance
 	instanceID := "instance"
@@ -33,7 +35,7 @@ func TestProvision(t *testing.T) {
 }
 
 func TestProvisionAlreadyExisting(t *testing.T) {
-	broker, _ := SetupTest()
+	broker, _ := setupTest()
 
 	// Provision a first instance
 	instanceID := "instance"
@@ -54,7 +56,7 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 }
 
 func TestProvisionWithoutAsync(t *testing.T) {
-	broker, client := SetupTest()
+	broker, client := setupTest()
 
 	// Try provisioning an instance without async support
 	instanceID := "instance"
@@ -74,7 +76,7 @@ func TestProvisionWithoutAsync(t *testing.T) {
 }
 
 func TestDeprovision(t *testing.T) {
-	broker, client := SetupTest()
+	broker, client := setupTest()
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
@@ -94,7 +96,7 @@ func TestDeprovision(t *testing.T) {
 }
 
 func TestDeprovisionWithoutAsync(t *testing.T) {
-	broker, client := SetupTest()
+	broker, client := setupTest()
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
@@ -115,7 +117,7 @@ func TestDeprovisionWithoutAsync(t *testing.T) {
 }
 
 func TestDeprovisionNonexistent(t *testing.T) {
-	broker, _ := SetupTest()
+	broker, _ := setupTest()
 
 	instanceID := "instance"
 	_, err := broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, true)
@@ -123,4 +125,74 @@ func TestDeprovisionNonexistent(t *testing.T) {
 	if err != apiresponses.ErrInstanceDoesNotExist {
 		t.Fatalf("Expected instance does not exist error, got %v", err)
 	}
+}
+
+func TestLastOperationProvision(t *testing.T) {
+	broker, client := setupTest()
+
+	instanceID := "instance"
+	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		PlanID:    "AWS-M10",
+		ServiceID: "mongodb",
+	}, true)
+
+	// Set the cluster state to idle
+	client.SetClusterState(instanceID, atlas.ClusterStateIdle)
+	resp, err := broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+		OperationData: OperationProvision,
+	})
+
+	// State of cluster should be "succeeded"
+	assert.NoError(t, err)
+	assert.Equal(t, brokerapi.Succeeded, resp.State)
+
+	// Set the cluster state to creating
+	client.SetClusterState(instanceID, atlas.ClusterStateCreating)
+	resp, err = broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+		OperationData: OperationProvision,
+	})
+
+	// State of cluster should be "in progress"
+	assert.NoError(t, err)
+	assert.Equal(t, brokerapi.InProgress, resp.State)
+}
+
+func TestLastOperationDeprovision(t *testing.T) {
+	broker, client := setupTest()
+
+	instanceID := "instance"
+	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		PlanID:    "AWS-M10",
+		ServiceID: "mongodb",
+	}, true)
+
+	// Set the cluster state to deleted
+	client.SetClusterState(instanceID, atlas.ClusterStateDeleted)
+	resp, err := broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+		OperationData: OperationDeprovision,
+	})
+
+	// State of cluster should be "succeeded"
+	assert.NoError(t, err)
+	assert.Equal(t, brokerapi.Succeeded, resp.State)
+
+	// Set the cluster state to deleting
+	client.SetClusterState(instanceID, atlas.ClusterStateDeleting)
+	resp, err = broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+		OperationData: OperationDeprovision,
+	})
+
+	// State of cluster should be "in progress"
+	assert.NoError(t, err)
+	assert.Equal(t, brokerapi.InProgress, resp.State)
+
+	// Fully remove cluster (causing a not found error)
+	client.Clusters[instanceID] = nil
+	resp, err = broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+		OperationData: OperationDeprovision,
+	})
+
+	// State of cluster should be "succeeded"
+	assert.NoError(t, err)
+	assert.Equal(t, brokerapi.Succeeded, resp.State)
 }

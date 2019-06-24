@@ -9,6 +9,12 @@ import (
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 )
 
+const (
+	OperationProvision   = "provision"
+	OperationDeprovision = "deprovision"
+	OperationUpdate      = "update"
+)
+
 // Provision will create a new Atlas cluster with the instance ID as its name.
 // The process is always async.
 func (b *Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (spec brokerapi.ProvisionedServiceSpec, err error) {
@@ -34,7 +40,8 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	}
 
 	spec = brokerapi.ProvisionedServiceSpec{
-		IsAsync: true,
+		IsAsync:       true,
+		OperationData: OperationProvision,
 	}
 	return
 }
@@ -56,7 +63,8 @@ func (b *Broker) Deprovision(ctx context.Context, instanceID string, details bro
 	}
 
 	spec = brokerapi.DeprovisionServiceSpec{
-		IsAsync: true,
+		IsAsync:       true,
+		OperationData: OperationDeprovision,
 	}
 	return
 }
@@ -73,15 +81,43 @@ func (b *Broker) GetInstance(ctx context.Context, instanceID string) (spec broke
 func (b *Broker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
 	b.logger.Infof("Updating instance \"%s\" with details %+v", instanceID, details)
 	return brokerapi.UpdateServiceSpec{
-		IsAsync: true,
+		IsAsync:       true,
+		OperationData: OperationUpdate,
 	}, nil
 }
 
 // LastOperation should fetch the state of the provision/deprovision
 // of a cluster.
-func (b *Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
+func (b *Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (resp brokerapi.LastOperation, err error) {
 	b.logger.Infof("Fetching state of last operation for instance \"%s\" with details %+v", instanceID, details)
+
+	cluster, err := b.atlas.GetCluster(instanceID)
+	if err != nil && err != atlas.ErrClusterNotFound {
+		err = atlasToAPIError(err)
+		return
+	}
+
+	state := brokerapi.LastOperationState(brokerapi.Failed)
+
+	switch details.OperationData {
+	case OperationProvision:
+		switch cluster.State {
+		case atlas.ClusterStateIdle:
+			state = brokerapi.Succeeded
+		case atlas.ClusterStateCreating:
+			state = brokerapi.InProgress
+		}
+	case OperationDeprovision:
+		if err == atlas.ErrClusterNotFound || cluster.State == atlas.ClusterStateDeleted {
+			state = brokerapi.Succeeded
+		} else if cluster.State == atlas.ClusterStateDeleting {
+			state = brokerapi.InProgress
+		}
+	case OperationUpdate:
+		// TODO: Implement once update has been implemented
+	}
+
 	return brokerapi.LastOperation{
-		State: brokerapi.Succeeded,
+		State: state,
 	}, nil
 }
