@@ -36,6 +36,35 @@ func TestCreateClusterExistingName(t *testing.T) {
 	assert.EqualError(t, err, ErrClusterAlreadyExists.Error())
 }
 
+func TestUpdateCluster(t *testing.T) {
+	expected := Cluster{
+		Name:  "Cluster",
+		State: ClusterStateIdle,
+		Type:  ClusterTypeReplicaSet,
+	}
+
+	atlas := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 200, expected)
+
+	cluster, err := atlas.UpdateCluster(expected)
+
+	assert.NoError(t, err)
+	assert.Equal(t, &expected, cluster)
+}
+
+func TestUpdateNonexistentCluster(t *testing.T) {
+	expected := Cluster{
+		Name:  "Cluster",
+		State: ClusterStateIdle,
+		Type:  ClusterTypeReplicaSet,
+	}
+
+	atlas := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 400, errorResponse("CLUSTER_NOT_FOUND"))
+
+	_, err := atlas.UpdateCluster(expected)
+
+	assert.EqualError(t, err, ErrClusterNotFound.Error())
+}
+
 func TestGetCluster(t *testing.T) {
 	expected := &Cluster{
 		Name:  "Cluster",

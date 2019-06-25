@@ -13,6 +13,7 @@ import (
 // Client is an interface for interacting with the Atlas API.
 type Client interface {
 	CreateCluster(cluster Cluster) (*Cluster, error)
+	UpdateCluster(cluster Cluster) (*Cluster, error)
 	TerminateCluster(name string) error
 	GetCluster(name string) (*Cluster, error)
 

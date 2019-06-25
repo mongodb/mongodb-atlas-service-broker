@@ -45,6 +45,16 @@ func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, error) {
 	return &resultingCluster, err
 }
 
+// UpdateCluster will update a cluster asynchronously.
+// PATCH /clusters/{CLUSTER-NAME}
+func (c *HTTPClient) UpdateCluster(cluster Cluster) (*Cluster, error) {
+	path := fmt.Sprintf("clusters/%s", cluster.Name)
+
+	var resultingCluster Cluster
+	err := c.request(http.MethodPatch, path, cluster, &resultingCluster)
+	return &resultingCluster, err
+}
+
 // TerminateCluster will terminate a cluster asynchronously.
 // DELETE /clusters/{CLUSTER-NAME}
 func (c *HTTPClient) TerminateCluster(name string) error {
