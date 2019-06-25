@@ -47,4 +47,4 @@ The service broker can be deployed to Kubernetes by following these steps:
    of the same name.
 9. After use all bindings can be removed by running `svcat unbind atlas-cluser-instance` and the
    cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance`.
-10. Run `scripts/kubernetes-teardown.sh` to fully remove the service broker.
+10. Run `scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.
