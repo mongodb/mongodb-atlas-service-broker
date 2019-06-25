@@ -1,0 +1,11 @@
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ClusterServiceBroker
+metadata:
+  name: atlas-service-broker
+spec:
+  url: http://atlas-service-broker.atlas
+  authInfo:
+    basic:
+      secretRef:
+        name: atlas-service-broker-auth
+        namespace: atlas

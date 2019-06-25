@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atlas-service-broker
+  labels:
+    app: atlas-service-broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: atlas-service-broker
+  template:
+    metadata:
+      labels:
+        app: atlas-service-broker
+    spec:
+      containers:
+        - name: atlas-service-broker
+          image: atlas-service-broker:latest
+          imagePullPolicy: Never
+          ports:
+          - containerPort: 8080
+          env:
+          - name: BROKER_PORT
+            value: "8080"
+          - name: BROKER_HOST
+            value: "0.0.0.0"
+          - name: ATLAS_BASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: atlas-api
+                key: base-url
+          - name: ATLAS_GROUP_ID
+            valueFrom:
+              secretKeyRef:
+                name: atlas-api
+                key: group-id
+          - name: ATLAS_PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: atlas-api
+                key: public-key 
+          - name: ATLAS_PRIVATE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: atlas-api
+                key: private-key
