@@ -7,6 +7,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCreateCluster(t *testing.T) {
+	expected := Cluster{
+		Name:  "Cluster",
+		State: ClusterStateIdle,
+		Type:  ClusterTypeReplicaSet,
+	}
+
+	atlas := setupTest(t, "/clusters", http.MethodPost, 200, expected)
+
+	cluster, err := atlas.CreateCluster(expected)
+
+	assert.NoError(t, err)
+	assert.Equal(t, &expected, cluster)
+}
+
+func TestCreateClusterExistingName(t *testing.T) {
+	cluster := Cluster{
+		Name:  "Cluster",
+		State: ClusterStateIdle,
+		Type:  ClusterTypeReplicaSet,
+	}
+
+	atlas := setupTest(t, "/clusters", http.MethodPost, 400, errorResponse("DUPLICATE_CLUSTER_NAME"))
+
+	_, err := atlas.CreateCluster(cluster)
+
+	assert.EqualError(t, err, ErrClusterAlreadyExists.Error())
+}
+
 func TestGetCluster(t *testing.T) {
 	expected := &Cluster{
 		Name:  "Cluster",
@@ -28,7 +57,7 @@ func TestGetNonexistentCluster(t *testing.T) {
 
 	_, err := atlas.GetCluster(clusterName)
 
-	assert.Equal(t, ErrClusterNotFound, err)
+	assert.EqualError(t, err, ErrClusterNotFound.Error())
 }
 
 func TestTerminateCluster(t *testing.T) {
