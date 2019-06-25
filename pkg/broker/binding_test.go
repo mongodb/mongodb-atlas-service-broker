@@ -6,6 +6,7 @@ import (
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBind(t *testing.T) {
@@ -20,22 +21,12 @@ func TestBind(t *testing.T) {
 	bindingID := "binding"
 	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
 
-	if err != nil {
-		t.Errorf("Expected error to be nil, got %v", err)
-	}
+	assert.NoError(t, err)
 
 	user := client.Users[bindingID]
-	if user == nil {
-		t.Errorf("Expected user to exist with username %v", bindingID)
-	}
-
-	if user.Username != bindingID {
-		t.Errorf("Expected created user to have username %v, got %v", bindingID, user.Username)
-	}
-
-	if user.Password == "" {
-		t.Errorf("Expected password to have been generated")
-	}
+	assert.NotEmptyf(t, user, "Expected user to exist with username %s", bindingID)
+	assert.Equal(t, bindingID, user.Username)
+	assert.NotEmpty(t, user.Password, "Expected password to have been genereated")
 }
 
 func TestBindAlreadyExisting(t *testing.T) {
@@ -51,9 +42,7 @@ func TestBindAlreadyExisting(t *testing.T) {
 	broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
 	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
 
-	if err != apiresponses.ErrBindingAlreadyExists {
-		t.Errorf("Expected user already exists error, got %v", err)
-	}
+	assert.EqualError(t, err, apiresponses.ErrBindingAlreadyExists.Error())
 }
 
 func TestBindMissingInstance(t *testing.T) {
@@ -63,9 +52,7 @@ func TestBindMissingInstance(t *testing.T) {
 	bindingID := "binding"
 	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
 
-	if err != apiresponses.ErrInstanceDoesNotExist {
-		t.Errorf("Expected instance does not exist error, got %v", err)
-	}
+	assert.EqualError(t, err, apiresponses.ErrInstanceDoesNotExist.Error())
 }
 
 func TestUnbind(t *testing.T) {
@@ -82,13 +69,8 @@ func TestUnbind(t *testing.T) {
 
 	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
 
-	if err != nil {
-		t.Fatalf("Expected error to be nil, got %v", err)
-	}
-
-	if client.Users[bindingID] != nil {
-		t.Fatalf("Expected user to be removed")
-	}
+	assert.NoError(t, err)
+	assert.Empty(t, client.Users[bindingID], "Expected to be removed")
 }
 
 func TestUnbindMissing(t *testing.T) {
@@ -103,9 +85,7 @@ func TestUnbindMissing(t *testing.T) {
 	bindingID := "binding"
 	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
 
-	if err != apiresponses.ErrBindingDoesNotExist {
-		t.Fatalf("Expected binding does not exist error, got %v", err)
-	}
+	assert.EqualError(t, err, apiresponses.ErrBindingDoesNotExist.Error())
 }
 
 func TestUnbindMissingInstance(t *testing.T) {
@@ -115,7 +95,5 @@ func TestUnbindMissingInstance(t *testing.T) {
 	bindingID := "binding"
 	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
 
-	if err != apiresponses.ErrInstanceDoesNotExist {
-		t.Errorf("Expected instance does not exist error, got %v", err)
-	}
+	assert.EqualError(t, err, apiresponses.ErrInstanceDoesNotExist.Error())
 }

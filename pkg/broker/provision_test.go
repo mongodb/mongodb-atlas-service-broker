@@ -25,18 +25,9 @@ func TestProvision(t *testing.T) {
 		ServiceID: testServiceID,
 	}, true)
 
-	if err != nil {
-		t.Fatalf("Expected error to be nil, got %v", err)
-	}
-
-	if len(client.Clusters) != 1 {
-		t.Fatalf("Expected number of clusters to be 1, got %d", len(client.Clusters))
-	}
-
-	cluster := client.Clusters[instanceID]
-	if cluster == nil {
-		t.Fatalf("Expected cluster with name %s to have been created", instanceID)
-	}
+	assert.NoError(t, err)
+	assert.Len(t, client.Clusters, 1)
+	assert.NotEmptyf(t, client.Clusters[instanceID], "Expected cluster with name \"%s\" to exist", instanceID)
 }
 
 func TestProvisionAlreadyExisting(t *testing.T) {
@@ -55,9 +46,7 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 		ServiceID: testServiceID,
 	}, true)
 
-	if err != apiresponses.ErrInstanceAlreadyExists {
-		t.Fatalf("Expected instance already exists error, got %v", err)
-	}
+	assert.EqualError(t, err, apiresponses.ErrInstanceAlreadyExists.Error())
 }
 
 func TestProvisionWithoutAsync(t *testing.T) {
@@ -70,14 +59,10 @@ func TestProvisionWithoutAsync(t *testing.T) {
 		ServiceID: testServiceID,
 	}, false)
 
-	if err != apiresponses.ErrAsyncRequired {
-		t.Fatalf("Expected error to be \"async required\", got %v", err)
-	}
+	assert.EqualError(t, err, apiresponses.ErrAsyncRequired.Error())
 
 	// Ensure no clusters were deployed
-	if len(client.Clusters) > 0 {
-		t.Fatal("Expected no clusters to be created")
-	}
+	assert.Len(t, client.Clusters, 0, "Expected no clusters to be created")
 }
 
 func TestDeprovision(t *testing.T) {
@@ -91,13 +76,8 @@ func TestDeprovision(t *testing.T) {
 
 	_, err := broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, true)
 
-	if err != nil {
-		t.Fatalf("Expected error to be nil, got %v", err)
-	}
-
-	if client.Clusters[instanceID] != nil {
-		t.Fatal("Expected cluster to have been removed")
-	}
+	assert.NoError(t, err)
+	assert.Nil(t, client.Clusters[instanceID], "Expected cluster to have been removed")
 }
 
 func TestDeprovisionWithoutAsync(t *testing.T) {
@@ -111,14 +91,8 @@ func TestDeprovisionWithoutAsync(t *testing.T) {
 
 	_, err := broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, false)
 
-	if err != apiresponses.ErrAsyncRequired {
-		t.Fatalf("Expected error to be \"async required\", got %v", err)
-	}
-
-	// Ensure the cluster was not terminated
-	if client.Clusters[instanceID] == nil {
-		t.Fatal("Expected cluster to not be terminated")
-	}
+	assert.EqualError(t, err, apiresponses.ErrAsyncRequired.Error())
+	assert.NotEmpty(t, client.Clusters[instanceID], "Expected cluster to not have been removed")
 }
 
 func TestDeprovisionNonexistent(t *testing.T) {
@@ -127,9 +101,7 @@ func TestDeprovisionNonexistent(t *testing.T) {
 	instanceID := "instance"
 	_, err := broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, true)
 
-	if err != apiresponses.ErrInstanceDoesNotExist {
-		t.Fatalf("Expected instance does not exist error, got %v", err)
-	}
+	assert.EqualError(t, err, apiresponses.ErrInstanceDoesNotExist.Error())
 }
 
 func TestLastOperationProvision(t *testing.T) {
