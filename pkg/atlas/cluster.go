@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// All states a cluster can be in.
 var (
 	ClusterStateIdle      = "IDLE"
 	ClusterStateCreating  = "CREATING"
@@ -14,14 +15,11 @@ var (
 	ClusterStateRepairing = "REPAIRING"
 )
 
+// The different types of clusters available in Atlas.
 var (
 	ClusterTypeReplicaSet = "REPLICASET"
 	ClusterTypeSharded    = "SHARDED"
 )
-
-type ClustersResponse struct {
-	Clusters []Cluster `json:"results"`
-}
 
 // Cluster represents a single cluster in Atlas.
 type Cluster struct {

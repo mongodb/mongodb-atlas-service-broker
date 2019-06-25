@@ -9,6 +9,9 @@ import (
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 )
 
+// The different async operations that can be performed.
+// These constants are returned during provisioning, deprovisioning, and
+// updates and are subsequently included in async polls from the platform.
 const (
 	OperationProvision   = "provision"
 	OperationDeprovision = "deprovision"

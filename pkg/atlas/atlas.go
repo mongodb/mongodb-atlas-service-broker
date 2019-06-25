@@ -10,6 +10,7 @@ import (
 	"net/url"
 )
 
+// Client is an interface for interacting with the Atlas API.
 type Client interface {
 	CreateCluster(cluster Cluster) (*Cluster, error)
 	TerminateCluster(name string) error
@@ -21,7 +22,7 @@ type Client interface {
 // HTTPClient is the main implementation of the Client interface which
 // communicates with the Atlas API.
 type HTTPClient struct {
-	baseUrl    string
+	baseURL    string
 	groupID    string
 	publicKey  string
 	privateKey string
@@ -29,6 +30,7 @@ type HTTPClient struct {
 	HTTP *http.Client
 }
 
+// Different errors the api may return.
 var (
 	ErrClusterNotFound      = errors.New("Cluster not found")
 	ErrClusterAlreadyExists = errors.New("Cluster already exists")
@@ -37,9 +39,10 @@ var (
 	ErrUserAlreadyExists = errors.New("User already exists")
 )
 
-func NewClient(baseUrl string, groupID string, publicKey string, privateKey string) (*HTTPClient, error) {
+// NewClient will create a new HTTPClient with the specified connection details.
+func NewClient(baseURL string, groupID string, publicKey string, privateKey string) (*HTTPClient, error) {
 	return &HTTPClient{
-		baseUrl:    baseUrl,
+		baseURL:    baseURL,
 		groupID:    groupID,
 		publicKey:  publicKey,
 		privateKey: privateKey,
@@ -49,9 +52,13 @@ func NewClient(baseUrl string, groupID string, publicKey string, privateKey stri
 }
 
 func (c *HTTPClient) url(path string) string {
-	return fmt.Sprintf("%s/groups/%s/%s", c.baseUrl, c.groupID, path)
+	return fmt.Sprintf("%s/groups/%s/%s", c.baseURL, c.groupID, path)
 }
 
+// request makes an HTTP request using the specified method.
+// The endpoint will be constructed by prepending the group to the specified path.
+// If body is passed it will be JSON encoded and included with the request.
+// If the request was successful the response will be decoded into response.
 func (c *HTTPClient) request(method string, path string, body interface{}, response interface{}) error {
 	var data io.Reader
 
