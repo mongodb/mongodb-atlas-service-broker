@@ -24,7 +24,7 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 	b.logger.Infof("Creating binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
 
 	// Fetch the cluster from Atlas to ensure it exists.
-	cluster, err := b.atlas.GetCluster(instanceID)
+	cluster, err := b.atlas.GetCluster(sanitizeClusterName(instanceID))
 	if err != nil {
 		err = atlasToAPIError(err)
 		return
@@ -65,7 +65,7 @@ func (b *Broker) Unbind(ctx context.Context, instanceID string, bindingID string
 	b.logger.Infof("Releasing binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
 
 	// Fetch the cluster from Atlas to ensure it exists.
-	_, err = b.atlas.GetCluster(instanceID)
+	_, err = b.atlas.GetCluster(sanitizeClusterName(instanceID))
 	if err != nil {
 		err = atlasToAPIError(err)
 		return

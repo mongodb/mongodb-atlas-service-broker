@@ -31,10 +31,11 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 
 	// Create a new Atlas cluster with the instance ID as its name.
 	_, err = b.atlas.CreateCluster(atlas.Cluster{
-		Name:     instanceID,
+		Name:     sanitizeClusterName(instanceID),
 		Provider: plan.Provider(),
 	})
 	if err != nil {
+		b.logger.Error(err)
 		err = atlasToAPIError(err)
 		return
 	}
@@ -56,8 +57,9 @@ func (b *Broker) Deprovision(ctx context.Context, instanceID string, details bro
 		return
 	}
 
-	err = b.atlas.TerminateCluster(instanceID)
+	err = b.atlas.TerminateCluster(sanitizeClusterName(instanceID))
 	if err != nil {
+		b.logger.Error(err)
 		err = atlasToAPIError(err)
 		return
 	}
@@ -91,8 +93,9 @@ func (b *Broker) Update(ctx context.Context, instanceID string, details brokerap
 func (b *Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (resp brokerapi.LastOperation, err error) {
 	b.logger.Infof("Fetching state of last operation for instance \"%s\" with details %+v", instanceID, details)
 
-	cluster, err := b.atlas.GetCluster(instanceID)
+	cluster, err := b.atlas.GetCluster(sanitizeClusterName(instanceID))
 	if err != nil && err != atlas.ErrClusterNotFound {
+		b.logger.Error(err)
 		err = atlasToAPIError(err)
 		return
 	}
@@ -120,4 +123,9 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, details b
 	return brokerapi.LastOperation{
 		State: state,
 	}, nil
+}
+
+func sanitizeClusterName(name string) string {
+	trimmed := name[0:30]
+	return string(trimmed)
 }
