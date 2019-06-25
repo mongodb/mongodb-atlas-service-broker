@@ -3,6 +3,7 @@ package broker
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
@@ -28,84 +29,112 @@ func NewBroker(client atlas.Client, logger *zap.SugaredLogger) *Broker {
 
 // Services generates the service catalog which will be presented to consumers of the API.
 func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
-	plans := Plans()
-	servicePlans := make([]brokerapi.ServicePlan, len(plans))
+	clouds := clouds()
+	services := make([]brokerapi.Service, len(clouds))
 
-	for i, plan := range plans {
-		servicePlans[i] = brokerapi.ServicePlan{
-			ID:          plan.ID,
-			Name:        plan.Name,
-			Description: plan.Description,
-		}
-	}
-
-	return []brokerapi.Service{
-		brokerapi.Service{
-			ID:                   "mongodb",
-			Name:                 "mongodb",
-			Description:          "DESCRIPTION",
+	for i, cloud := range clouds {
+		services[i] = brokerapi.Service{
+			ID:                   cloud.ID(),
+			Name:                 cloud.ID(),
+			Description:          fmt.Sprintf("Cluster hosted on %s", cloud.Name),
 			Bindable:             true,
 			InstancesRetrievable: false,
 			BindingsRetrievable:  false,
 			Metadata:             nil,
-			Plans:                servicePlans,
-		},
-	}, nil
-}
-
-// Plan represents a single plan for the service with an associated instance
-// size and broker.
-type Plan struct {
-	ID           string
-	Name         string
-	Description  string
-	Instance     string
-	ProviderName string
-}
-
-// Provider returns the Atlas provider settings corresponding to the plan.
-func (p *Plan) Provider() atlas.Provider {
-	return atlas.Provider{
-		Name:     p.ProviderName,
-		Instance: p.Instance,
-		// TODO: Make region a parameter during provisioning
-		Region: "EU_WEST_1",
+			Plans:                plansForCloud(cloud),
+		}
 	}
+
+	return services, nil
 }
 
-// Plans return all available plans across all providers.
-func Plans() []Plan {
-	return append(providerPlans("AWS"), providerPlans("GCP")...)
-}
+func plansForCloud(cloud Cloud) []brokerapi.ServicePlan {
+	plans := make([]brokerapi.ServicePlan, len(cloud.Sizes))
 
-func providerPlans(provider string) []Plan {
-	instanceSizes := []string{"M10", "M20"}
-
-	var plans []Plan
-
-	// AWS Instances
-	for _, instance := range instanceSizes {
-		plans = append(plans, Plan{
-			ID:           fmt.Sprintf("%s-%s", provider, instance),
-			Name:         fmt.Sprintf("%s-%s", provider, instance),
-			Description:  fmt.Sprintf("Instance size %s on %s", instance, provider),
-			Instance:     instance,
-			ProviderName: provider,
-		})
+	for i, size := range cloud.Sizes {
+		plans[i] = brokerapi.ServicePlan{
+			ID:          size.ID(cloud),
+			Name:        size.Name,
+			Description: fmt.Sprintf("Instance size %s", size.Name),
+		}
 	}
 
 	return plans
 }
 
-// findPlan search all available plans by ID.
-func findPlan(id string) *Plan {
-	for _, plan := range Plans() {
-		if plan.ID == id {
-			return &plan
+type Cloud struct {
+	Name  string
+	Sizes []Size
+}
+
+func (c Cloud) ID() string {
+	return fmt.Sprintf("mongodb-%s", strings.ToLower(c.Name))
+}
+
+type Size struct {
+	Name string
+}
+
+func (s Size) ID(cloud Cloud) string {
+	return fmt.Sprintf("%s-%s", cloud.Name, s.Name)
+}
+
+func clouds() []Cloud {
+	return []Cloud{
+		Cloud{
+			Name: "AWS",
+			Sizes: []Size{
+				Size{Name: "M10"},
+				Size{Name: "M20"},
+				Size{Name: "M30"},
+				Size{Name: "M40"},
+				Size{Name: "R40"},
+				Size{Name: "M40_NVME"},
+				Size{Name: "M50"},
+				Size{Name: "R50"},
+				Size{Name: "M50_NVME"},
+				Size{Name: "M60"},
+				Size{Name: "R60"},
+				Size{Name: "M60_NVME"},
+				Size{Name: "R80"},
+				Size{Name: "M80_NVME"},
+				Size{Name: "M100"},
+				Size{Name: "M140"},
+				Size{Name: "M200"},
+				Size{Name: "R200"},
+				Size{Name: "M200_NVME"},
+				Size{Name: "M300"},
+				Size{Name: "R400"},
+				Size{Name: "M400_NVME"},
+			},
+		},
+		Cloud{
+			Name: "GCP",
+			Sizes: []Size{
+				Size{Name: "M10"},
+			},
+		},
+		Cloud{
+			Name: "AZURE",
+			Sizes: []Size{
+				Size{Name: "M10"},
+			},
+		},
+	}
+}
+
+func cloudFromPlan(serviceID string, planID string) (*Cloud, *Size) {
+	for _, cloud := range clouds() {
+		if cloud.ID() == serviceID {
+			for _, size := range cloud.Sizes {
+				if size.ID(cloud) == planID {
+					return &cloud, &size
+				}
+			}
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 // atlasToAPIError converts an Atlas error to a OSB response error.

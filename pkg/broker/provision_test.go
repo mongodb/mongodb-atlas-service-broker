@@ -10,14 +10,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	testServiceID = "mongodb-aws"
+	testPlanID    = "AWS-M10"
+)
+
 func TestProvision(t *testing.T) {
 	broker, client := setupTest()
 
 	// Provision a valid instance
 	instanceID := "instance"
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    "AWS-M10",
-		ServiceID: "mongodb",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	if err != nil {
@@ -40,14 +45,14 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 	// Provision a first instance
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    "AWS-M10",
-		ServiceID: "mongodb",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	// Try provisioning a second instance with the same ID
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    "AWS-M20",
-		ServiceID: "mongodb",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	if err != apiresponses.ErrInstanceAlreadyExists {
@@ -61,8 +66,8 @@ func TestProvisionWithoutAsync(t *testing.T) {
 	// Try provisioning an instance without async support
 	instanceID := "instance"
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    "AWS-M10",
-		ServiceID: "mongodb",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, false)
 
 	if err != apiresponses.ErrAsyncRequired {
@@ -80,8 +85,8 @@ func TestDeprovision(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    "AWS-M10",
-		ServiceID: "mongodb",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	_, err := broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, true)
@@ -100,8 +105,8 @@ func TestDeprovisionWithoutAsync(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    "AWS-M10",
-		ServiceID: "mongodb",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	_, err := broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, false)
@@ -132,8 +137,8 @@ func TestLastOperationProvision(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    "AWS-M10",
-		ServiceID: "mongodb",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	// Set the cluster state to idle
@@ -162,8 +167,8 @@ func TestLastOperationDeprovision(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    "AWS-M10",
-		ServiceID: "mongodb",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	// Set the cluster state to deleted

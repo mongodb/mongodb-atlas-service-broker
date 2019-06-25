@@ -13,8 +13,8 @@ func TestBind(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		ServiceID: "mongodb",
-		PlanID:    "AWS-M10",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	bindingID := "binding"
@@ -43,8 +43,8 @@ func TestBindAlreadyExisting(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		ServiceID: "mongodb",
-		PlanID:    "AWS-M10",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	bindingID := "binding"
@@ -73,8 +73,8 @@ func TestUnbind(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		ServiceID: "mongodb",
-		PlanID:    "AWS-M10",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	bindingID := "binding"
@@ -96,8 +96,8 @@ func TestUnbindMissing(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		ServiceID: "mongodb",
-		PlanID:    "AWS-M10",
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	bindingID := "binding"

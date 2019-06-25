@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
@@ -29,13 +30,17 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		return
 	}
 
-	// Find the plan corresponding to the passed plan ID.
-	plan := findPlan(details.PlanID)
+	// Find the provider and size corresponding to the passed service and plan.
+	cloud, size := cloudFromPlan(details.ServiceID, details.PlanID)
+	if cloud == nil || size == nil {
+		err = errors.New("Invalid service ID or plan ID")
+		return
+	}
 
 	// Create a new Atlas cluster with the instance ID as its name.
 	_, err = b.atlas.CreateCluster(atlas.Cluster{
 		Name:     sanitizeClusterName(instanceID),
-		Provider: plan.Provider(),
+		Provider: atlasProvider(cloud, size),
 	})
 	if err != nil {
 		b.logger.Error(err)
@@ -129,6 +134,19 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, details b
 }
 
 func sanitizeClusterName(name string) string {
-	trimmed := name[0:30]
-	return string(trimmed)
+	if len(name) > 30 {
+		return string(name[0:30])
+	}
+
+	return name
+}
+
+// atlasProvider will create a provider object for use with
+// the Atlas API during provisioning. The provider will be
+func atlasProvider(cloud *Cloud, size *Size) atlas.Provider {
+	return atlas.Provider{
+		Name:     cloud.Name,
+		Instance: size.Name,
+		Region:   "EU_WEST_1",
+	}
 }
