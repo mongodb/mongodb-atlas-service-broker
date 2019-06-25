@@ -34,7 +34,10 @@ func getMD5(text string) string {
 
 func getCnonce() string {
 	b := make([]byte, 8)
-	io.ReadFull(rand.Reader, b)
+	_, err := io.ReadFull(rand.Reader, b)
+	if err != nil {
+		panic("Error during cnonce generation: " + err.Error())
+	}
 	return fmt.Sprintf("%x", b)[:16]
 }
 
