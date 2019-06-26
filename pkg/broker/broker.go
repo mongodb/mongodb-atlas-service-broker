@@ -1,7 +1,7 @@
 package broker
 
 import (
-	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
+	"github.com/10gen/atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"go.uber.org/zap"
 )

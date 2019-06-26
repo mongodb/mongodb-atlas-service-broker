@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
-	"github.com/fabianlindfors/atlas-service-broker/pkg/broker"
+	"github.com/10gen/atlas-service-broker/pkg/atlas"
+	"github.com/10gen/atlas-service-broker/pkg/broker"
 	"github.com/pivotal-cf/brokerapi"
 	"go.uber.org/zap"
 )

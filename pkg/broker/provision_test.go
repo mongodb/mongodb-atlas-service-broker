@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
+	"github.com/10gen/atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/stretchr/testify/assert"

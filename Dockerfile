@@ -1,6 +1,6 @@
 FROM golang:1.11
 
-WORKDIR $GOPATH/src/github.com/fabianlindfors/atlas-service-broker
+WORKDIR $GOPATH/src/github.com/10gen/atlas-service-broker
 
 COPY . .
 
