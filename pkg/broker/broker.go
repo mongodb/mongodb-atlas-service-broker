@@ -36,7 +36,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 		services[i] = brokerapi.Service{
 			ID:                   cloud.ID(),
 			Name:                 cloud.ID(),
-			Description:          fmt.Sprintf("Cluster hosted on %s", cloud.Name),
+			Description:          fmt.Sprintf("Cluster hosted on \"%s\"", cloud.Name),
 			Bindable:             true,
 			InstancesRetrievable: false,
 			BindingsRetrievable:  false,
@@ -55,7 +55,7 @@ func plansForCloud(cloud Cloud) []brokerapi.ServicePlan {
 		plans[i] = brokerapi.ServicePlan{
 			ID:          size.ID(cloud),
 			Name:        size.Name,
-			Description: fmt.Sprintf("Instance size %s", size.Name),
+			Description: fmt.Sprintf("Instance size \"%s\"", size.Name),
 		}
 	}
 
@@ -63,12 +63,27 @@ func plansForCloud(cloud Cloud) []brokerapi.ServicePlan {
 }
 
 type Cloud struct {
-	Name  string
-	Sizes []Size
+	Name    string
+	Regions []string
+	Sizes   []Size
 }
 
 func (c Cloud) ID() string {
 	return fmt.Sprintf("mongodb-%s", strings.ToLower(c.Name))
+}
+
+func (c Cloud) DefaultRegion() string {
+	return c.Regions[0]
+}
+
+func (c Cloud) ValidateRegion(region string) error {
+	for _, validRegion := range c.Regions {
+		if validRegion == region {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Invalid region %s", region)
 }
 
 type Size struct {
@@ -82,7 +97,8 @@ func (s Size) ID(cloud Cloud) string {
 func clouds() []Cloud {
 	return []Cloud{
 		Cloud{
-			Name: "AWS",
+			Name:    "AWS",
+			Regions: []string{"EU_WEST_1", "EU_CENTRAL_1"},
 			Sizes: []Size{
 				Size{Name: "M10"},
 				Size{Name: "M20"},

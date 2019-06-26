@@ -30,17 +30,16 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		return
 	}
 
-	// Find the provider and size corresponding to the passed service and plan.
-	cloud, size := cloudFromPlan(details.ServiceID, details.PlanID)
-	if cloud == nil || size == nil {
-		err = errors.New("Invalid service ID or plan ID")
+	// Find the provider corresponding to the passed service and plan.
+	provider, err := atlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
+	if err != nil {
 		return
 	}
 
 	// Create a new Atlas cluster with the instance ID as its name.
 	_, err = b.atlas.CreateCluster(atlas.Cluster{
 		Name:     sanitizeClusterName(instanceID),
-		Provider: atlasProvider(cloud, size),
+		Provider: provider,
 	})
 	if err != nil {
 		b.logger.Error(err)
@@ -142,11 +141,37 @@ func sanitizeClusterName(name string) string {
 }
 
 // atlasProvider will create a provider object for use with
-// the Atlas API during provisioning. The provider will be
-func atlasProvider(cloud *Cloud, size *Size) atlas.Provider {
-	return atlas.Provider{
+// the Atlas API during provisioning and updating.
+func atlasProvider(serviceID string, planID string, rawParams []byte) (*atlas.Provider, error) {
+	cloud, size := cloudFromPlan(serviceID, planID)
+	if cloud == nil || size == nil {
+		return nil, errors.New("Invalid service ID or plan ID")
+	}
+
+	// Set up a params object with default values.
+	params := struct {
+		Region string `json:"region"`
+	}{
+		cloud.DefaultRegion(),
+	}
+
+	// If params were passed we unmarshal them into the params object.
+	if len(rawParams) > 0 {
+		err := json.Unmarshal(rawParams, &params)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Validate the region
+	err := cloud.ValidateRegion(params.Region)
+	if err != nil {
+		return nil, err
+	}
+
+	return &atlas.Provider{
 		Name:     cloud.Name,
 		Instance: size.Name,
-		Region:   "EU_WEST_1",
-	}
+		Region:   params.Region,
+	}, nil
 }

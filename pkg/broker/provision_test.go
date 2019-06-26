@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
@@ -18,7 +19,33 @@ var (
 func TestProvision(t *testing.T) {
 	broker, client := setupTest()
 
-	// Provision a valid instance
+	params, err := json.Marshal(map[string]string{
+		"region": "EU_CENTRAL_1",
+	})
+	assert.NoError(t, err)
+
+	instanceID := "instance"
+	_, err = broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		PlanID:        testPlanID,
+		ServiceID:     testServiceID,
+		RawParameters: params,
+	}, true)
+
+	assert.NoError(t, err)
+	assert.Len(t, client.Clusters, 1)
+
+	cluster := client.Clusters[instanceID]
+	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
+	assert.Equal(t, &atlas.Provider{
+		Name:     "AWS",
+		Instance: "M10",
+		Region:   "EU_CENTRAL_1",
+	}, cluster.Provider)
+}
+
+func TestProvisionDefaultRegion(t *testing.T) {
+	broker, client := setupTest()
+
 	instanceID := "instance"
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
 		PlanID:    testPlanID,
@@ -27,7 +54,32 @@ func TestProvision(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Len(t, client.Clusters, 1)
-	assert.NotEmptyf(t, client.Clusters[instanceID], "Expected cluster with name \"%s\" to exist", instanceID)
+
+	cluster := client.Clusters[instanceID]
+	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
+	assert.Equal(t, &atlas.Provider{
+		Name:     "AWS",
+		Instance: "M10",
+		Region:   "EU_WEST_1",
+	}, cluster.Provider)
+}
+
+func TestProvisionWithInvalidRegion(t *testing.T) {
+	broker, _ := setupTest()
+
+	params, err := json.Marshal(map[string]string{
+		"region": "NON_EXISTENT_REGION",
+	})
+	assert.NoError(t, err)
+
+	instanceID := "instance"
+	_, err = broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		PlanID:        testPlanID,
+		ServiceID:     testServiceID,
+		RawParameters: params,
+	}, true)
+
+	assert.Error(t, err, "Invalid region \"NON_EXISTENT_REGION\"")
 }
 
 func TestProvisionAlreadyExisting(t *testing.T) {
