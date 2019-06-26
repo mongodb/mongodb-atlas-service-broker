@@ -1,7 +1,11 @@
 package broker
 
 import (
+	"context"
+	"testing"
+
 	"github.com/fabianlindfors/atlas-service-broker/pkg/atlas"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
@@ -87,4 +91,17 @@ func setupTest() (*Broker, MockAtlasClient) {
 	}
 	broker := NewBroker(client, zap.NewNop().Sugar())
 	return broker, client
+}
+
+func TestCatalog(t *testing.T) {
+	broker, _ := setupTest()
+
+	services, err := broker.Services(context.Background())
+
+	assert.NoError(t, err)
+	assert.Greater(t, len(services), 0, "Expected a non-zero amount of services")
+
+	for _, service := range services {
+		assert.Greaterf(t, len(service.Plans), 0, "Expected a non-zero amount of plans for service %s", service.Name)
+	}
 }
