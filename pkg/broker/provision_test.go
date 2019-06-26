@@ -16,6 +16,42 @@ var (
 	testPlanID    = "AWS-M10"
 )
 
+// TestMissingAsync will make sure all async operations don't accept non-async
+// clients.
+func TestMissingAsync(t *testing.T) {
+	broker, client := setupTest()
+
+	// Try provisioning an instance without async support
+	instanceID := "instance"
+	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, false)
+
+	assert.EqualError(t, err, apiresponses.ErrAsyncRequired.Error())
+	assert.Len(t, client.Clusters, 0, "Expected no clusters to be created")
+
+	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
+
+	// Try updating existing cluster without async support
+	_, err = broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, false)
+
+	assert.EqualError(t, err, apiresponses.ErrAsyncRequired.Error())
+
+	_, err = broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, false)
+
+	assert.EqualError(t, err, apiresponses.ErrAsyncRequired.Error())
+}
+
 func TestProvision(t *testing.T) {
 	broker, client := setupTest()
 
@@ -103,20 +139,50 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 	assert.EqualError(t, err, apiresponses.ErrInstanceAlreadyExists.Error())
 }
 
-func TestProvisionWithoutAsync(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	broker, client := setupTest()
 
-	// Try provisioning an instance without async support
 	instanceID := "instance"
-	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
-	}, false)
+	}, true)
 
-	assert.EqualError(t, err, apiresponses.ErrAsyncRequired.Error())
+	params, err := json.Marshal(map[string]string{
+		"region": "EU_CENTRAL_1",
+	})
+	assert.NoError(t, err)
 
-	// Ensure no clusters were deployed
-	assert.Len(t, client.Clusters, 0, "Expected no clusters to be created")
+	res, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+		PlanID:        "AWS-M20",
+		ServiceID:     testServiceID,
+		RawParameters: params,
+	}, true)
+
+	assert.NoError(t, err)
+	assert.True(t, res.IsAsync)
+	assert.Equal(t, OperationUpdate, res.OperationData)
+
+	cluster := client.Clusters[instanceID]
+	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
+
+	// Ensure the instance size and region was updated and the provider
+	// was not.
+	assert.Equal(t, "M20", cluster.Provider.Instance)
+	assert.Equal(t, "AWS", cluster.Provider.Name)
+	assert.Equal(t, "EU_CENTRAL_1", cluster.Provider.Region)
+}
+
+func TestUpdateNonexistent(t *testing.T) {
+	broker, _ := setupTest()
+
+	instanceID := "instance"
+	_, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
+
+	assert.Error(t, err, brokerapi.ErrInstanceDoesNotExist.Error())
 }
 
 func TestDeprovision(t *testing.T) {

@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -54,6 +55,38 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	return
 }
 
+// Update will change the configuration of an existing Atlas cluster asynchronously.
+func (b *Broker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (spec brokerapi.UpdateServiceSpec, err error) {
+	b.logger.Infof("Updating instance \"%s\" with details %+v", instanceID, details)
+
+	// Async needs to be supported for provisioning to work.
+	if !asyncAllowed {
+		err = apiresponses.ErrAsyncRequired
+		return
+	}
+
+	// Find the provider corresponding to the passed service and plan.
+	provider, err := atlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
+	if err != nil {
+		return
+	}
+
+	_, err = b.atlas.UpdateCluster(atlas.Cluster{
+		Name:     sanitizeClusterName(instanceID),
+		Provider: provider,
+	})
+	if err != nil {
+		b.logger.Error(err)
+		err = atlasToAPIError(err)
+		return
+	}
+
+	return brokerapi.UpdateServiceSpec{
+		IsAsync:       true,
+		OperationData: OperationUpdate,
+	}, nil
+}
+
 // Deprovision will destroy an Atlas cluster asynchronously.
 func (b *Broker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (spec brokerapi.DeprovisionServiceSpec, err error) {
 	b.logger.Infof("Deprovisioning instance \"%s\" with details %+v", instanceID, details)
@@ -86,15 +119,6 @@ func (b *Broker) GetInstance(ctx context.Context, instanceID string) (spec broke
 	return
 }
 
-// Update is not yet impemented.
-func (b *Broker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
-	b.logger.Infof("Updating instance \"%s\" with details %+v", instanceID, details)
-	return brokerapi.UpdateServiceSpec{
-		IsAsync:       true,
-		OperationData: OperationUpdate,
-	}, nil
-}
-
 // LastOperation should fetch the state of the provision/deprovision
 // of a cluster.
 func (b *Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (resp brokerapi.LastOperation, err error) {
@@ -124,7 +148,12 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, details b
 			state = brokerapi.InProgress
 		}
 	case OperationUpdate:
-		// TODO: Implement once update has been implemented
+		switch cluster.State {
+		case atlas.ClusterStateIdle:
+			state = brokerapi.Succeeded
+		case atlas.ClusterStateUpdating:
+			state = brokerapi.InProgress
+		}
 	}
 
 	return brokerapi.LastOperation{
