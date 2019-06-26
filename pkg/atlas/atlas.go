@@ -18,6 +18,7 @@ type Client interface {
 	GetCluster(name string) (*Cluster, error)
 
 	CreateUser(user User) (*User, error)
+	DeleteUser(name string) error
 }
 
 // HTTPClient is the main implementation of the Client interface which
