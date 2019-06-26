@@ -25,13 +25,15 @@ func TestProvision(t *testing.T) {
 	assert.NoError(t, err)
 
 	instanceID := "instance"
-	_, err = broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+	res, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
 		PlanID:        testPlanID,
 		ServiceID:     testServiceID,
 		RawParameters: params,
 	}, true)
 
 	assert.NoError(t, err)
+	assert.True(t, res.IsAsync)
+	assert.Equal(t, OperationProvision, res.OperationData)
 	assert.Len(t, client.Clusters, 1)
 
 	cluster := client.Clusters[instanceID]
@@ -64,7 +66,7 @@ func TestProvisionDefaultRegion(t *testing.T) {
 	}, cluster.Provider)
 }
 
-func TestProvisionWithInvalidRegion(t *testing.T) {
+func TestProvisionInvalidRegion(t *testing.T) {
 	broker, _ := setupTest()
 
 	params, err := json.Marshal(map[string]string{
@@ -126,9 +128,11 @@ func TestDeprovision(t *testing.T) {
 		ServiceID: testServiceID,
 	}, true)
 
-	_, err := broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, true)
+	res, err := broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, true)
 
 	assert.NoError(t, err)
+	assert.True(t, res.IsAsync)
+	assert.Equal(t, OperationDeprovision, res.OperationData)
 	assert.Nil(t, client.Clusters[instanceID], "Expected cluster to have been removed")
 }
 
