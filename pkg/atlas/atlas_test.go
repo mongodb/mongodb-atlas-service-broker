@@ -11,6 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// setupTest will set up an Atlas client with a mock HTTP client. The HTTP
+// client will use a mock HTTP server which only responds to the specified path
+// and the specified method. The HTTP server will simulate the digest
+// authentication and return the specified status and response.
 func setupTest(t *testing.T, expectedPath string, method string, status int, response interface{}) (*HTTPClient, *httptest.Server) {
 	const groupID = "group"
 	const publicKey = "pubkey"

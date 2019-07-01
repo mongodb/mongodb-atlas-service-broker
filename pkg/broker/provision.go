@@ -142,6 +142,9 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, details b
 			state = brokerapi.InProgress
 		}
 	case OperationDeprovision:
+		// The Atlas API may return a 404 response if a cluster is deleted or it
+		// will return the cluster with a state of "DELETED". Both of these
+		// scenarios indicate that a cluster has been successfully deleted.
 		if err == atlas.ErrClusterNotFound || cluster.State == atlas.ClusterStateDeleted {
 			state = brokerapi.Succeeded
 		} else if cluster.State == atlas.ClusterStateDeleting {
@@ -161,6 +164,8 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, details b
 	}, nil
 }
 
+// sanitizeClusterName will sanitize a name to make sure it will be accepted
+// by the Atlas API. Atlas requires cluster names to be 30 characters or less.
 func sanitizeClusterName(name string) string {
 	if len(name) > 30 {
 		return string(name[0:30])

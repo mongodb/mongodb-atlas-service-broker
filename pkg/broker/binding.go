@@ -45,10 +45,6 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 		return
 	}
 
-	// TODO: Place credentials in some sort of secrets manager.
-	// This might not be necessary if we set bindings retrievable to false
-	// in the service catalog.
-
 	spec = brokerapi.Binding{
 		Credentials: ConnectionDetails{
 			Username: bindingID,

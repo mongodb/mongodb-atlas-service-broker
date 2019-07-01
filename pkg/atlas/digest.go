@@ -10,6 +10,11 @@ import (
 	"strings"
 )
 
+// digestParts will extract the parts neccessary to perform digest auth from
+// the challenge response. These parts are the nonce, realm, and
+// "quality of protection" (qop).
+// These parts are stored in the "WWW-Authenticate" header as comma-separated
+// key-value pairs on the form `key="value"`.
 func digestParts(resp *http.Response) map[string]string {
 	result := map[string]string{}
 	if len(resp.Header["Www-Authenticate"]) > 0 {
@@ -26,12 +31,14 @@ func digestParts(resp *http.Response) map[string]string {
 	return result
 }
 
+// getMD5 will calculate the MD5 hash of a string.
 func getMD5(text string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(text))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
+// getCnonce will generate a random nonce.
 func getCnonce() string {
 	b := make([]byte, 8)
 	_, err := io.ReadFull(rand.Reader, b)
@@ -41,6 +48,10 @@ func getCnonce() string {
 	return fmt.Sprintf("%x", b)[:16]
 }
 
+// getDigestAuthrization generates a Authorization header value based on the
+// parts from the server digest challenge.
+// The generated header will comply with the format outlined in RFC 2617
+// (https://tools.ietf.org/html/rfc2617).
 func getDigestAuthrization(digestParts map[string]string) string {
 	d := digestParts
 	ha1 := getMD5(d["username"] + ":" + d["realm"] + ":" + d["password"])
