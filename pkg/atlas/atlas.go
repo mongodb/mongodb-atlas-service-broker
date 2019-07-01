@@ -53,8 +53,8 @@ func NewClient(baseURL string, groupID string, publicKey string, privateKey stri
 	}, nil
 }
 
-func (c *HTTPClient) url(path string) string {
-	return fmt.Sprintf("%s/groups/%s/%s", c.baseURL, c.groupID, path)
+func (c *HTTPClient) getEndpointURL(endpoint string) string {
+	return fmt.Sprintf("%s/groups/%s/%s", c.baseURL, c.groupID, endpoint)
 }
 
 // request makes an HTTP request using the specified method.
@@ -74,7 +74,7 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 		data = bytes.NewBuffer(json)
 	}
 
-	url := c.url(path)
+	url := c.getEndpointURL(path)
 
 	// Prepare API request.
 	req, err := http.NewRequest(method, url, data)
