@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+	// Zap is the main logger used for the broker. A lager logger is also
+	// created as the brokerapi library requires one.
 	zapLogger, _ := zap.NewDevelopment()
 	logger := zapLogger.Sugar()
 
