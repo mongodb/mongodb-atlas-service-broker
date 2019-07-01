@@ -14,7 +14,8 @@ func TestCreateCluster(t *testing.T) {
 		Type:  ClusterTypeReplicaSet,
 	}
 
-	atlas := setupTest(t, "/clusters", http.MethodPost, 200, expected)
+	atlas, server := setupTest(t, "/clusters", http.MethodPost, 200, expected)
+	defer server.Close()
 
 	cluster, err := atlas.CreateCluster(expected)
 
@@ -29,7 +30,8 @@ func TestCreateClusterExistingName(t *testing.T) {
 		Type:  ClusterTypeReplicaSet,
 	}
 
-	atlas := setupTest(t, "/clusters", http.MethodPost, 400, errorResponse("DUPLICATE_CLUSTER_NAME"))
+	atlas, server := setupTest(t, "/clusters", http.MethodPost, 400, errorResponse("DUPLICATE_CLUSTER_NAME"))
+	defer server.Close()
 
 	_, err := atlas.CreateCluster(cluster)
 
@@ -43,7 +45,8 @@ func TestUpdateCluster(t *testing.T) {
 		Type:  ClusterTypeReplicaSet,
 	}
 
-	atlas := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 200, expected)
+	atlas, server := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 200, expected)
+	defer server.Close()
 
 	cluster, err := atlas.UpdateCluster(expected)
 
@@ -58,7 +61,8 @@ func TestUpdateNonexistentCluster(t *testing.T) {
 		Type:  ClusterTypeReplicaSet,
 	}
 
-	atlas := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 400, errorResponse("CLUSTER_NOT_FOUND"))
+	atlas, server := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 400, errorResponse("CLUSTER_NOT_FOUND"))
+	defer server.Close()
 
 	_, err := atlas.UpdateCluster(expected)
 
@@ -72,7 +76,8 @@ func TestGetCluster(t *testing.T) {
 		Type:  ClusterTypeReplicaSet,
 	}
 
-	atlas := setupTest(t, "/clusters/"+expected.Name, http.MethodGet, 200, expected)
+	atlas, server := setupTest(t, "/clusters/"+expected.Name, http.MethodGet, 200, expected)
+	defer server.Close()
 
 	cluster, err := atlas.GetCluster(expected.Name)
 
@@ -82,7 +87,8 @@ func TestGetCluster(t *testing.T) {
 
 func TestGetNonexistentCluster(t *testing.T) {
 	clusterName := "Cluster"
-	atlas := setupTest(t, "/clusters/"+clusterName, http.MethodGet, 404, errorResponse("CLUSTER_NOT_FOUND"))
+	atlas, server := setupTest(t, "/clusters/"+clusterName, http.MethodGet, 404, errorResponse("CLUSTER_NOT_FOUND"))
+	defer server.Close()
 
 	_, err := atlas.GetCluster(clusterName)
 
@@ -91,7 +97,8 @@ func TestGetNonexistentCluster(t *testing.T) {
 
 func TestTerminateCluster(t *testing.T) {
 	clusterName := "Cluster"
-	atlas := setupTest(t, "/clusters/"+clusterName, http.MethodDelete, 200, nil)
+	atlas, server := setupTest(t, "/clusters/"+clusterName, http.MethodDelete, 200, nil)
+	defer server.Close()
 
 	err := atlas.DeleteCluster(clusterName)
 	assert.NoError(t, err)
@@ -99,7 +106,8 @@ func TestTerminateCluster(t *testing.T) {
 
 func TestTerminateNonexistentCluster(t *testing.T) {
 	clusterName := "Cluster"
-	atlas := setupTest(t, "/clusters/"+clusterName, http.MethodDelete, 404, errorResponse("CLUSTER_NOT_FOUND"))
+	atlas, server := setupTest(t, "/clusters/"+clusterName, http.MethodDelete, 404, errorResponse("CLUSTER_NOT_FOUND"))
+	defer server.Close()
 
 	err := atlas.DeleteCluster(clusterName)
 

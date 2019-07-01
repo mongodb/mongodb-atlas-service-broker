@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupTest(t *testing.T, expectedPath string, method string, status int, response interface{}) *HTTPClient {
+func setupTest(t *testing.T, expectedPath string, method string, status int, response interface{}) (*HTTPClient, *httptest.Server) {
 	const groupID = "group"
 	const publicKey = "pubkey"
 	const privateKey = "privkey"
@@ -43,7 +43,7 @@ func setupTest(t *testing.T, expectedPath string, method string, status int, res
 
 	assert.NoError(t, err)
 
-	return atlas
+	return atlas, s
 }
 
 func errorResponse(code string) interface{} {
