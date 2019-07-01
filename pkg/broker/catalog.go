@@ -147,6 +147,7 @@ func (c cloud) ValidateRegion(region string) error {
 }
 
 // size represents a single instance size which clusters can use.
+// TODO: Add memory and storage to generate better plan descriptions.
 type size struct {
 	Name string
 }
