@@ -151,6 +151,8 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 			state = brokerapi.InProgress
 		}
 	case OperationUpdate:
+		// We assume that the cluster transitions to the "UPDATING" state
+		// in a synchronous manner during the update request.
 		switch cluster.State {
 		case atlas.ClusterStateIdle:
 			state = brokerapi.Succeeded
