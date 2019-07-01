@@ -1,0 +1,8 @@
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ServiceInstance
+metadata:
+  name: atlas-cluster-instance
+  namespace: default
+spec:
+  clusterServiceClassExternalName: mongodb
+  clusterServicePlanExternalName: AWS-M10
