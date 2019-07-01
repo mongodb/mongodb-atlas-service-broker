@@ -25,7 +25,7 @@ const (
 func (b Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (spec brokerapi.ProvisionedServiceSpec, err error) {
 	b.logger.Infof("Provisioning instance \"%s\" with details %+v", instanceID, details)
 
-	// Async needs to be supported to provisioning to work.
+	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
 		err = apiresponses.ErrAsyncRequired
 		return
