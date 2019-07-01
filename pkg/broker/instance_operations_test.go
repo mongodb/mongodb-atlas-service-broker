@@ -2,7 +2,6 @@ package broker
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/10gen/atlas-service-broker/pkg/atlas"
@@ -55,16 +54,10 @@ func TestMissingAsync(t *testing.T) {
 func TestProvision(t *testing.T) {
 	broker, client := setupTest()
 
-	params, err := json.Marshal(map[string]string{
-		"region": "EU_CENTRAL_1",
-	})
-	assert.NoError(t, err)
-
 	instanceID := "instance"
 	res, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:        testPlanID,
-		ServiceID:     testServiceID,
-		RawParameters: params,
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	assert.NoError(t, err)
@@ -77,47 +70,101 @@ func TestProvision(t *testing.T) {
 	assert.Equal(t, &atlas.ProviderSettings{
 		Name:     "AWS",
 		Instance: "M10",
-		Region:   "EU_CENTRAL_1",
-	}, cluster.Provider)
+	}, cluster.ProviderSettings)
 }
 
-func TestProvisionDefaultRegion(t *testing.T) {
+func TestProvisionParams(t *testing.T) {
 	broker, client := setupTest()
+
+	params := `{
+	"cluster": {
+		"autoScaling": {
+			"diskGBEnabled": true
+		},
+		"backupEnabled": true,
+		"biConnector": {
+			"enabled": true,
+			"readPreference": "primary"
+		},
+		"clusterType": "SHARDED",
+		"diskSizeGB": 100.0,
+		"encryptionAtRestProvider": "NONE",
+		"mongoDBMajorVersion": "4.0",
+		"numShards": 2,
+		"providerBackupEnabled": true,
+		"providerSettings": {
+			"diskIOPS": 10,
+			"diskTypeName": "P4",
+			"encryptEBSVolume": true,
+			"regionName": "EU_CENTRAL_1",
+			"volumeType": "STANDARD"
+		},
+		"replicationFactor": 5,
+		"replicationSpecs": [
+			{
+				"id": "ID",
+				"numShards": 2,
+				"regionsConfig": {
+					"electableNodes": 1,
+					"readOnlyNodes": 1,
+					"analyticsNodes": 1,
+					"priority": 1
+				},
+				"zoneName": "ZONE"
+			}
+		]
+	}}`
 
 	instanceID := "instance"
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    testPlanID,
-		ServiceID: testServiceID,
+		PlanID:        testPlanID,
+		ServiceID:     testServiceID,
+		RawParameters: []byte(params),
 	}, true)
 
 	assert.NoError(t, err)
-	assert.Len(t, client.Clusters, 1)
+
+	expected := &atlas.Cluster{
+		State: "CREATING",
+
+		Name:                     instanceID,
+		AutoScaling:              atlas.AutoScalingConfig{DiskEnabled: true},
+		BackupEnabled:            true,
+		BIConnector:              atlas.BIConnectorConfig{Enabled: true, ReadPreference: "primary"},
+		Type:                     "SHARDED",
+		DiskSize:                 100.0,
+		EncryptionAtRestProvider: "NONE",
+		MongoDBVersion:           "4.0",
+		NumShards:                2,
+		ProviderBackupEnabled:    true,
+		ReplicationFactor:        5,
+		ReplicationSpecs: []atlas.ReplicationSpec{
+			atlas.ReplicationSpec{
+				ID:        "ID",
+				NumShards: 2,
+				RegionsConfig: atlas.RegionsConfig{
+					ElectableNodes: 1,
+					ReadOnlyNodes:  1,
+					AnalyticsNodes: 1,
+					Priority:       1,
+				},
+				ZoneName: "ZONE",
+			},
+		},
+		ProviderSettings: &atlas.ProviderSettings{
+			Name:       "AWS",
+			Instance:   "M10",
+			Region:     "EU_CENTRAL_1",
+			DiskIOPS:   10,
+			DiskType:   "P4",
+			EncryptEBS: true,
+			VolumeType: "STANDARD",
+		},
+	}
 
 	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
-	assert.Equal(t, &atlas.ProviderSettings{
-		Name:     "AWS",
-		Instance: "M10",
-		Region:   "EU_WEST_1",
-	}, cluster.Provider)
-}
-
-func TestProvisionInvalidRegion(t *testing.T) {
-	broker, _ := setupTest()
-
-	params, err := json.Marshal(map[string]string{
-		"region": "NON_EXISTENT_REGION",
-	})
-	assert.NoError(t, err)
-
-	instanceID := "instance"
-	_, err = broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:        testPlanID,
-		ServiceID:     testServiceID,
-		RawParameters: params,
-	}, true)
-
-	assert.Error(t, err, "Invalid region \"NON_EXISTENT_REGION\"")
+	assert.Equal(t, expected, cluster)
 }
 
 func TestProvisionAlreadyExisting(t *testing.T) {
@@ -144,19 +191,13 @@ func TestUpdate(t *testing.T) {
 
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    testPlanID,
 		ServiceID: testServiceID,
+		PlanID:    testPlanID,
 	}, true)
 
-	params, err := json.Marshal(map[string]string{
-		"region": "EU_CENTRAL_1",
-	})
-	assert.NoError(t, err)
-
 	res, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
-		PlanID:        "AWS-M20",
-		ServiceID:     testServiceID,
-		RawParameters: params,
+		PlanID:    "AWS-M20",
+		ServiceID: testServiceID,
 	}, true)
 
 	assert.NoError(t, err)
@@ -166,11 +207,10 @@ func TestUpdate(t *testing.T) {
 	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
 
-	// Ensure the instance size and region was updated and the provider
+	// Ensure the instance size was updated and the provider
 	// was not.
-	assert.Equal(t, "M20", cluster.Provider.Instance)
-	assert.Equal(t, "AWS", cluster.Provider.Name)
-	assert.Equal(t, "EU_CENTRAL_1", cluster.Provider.Region)
+	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
+	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
 }
 
 func TestUpdateNonexistent(t *testing.T) {
