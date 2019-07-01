@@ -37,7 +37,7 @@ func (m MockAtlasClient) UpdateCluster(cluster atlas.Cluster) (*atlas.Cluster, e
 	return &cluster, nil
 }
 
-func (m MockAtlasClient) TerminateCluster(name string) error {
+func (m MockAtlasClient) DeleteCluster(name string) error {
 	if m.Clusters[name] == nil {
 		return atlas.ErrClusterNotFound
 	}

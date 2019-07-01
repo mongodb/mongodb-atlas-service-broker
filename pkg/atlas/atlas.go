@@ -14,7 +14,7 @@ import (
 type Client interface {
 	CreateCluster(cluster Cluster) (*Cluster, error)
 	UpdateCluster(cluster Cluster) (*Cluster, error)
-	TerminateCluster(name string) error
+	DeleteCluster(name string) error
 	GetCluster(name string) (*Cluster, error)
 
 	CreateUser(user User) (*User, error)

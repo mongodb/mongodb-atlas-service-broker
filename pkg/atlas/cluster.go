@@ -55,9 +55,9 @@ func (c *HTTPClient) UpdateCluster(cluster Cluster) (*Cluster, error) {
 	return &resultingCluster, err
 }
 
-// TerminateCluster will terminate a cluster asynchronously.
+// DeleteCluster will terminate a cluster asynchronously.
 // DELETE /clusters/{CLUSTER-NAME}
-func (c *HTTPClient) TerminateCluster(name string) error {
+func (c *HTTPClient) DeleteCluster(name string) error {
 	path := fmt.Sprintf("clusters/%s", name)
 	return c.request(http.MethodDelete, path, nil, nil)
 }

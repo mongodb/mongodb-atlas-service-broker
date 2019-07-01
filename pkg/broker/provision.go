@@ -97,7 +97,7 @@ func (b *Broker) Deprovision(ctx context.Context, instanceID string, details bro
 		return
 	}
 
-	err = b.atlas.TerminateCluster(sanitizeClusterName(instanceID))
+	err = b.atlas.DeleteCluster(sanitizeClusterName(instanceID))
 	if err != nil {
 		b.logger.Error(err)
 		err = atlasToAPIError(err)

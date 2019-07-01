@@ -93,7 +93,7 @@ func TestTerminateCluster(t *testing.T) {
 	clusterName := "Cluster"
 	atlas := setupTest(t, "/clusters/"+clusterName, http.MethodDelete, 200, nil)
 
-	err := atlas.TerminateCluster(clusterName)
+	err := atlas.DeleteCluster(clusterName)
 	assert.NoError(t, err)
 }
 
@@ -101,7 +101,7 @@ func TestTerminateNonexistentCluster(t *testing.T) {
 	clusterName := "Cluster"
 	atlas := setupTest(t, "/clusters/"+clusterName, http.MethodDelete, 404, errorResponse("CLUSTER_NOT_FOUND"))
 
-	err := atlas.TerminateCluster(clusterName)
+	err := atlas.DeleteCluster(clusterName)
 
 	assert.Equal(t, ErrClusterNotFound, err)
 }
