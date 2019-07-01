@@ -63,12 +63,27 @@ func clouds() []cloud {
 			Name: "GCP",
 			Sizes: []size{
 				size{Name: "M10"},
+				size{Name: "M20"},
+				size{Name: "M30"},
+				size{Name: "M40"},
+				size{Name: "M50"},
+				size{Name: "M60"},
+				size{Name: "M80"},
+				size{Name: "M200"},
+				size{Name: "M300"},
 			},
 		},
 		cloud{
 			Name: "AZURE",
 			Sizes: []size{
 				size{Name: "M10"},
+				size{Name: "M20"},
+				size{Name: "M30"},
+				size{Name: "M40"},
+				size{Name: "M50"},
+				size{Name: "M60"},
+				size{Name: "M80"},
+				size{Name: "M200"},
 			},
 		},
 	}
