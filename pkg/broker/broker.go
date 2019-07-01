@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Ensure broker adheres to the ServiceBroker interface
+// Ensure broker adheres to the ServiceBroker interface.
 var _ brokerapi.ServiceBroker = Broker{}
 
 // Broker is responsible for translating OSB calls to Atlas API calls.

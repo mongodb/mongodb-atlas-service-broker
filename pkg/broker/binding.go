@@ -20,7 +20,7 @@ type ConnectionDetails struct {
 
 // Bind will create a new database user with a username matching the binding ID
 // and a randomly generated password. The user credentials will be returned back.
-func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (spec brokerapi.Binding, err error) {
+func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (spec brokerapi.Binding, err error) {
 	b.logger.Infof("Creating binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
 
 	// Fetch the cluster from Atlas to ensure it exists.
@@ -57,7 +57,7 @@ func (b *Broker) Bind(ctx context.Context, instanceID string, bindingID string, 
 
 // Unbind will delete the database user for a specific binding. The database
 // user should have the binding ID as its username.
-func (b *Broker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (spec brokerapi.UnbindSpec, err error) {
+func (b Broker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (spec brokerapi.UnbindSpec, err error) {
 	b.logger.Infof("Releasing binding \"%s\" for instance \"%s\" with details %+v", bindingID, instanceID, details)
 
 	// Fetch the cluster from Atlas to ensure it exists.
@@ -80,7 +80,7 @@ func (b *Broker) Unbind(ctx context.Context, instanceID string, bindingID string
 
 // GetBinding is currently not supported as specificed by the
 // BindingsRetrievable setting in the service catalog.
-func (b *Broker) GetBinding(ctx context.Context, instanceID string, bindingID string) (spec brokerapi.GetBindingSpec, err error) {
+func (b Broker) GetBinding(ctx context.Context, instanceID string, bindingID string) (spec brokerapi.GetBindingSpec, err error) {
 	b.logger.Infof("Retrieving binding \"%s\" for instance \"%s\"", bindingID, instanceID)
 
 	err = brokerapi.NewFailureResponse(fmt.Errorf("Unknown binding ID %s", bindingID), 404, "get-binding")
@@ -89,7 +89,7 @@ func (b *Broker) GetBinding(ctx context.Context, instanceID string, bindingID st
 
 // LastBindingOperation should fetch the status of the last creation/deletion
 // of a database user.
-func (b *Broker) LastBindingOperation(ctx context.Context, instanceID string, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
+func (b Broker) LastBindingOperation(ctx context.Context, instanceID string, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
 	panic("not implemented")
 }
 

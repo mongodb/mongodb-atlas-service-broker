@@ -9,7 +9,7 @@ import (
 )
 
 // Services generates the service catalog which will be presented to consumers of the API.
-func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
+func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	clouds := clouds()
 	services := make([]brokerapi.Service, len(clouds))
 
