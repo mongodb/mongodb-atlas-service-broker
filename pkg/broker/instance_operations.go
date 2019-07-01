@@ -32,7 +32,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 
 	// Find the provider corresponding to the passed service and plan.
-	provider, err := atlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
+	provider, err := createAtlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		return
 	}
@@ -66,7 +66,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	}
 
 	// Find the provider corresponding to the passed service and plan.
-	provider, err := atlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
+	provider, err := createAtlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		return
 	}
@@ -176,9 +176,9 @@ func normalizeClusterName(name string) string {
 	return name
 }
 
-// atlasProvider will create a provider object for use with
+// createAtlasProvider will create a provider object for use with
 // the Atlas API during provisioning and updating.
-func atlasProvider(serviceID string, planID string, rawParams []byte) (*atlas.Provider, error) {
+func createAtlasProvider(serviceID string, planID string, rawParams []byte) (*atlas.Provider, error) {
 	cloud, size := cloudFromPlan(serviceID, planID)
 	if cloud == nil || size == nil {
 		return nil, errors.New("Invalid service ID or plan ID")
