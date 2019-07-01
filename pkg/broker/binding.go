@@ -78,7 +78,7 @@ func (b Broker) Unbind(ctx context.Context, instanceID string, bindingID string,
 	return
 }
 
-// GetBinding is currently not supported as specificed by the
+// GetBinding is currently not supported as specified by the
 // BindingsRetrievable setting in the service catalog.
 func (b Broker) GetBinding(ctx context.Context, instanceID string, bindingID string) (spec brokerapi.GetBindingSpec, err error) {
 	b.logger.Infof("Retrieving binding \"%s\" for instance \"%s\"", bindingID, instanceID)
