@@ -2,13 +2,17 @@ package broker
 
 import (
 	"github.com/10gen/atlas-service-broker/pkg/atlas"
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"go.uber.org/zap"
 )
 
+// Ensure broker adheres to the ServiceBroker interface
+var _ brokerapi.ServiceBroker = Broker{}
+
 // Broker is responsible for translating OSB calls to Atlas API calls.
-// Implements the Broker interface from brokerapi making it easy to spin up an
-// API server.
+// Implements the brokerapi.ServiceBroker interface making it easy to spin up
+// an API server.
 type Broker struct {
 	logger *zap.SugaredLogger
 	atlas  atlas.Client
