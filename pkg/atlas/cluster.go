@@ -23,15 +23,15 @@ var (
 
 // Cluster represents a single cluster in Atlas.
 type Cluster struct {
-	Name     string    `json:"name"`
-	State    string    `json:"stateName,omitempty"`
-	Type     string    `json:"clusterType,omitempty"`
-	URI      string    `json:"srvAddress,omitempty"`
-	Provider *Provider `json:"providerSettings"`
+	Name     string            `json:"name"`
+	State    string            `json:"stateName,omitempty"`
+	Type     string            `json:"clusterType,omitempty"`
+	URI      string            `json:"srvAddress,omitempty"`
+	Provider *ProviderSettings `json:"providerSettings"`
 }
 
-// Provider represents the provider setting for a cluster.
-type Provider struct {
+// ProviderSettings represents the provider setting for a cluster.
+type ProviderSettings struct {
 	Name     string `json:"providerName"`
 	Instance string `json:"instanceSizeName"`
 	Region   string `json:"regionName"`

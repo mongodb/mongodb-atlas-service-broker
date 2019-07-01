@@ -178,7 +178,7 @@ func normalizeClusterName(name string) string {
 
 // createAtlasProvider will create a provider object for use with
 // the Atlas API during provisioning and updating.
-func createAtlasProvider(serviceID string, planID string, rawParams []byte) (*atlas.Provider, error) {
+func createAtlasProvider(serviceID string, planID string, rawParams []byte) (*atlas.ProviderSettings, error) {
 	cloud, size := cloudFromPlan(serviceID, planID)
 	if cloud == nil || size == nil {
 		return nil, errors.New("Invalid service ID or plan ID")
@@ -205,7 +205,7 @@ func createAtlasProvider(serviceID string, planID string, rawParams []byte) (*at
 		return nil, err
 	}
 
-	return &atlas.Provider{
+	return &atlas.ProviderSettings{
 		Name:     cloud.Name,
 		Instance: size.Name,
 		Region:   params.Region,

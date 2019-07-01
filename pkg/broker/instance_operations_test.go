@@ -74,7 +74,7 @@ func TestProvision(t *testing.T) {
 
 	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
-	assert.Equal(t, &atlas.Provider{
+	assert.Equal(t, &atlas.ProviderSettings{
 		Name:     "AWS",
 		Instance: "M10",
 		Region:   "EU_CENTRAL_1",
@@ -95,7 +95,7 @@ func TestProvisionDefaultRegion(t *testing.T) {
 
 	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
-	assert.Equal(t, &atlas.Provider{
+	assert.Equal(t, &atlas.ProviderSettings{
 		Name:     "AWS",
 		Instance: "M10",
 		Region:   "EU_WEST_1",
