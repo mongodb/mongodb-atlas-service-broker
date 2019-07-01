@@ -39,7 +39,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 
 	// Create a new Atlas cluster with the instance ID as its name.
 	_, err = b.atlas.CreateCluster(atlas.Cluster{
-		Name:     sanitizeClusterName(instanceID),
+		Name:     normalizeClusterName(instanceID),
 		Provider: provider,
 	})
 	if err != nil {
@@ -72,7 +72,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	}
 
 	_, err = b.atlas.UpdateCluster(atlas.Cluster{
-		Name:     sanitizeClusterName(instanceID),
+		Name:     normalizeClusterName(instanceID),
 		Provider: provider,
 	})
 	if err != nil {
@@ -97,7 +97,7 @@ func (b Broker) Deprovision(ctx context.Context, instanceID string, details brok
 		return
 	}
 
-	err = b.atlas.DeleteCluster(sanitizeClusterName(instanceID))
+	err = b.atlas.DeleteCluster(normalizeClusterName(instanceID))
 	if err != nil {
 		b.logger.Error(err)
 		err = atlasToAPIError(err)
@@ -124,7 +124,7 @@ func (b Broker) GetInstance(ctx context.Context, instanceID string) (spec broker
 func (b Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (resp brokerapi.LastOperation, err error) {
 	b.logger.Infof("Fetching state of last operation for instance \"%s\" with details %+v", instanceID, details)
 
-	cluster, err := b.atlas.GetCluster(sanitizeClusterName(instanceID))
+	cluster, err := b.atlas.GetCluster(normalizeClusterName(instanceID))
 	if err != nil && err != atlas.ErrClusterNotFound {
 		b.logger.Error(err)
 		err = atlasToAPIError(err)
@@ -164,9 +164,9 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 	}, nil
 }
 
-// sanitizeClusterName will sanitize a name to make sure it will be accepted
+// normalizeClusterName will sanitize a name to make sure it will be accepted
 // by the Atlas API. Atlas requires cluster names to be 30 characters or less.
-func sanitizeClusterName(name string) string {
+func normalizeClusterName(name string) string {
 	if len(name) > 30 {
 		return string(name[0:30])
 	}
