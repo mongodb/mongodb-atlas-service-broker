@@ -170,7 +170,7 @@ func errorFromErrorCode(code string, description string) error {
 	// Default to an error wrapping the Atlas error description.
 	err := errorsByCode[code]
 	if err == nil {
-		return fmt.Errorf("Atlas Error: [%s] %s", code, description)
+		return fmt.Errorf("atlas error: [%s] %s", code, description)
 	}
 
 	return err
