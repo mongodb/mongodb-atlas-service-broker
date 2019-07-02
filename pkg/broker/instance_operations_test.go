@@ -186,6 +186,85 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 	assert.EqualError(t, err, apiresponses.ErrInstanceAlreadyExists.Error())
 }
 
+func TestUpdate(t *testing.T) {
+	broker, client := setupTest()
+
+	instanceID := "instance"
+	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		ServiceID: testServiceID,
+		PlanID:    testPlanID,
+	}, true)
+
+	res, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+		PlanID:    "AWS-M20",
+		ServiceID: testServiceID,
+	}, true)
+
+	assert.NoError(t, err)
+	assert.True(t, res.IsAsync)
+	assert.Equal(t, OperationUpdate, res.OperationData)
+
+	cluster := client.Clusters[instanceID]
+	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
+
+	// Ensure the instance size was updated and the provider
+	// was not.
+	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
+	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
+}
+
+func TestUpdateWithoutPlan(t *testing.T) {
+	broker, client := setupTest()
+
+	instanceID := "instance"
+	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		ServiceID: testServiceID,
+		PlanID:    testPlanID,
+	}, true)
+
+	params := `{
+		"cluster": {
+			"providerSettings": {
+				"regionName": "EU_CENTRAL_1"
+			}
+		}
+	}`
+
+	// Try updating the instance without specifying a plan ID. The expected
+	// behaviour is for the existing plan (instance size) to remain the same.
+	// We also pass params specifying a new region. The broker should fill in the
+	// providerSettings with the existing plan.
+	res, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+		ServiceID:     testServiceID,
+		RawParameters: []byte(params),
+	}, true)
+
+	assert.NoError(t, err)
+	assert.True(t, res.IsAsync)
+	assert.Equal(t, OperationUpdate, res.OperationData)
+
+	cluster := client.Clusters[instanceID]
+	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
+
+	// Ensure the service and plan were not changed, whilst the region should
+	// have changed.
+	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
+	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
+	assert.Equal(t, "EU_CENTRAL_1", cluster.ProviderSettings.Region)
+}
+
+func TestUpdateNonexistent(t *testing.T) {
+	broker, _ := setupTest()
+
+	instanceID := "instance"
+	_, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
+
+	assert.Error(t, err, brokerapi.ErrInstanceDoesNotExist.Error())
+}
+
 func TestDeprovision(t *testing.T) {
 	broker, client := setupTest()
 
