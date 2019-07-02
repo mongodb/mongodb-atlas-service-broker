@@ -23,7 +23,7 @@ const (
 // Provision will create a new Atlas cluster with the instance ID as its name.
 // The process is always async.
 func (b Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (spec brokerapi.ProvisionedServiceSpec, err error) {
-	b.logger.Infof("Provisioning instance \"%s\" with details %+v", instanceID, details)
+	b.logger.Infow("Provisioning instance", "instance_id", instanceID, "details", details)
 
 	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
@@ -34,16 +34,19 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	// Construct a cluster definition from the instance ID, service, plan, and params.
 	cluster, err := clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
+		b.logger.Errorw("Couldn't create cluster from the passed parameters", "error", err, "instance_id", instanceID, "details", details)
 		return
 	}
 
 	// Create a new Atlas cluster from the generated definition.
-	_, err = b.atlas.CreateCluster(*cluster)
+	resultingCluster, err := b.atlas.CreateCluster(*cluster)
 	if err != nil {
-		b.logger.Error(err)
+		b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
 		err = atlasToAPIError(err)
 		return
 	}
+
+	b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
 
 	spec = brokerapi.ProvisionedServiceSpec{
 		IsAsync:       true,
@@ -80,10 +83,12 @@ func (b Broker) Deprovision(ctx context.Context, instanceID string, details brok
 
 	err = b.atlas.DeleteCluster(normalizeClusterName(instanceID))
 	if err != nil {
-		b.logger.Error(err)
+		b.logger.Errorw("Failed to delete Atlas cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
 		return
 	}
+
+	b.logger.Infow("Successfully started Atlas cluster deletion process", "instance_id", instanceID)
 
 	spec = brokerapi.DeprovisionServiceSpec{
 		IsAsync:       true,
@@ -95,7 +100,7 @@ func (b Broker) Deprovision(ctx context.Context, instanceID string, details brok
 // GetInstance is currently not supported as specified by the
 // InstancesRetrievable setting in the service catalog.
 func (b Broker) GetInstance(ctx context.Context, instanceID string) (spec brokerapi.GetInstanceDetailsSpec, err error) {
-	b.logger.Infof("Fetching instance \"%s\"", instanceID)
+	b.logger.Infow("Fetching instance", "instance_id", instanceID)
 	err = brokerapi.NewFailureResponse(fmt.Errorf("Unknown instance ID %s", instanceID), 404, "get-instance")
 	return
 }
@@ -103,14 +108,16 @@ func (b Broker) GetInstance(ctx context.Context, instanceID string) (spec broker
 // LastOperation should fetch the state of the provision/deprovision
 // of a cluster.
 func (b Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (resp brokerapi.LastOperation, err error) {
-	b.logger.Infof("Fetching state of last operation for instance \"%s\" with details %+v", instanceID, details)
+	b.logger.Infow("Fetching state of last operation", "instance_id", instanceID, "details", details)
 
 	cluster, err := b.atlas.GetCluster(normalizeClusterName(instanceID))
 	if err != nil && err != atlas.ErrClusterNotFound {
-		b.logger.Error(err)
+		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
 		return
 	}
+
+	b.logger.Infow("Found existing cluster", "cluster", cluster)
 
 	state := brokerapi.LastOperationState(brokerapi.Failed)
 
