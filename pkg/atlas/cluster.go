@@ -32,9 +32,9 @@ type Cluster struct {
 	DiskSize                 float64           `json:"diskSizeGB,omitempty"`
 	EncryptionAtRestProvider string            `json:"encryptionAtRestProvider,omitempty"`
 	MongoDBVersion           string            `json:"mongoDBMajorVersion,omitempty"`
-	NumShards                int               `json:"numShards,omitempty"`
+	NumShards                uint              `json:"numShards,omitempty"`
 	ProviderBackupEnabled    bool              `json:"providerBackupEnabled,omitempty"`
-	ReplicationFactor        int               `json:"replicationFactor,omitempty"`
+	ReplicationFactor        uint              `json:"replicationFactor,omitempty"`
 	ReplicationSpecs         []ReplicationSpec `json:"replicationSpecs,omitempty"`
 	ProviderSettings         *ProviderSettings `json:"providerSettings"`
 
@@ -60,7 +60,7 @@ type ProviderSettings struct {
 	Instance string `json:"instanceSizeName"`
 	Region   string `json:"regionName,omitempty"`
 
-	DiskIOPS   int    `json:"diskIOPS,omitempty"`
+	DiskIOPS   uint   `json:"diskIOPS,omitempty"`
 	DiskType   string `json:"diskTypeName,omitempty"`
 	EncryptEBS bool   `json:"encryptEBSVolume,omitempty"`
 	VolumeType string `json:"volumeType,omitempty"`
@@ -69,7 +69,7 @@ type ProviderSettings struct {
 // ReplicationSpec represents the replication settings for a single region.
 type ReplicationSpec struct {
 	ID            string        `json:"id,omitempty"`
-	NumShards     int           `json:"numShards,omitempty"`
+	NumShards     uint          `json:"numShards,omitempty"`
 	RegionsConfig RegionsConfig `json:"regionsConfig,omitempty"`
 	ZoneName      string        `json:"zoneName,omitempty"`
 }
