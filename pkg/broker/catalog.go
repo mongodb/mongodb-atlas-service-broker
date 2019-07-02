@@ -32,8 +32,7 @@ func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 func clouds() []cloud {
 	return []cloud{
 		cloud{
-			Name:    "AWS",
-			Regions: []string{"EU_WEST_1", "EU_CENTRAL_1"},
+			Name: "AWS",
 			Sizes: []size{
 				size{Name: "M10"},
 				size{Name: "M20"},
@@ -105,9 +104,8 @@ func cloudFromPlan(serviceID string, planID string) (*cloud, *size) {
 
 // cloud represents a single available cloud in which a cluster can be deployed.
 type cloud struct {
-	Name    string
-	Regions []string
-	Sizes   []size
+	Name  string
+	Sizes []size
 }
 
 // Plans generates service broker plans based on the available instance sizes.
@@ -128,22 +126,6 @@ func (c cloud) Plans() []brokerapi.ServicePlan {
 // ID generates a unique service ID for use in the catalog.
 func (c cloud) ID() string {
 	return fmt.Sprintf("mongodb-%s", strings.ToLower(c.Name))
-}
-
-// DefaultRegion returns the first region among the avilable ones.
-func (c cloud) DefaultRegion() string {
-	return c.Regions[0]
-}
-
-// ValidateRegion checks if the passed region exist among the clouds regions.
-func (c cloud) ValidateRegion(region string) error {
-	for _, validRegion := range c.Regions {
-		if validRegion == region {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("Invalid region %s", region)
 }
 
 // size represents a single instance size which clusters can use.

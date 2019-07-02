@@ -20,7 +20,6 @@ func (m MockAtlasClient) CreateCluster(cluster atlas.Cluster) (*atlas.Cluster, e
 	}
 
 	cluster.State = atlas.ClusterStateCreating
-	cluster.Type = atlas.ClusterTypeReplicaSet
 
 	m.Clusters[cluster.Name] = &cluster
 

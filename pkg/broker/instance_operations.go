@@ -31,17 +31,14 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		return
 	}
 
-	// Find the provider corresponding to the passed service and plan.
-	provider, err := createAtlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
+	// Construct a cluster definition from the instance ID, service, plan, and params.
+	cluster, err := clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		return
 	}
 
-	// Create a new Atlas cluster with the instance ID as its name.
-	_, err = b.atlas.CreateCluster(atlas.Cluster{
-		Name:     normalizeClusterName(instanceID),
-		Provider: provider,
-	})
+	// Create a new Atlas cluster from the generated definition.
+	_, err = b.atlas.CreateCluster(*cluster)
 	if err != nil {
 		b.logger.Error(err)
 		err = atlasToAPIError(err)
@@ -62,22 +59,6 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
 		err = apiresponses.ErrAsyncRequired
-		return
-	}
-
-	// Find the provider corresponding to the passed service and plan.
-	provider, err := createAtlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
-	if err != nil {
-		return
-	}
-
-	_, err = b.atlas.UpdateCluster(atlas.Cluster{
-		Name:     normalizeClusterName(instanceID),
-		Provider: provider,
-	})
-	if err != nil {
-		b.logger.Error(err)
-		err = atlasToAPIError(err)
 		return
 	}
 
@@ -136,6 +117,7 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 	switch details.OperationData {
 	case OperationProvision:
 		switch cluster.State {
+		// Provision has succeeded if the cluster is in state "idle".
 		case atlas.ClusterStateIdle:
 			state = brokerapi.Succeeded
 		case atlas.ClusterStateCreating:
@@ -176,19 +158,15 @@ func normalizeClusterName(name string) string {
 	return name
 }
 
-// createAtlasProvider will create a provider object for use with
-// the Atlas API during provisioning and updating.
-func createAtlasProvider(serviceID string, planID string, rawParams []byte) (*atlas.ProviderSettings, error) {
-	cloud, size := cloudFromPlan(serviceID, planID)
-	if cloud == nil || size == nil {
-		return nil, errors.New("Invalid service ID or plan ID")
-	}
-
-	// Set up a params object with default values.
+// clusterFromParams will construct a cluster object from an instance ID,
+// service, plan, and raw parameters. This way users can pass all the
+// configuration available for clusters in the Atlas API as "cluster" in the params.
+func clusterFromParams(instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
+	// Set up a params object which will be used for deserialiation.
 	params := struct {
-		Region string `json:"region"`
+		Cluster *atlas.Cluster `json:"cluster"`
 	}{
-		cloud.DefaultRegion(),
+		&atlas.Cluster{},
 	}
 
 	// If params were passed we unmarshal them into the params object.
@@ -199,15 +177,25 @@ func createAtlasProvider(serviceID string, planID string, rawParams []byte) (*at
 		}
 	}
 
-	// Validate the region
-	err := cloud.ValidateRegion(params.Region)
-	if err != nil {
-		return nil, err
+	// If the plan ID is specified we construct the provider object from the service and plan.
+	// The plan ID is optional during updates but not during creation.
+	if planID != "" {
+		cloud, size := cloudFromPlan(serviceID, planID)
+		if cloud == nil || size == nil {
+			return nil, errors.New("Invalid service ID or plan ID")
+		}
+
+		if params.Cluster.ProviderSettings == nil {
+			params.Cluster.ProviderSettings = &atlas.ProviderSettings{}
+		}
+
+		// Configure provider based on service and plan.
+		params.Cluster.ProviderSettings.Name = cloud.Name
+		params.Cluster.ProviderSettings.Instance = size.Name
 	}
 
-	return &atlas.ProviderSettings{
-		Name:     cloud.Name,
-		Instance: size.Name,
-		Region:   params.Region,
-	}, nil
+	// Add the instance ID as the name of the cluster.
+	params.Cluster.Name = normalizeClusterName(instanceID)
+
+	return params.Cluster, nil
 }
