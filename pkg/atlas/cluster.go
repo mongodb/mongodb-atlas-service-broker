@@ -68,6 +68,8 @@ type ProviderSettings struct {
 
 // ReplicationSpec represents the replication settings for a single region.
 type ReplicationSpec struct {
+	// Unique identifier for a zone's replication document. Required for existing
+	// zones and optional if adding new zones to a Global Cluster.
 	ID            string        `json:"id,omitempty"`
 	NumShards     uint          `json:"numShards,omitempty"`
 	RegionsConfig RegionsConfig `json:"regionsConfig,omitempty"`
