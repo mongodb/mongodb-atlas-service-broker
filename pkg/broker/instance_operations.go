@@ -38,7 +38,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 
 	// Create a new Atlas cluster with the instance ID as its name.
-	resultingCluster, err := b.atlas.CreateCluster(*cluster)
+	_, err = b.atlas.CreateCluster(*cluster)
 	if err != nil {
 		b.logger.Error(err)
 		err = atlasToAPIError(err)
@@ -59,22 +59,6 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
 		err = apiresponses.ErrAsyncRequired
-		return
-	}
-
-	// Find the provider corresponding to the passed service and plan.
-	provider, err := createAtlasProvider(details.ServiceID, details.PlanID, details.RawParameters)
-	if err != nil {
-		return
-	}
-
-	_, err = b.atlas.UpdateCluster(atlas.Cluster{
-		Name:     normalizeClusterName(instanceID),
-		Provider: provider,
-	})
-	if err != nil {
-		b.logger.Error(err)
-		err = atlasToAPIError(err)
 		return
 	}
 

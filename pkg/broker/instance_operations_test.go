@@ -186,45 +186,6 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 	assert.EqualError(t, err, apiresponses.ErrInstanceAlreadyExists.Error())
 }
 
-func TestUpdate(t *testing.T) {
-	broker, client := setupTest()
-
-	instanceID := "instance"
-	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		ServiceID: testServiceID,
-		PlanID:    testPlanID,
-	}, true)
-
-	res, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
-		PlanID:    "AWS-M20",
-		ServiceID: testServiceID,
-	}, true)
-
-	assert.NoError(t, err)
-	assert.True(t, res.IsAsync)
-	assert.Equal(t, OperationUpdate, res.OperationData)
-
-	cluster := client.Clusters[instanceID]
-	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
-
-	// Ensure the instance size was updated and the provider
-	// was not.
-	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
-	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
-}
-
-func TestUpdateNonexistent(t *testing.T) {
-	broker, _ := setupTest()
-
-	instanceID := "instance"
-	_, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
-		PlanID:    testPlanID,
-		ServiceID: testServiceID,
-	}, true)
-
-	assert.Error(t, err, brokerapi.ErrInstanceDoesNotExist.Error())
-}
-
 func TestDeprovision(t *testing.T) {
 	broker, client := setupTest()
 
