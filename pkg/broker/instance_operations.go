@@ -64,7 +64,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 
 	// Fetch the cluster from Atlas. The Atlas API requires an instance size to
 	// be passed during updates (if there are other update to the provider, such
-	// as region). The plan is not included in the OSB call unless it's change
+	// as region). The plan is not included in the OSB call unless it has changed
 	// hence we need to fetch the current value from Atlas.
 	existingCluster, err := b.atlas.GetCluster(normalizeClusterName(instanceID))
 	if err != nil {
