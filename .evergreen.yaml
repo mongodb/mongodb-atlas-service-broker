@@ -1,0 +1,16 @@
+functions:
+  "fetch source" :
+    - command: git.get_project
+      params:
+        directory: src/github.com/10gen/atlas-service-broker
+
+tasks:
+  - name: fetch
+    commands:
+      - func: "fetch source"
+
+buildvariants:
+  - name: archlinux
+    run_on: archlinux-test
+    tasks:
+      - fetch
