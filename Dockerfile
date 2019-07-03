@@ -1,6 +1,5 @@
 FROM golang:1.11
 
-RUN mkdir -p /usr/src
 WORKDIR /usr/src
 
 COPY . .
