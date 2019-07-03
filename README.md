@@ -2,6 +2,15 @@
 
 WIP implementation of the [Open Service Broker API](https://www.openservicebrokerapi.org/) for [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
 
+## Development
+
+*Do not clone this project to your $GOPATH*
+
+This project uses Go modules which will be disabled if the project is built from the `$GOPATH`. If
+the project is built inside the `$GOPATH` then Go will fetch the dependencies from there as well. This
+could lead to incorrect versions and unreliable builds. When placed outside the `$GOPATH` dependencies will
+automatically be installed when the project is built.
+
 ## Configuration
 
 Configuration is handled with environment variables.
@@ -49,9 +58,3 @@ The service broker can be deployed to Kubernetes by following these steps:
    cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance`.
 10. Run `scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.
 
-## Dependencies
-
-Dependencies are handled using Go modules. This means that the project doesn't have to be placed in
-the `$GOPATH` to work but can be used anywhere. If the project is placed inside the `$GOPATH` then
-modules won't be used. When modules are used and the project is run any dependencies should be
-fetched automatically. 
