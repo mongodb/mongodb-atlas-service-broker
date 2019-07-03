@@ -1,14 +1,13 @@
 FROM golang:1.11
 
-WORKDIR $GOPATH/src/github.com/10gen/atlas-service-broker
+WORKDIR /usr/src
 
 COPY . .
 
-# Install dependencies
-RUN go get -d -v ./...
+RUN mkdir bin
 
 # Compile and install binary
-RUN go install .
+RUN go build -o bin/atlas-service-broker
 
 # Run binary
-CMD ["atlas-service-broker"]
+CMD ["bin/atlas-service-broker"]

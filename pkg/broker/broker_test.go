@@ -98,9 +98,9 @@ func TestCatalog(t *testing.T) {
 	services, err := broker.Services(context.Background())
 
 	assert.NoError(t, err)
-	assert.Greater(t, len(services), 0, "Expected a non-zero amount of services")
+	assert.NotZero(t, len(services), "Expected a non-zero amount of services")
 
 	for _, service := range services {
-		assert.Greaterf(t, len(service.Plans), 0, "Expected a non-zero amount of plans for service %s", service.Name)
+		assert.NotZerof(t, len(service.Plans), "Expected a non-zero amount of plans for service %s", service.Name)
 	}
 }
