@@ -216,13 +216,31 @@ func TestUpdate(t *testing.T) {
 func TestUpdateWithoutPlan(t *testing.T) {
 	broker, client := setupTest()
 
+	params := `{
+		"cluster": {
+			"providerSettings": {
+				"regionName": "EU_WEST_1"
+			}
+		}
+	}`
+
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		ServiceID: testServiceID,
-		PlanID:    testPlanID,
+		ServiceID:     testServiceID,
+		PlanID:        testPlanID,
+		RawParameters: []byte(params),
 	}, true)
 
-	params := `{
+	cluster := client.Clusters[instanceID]
+	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
+	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
+	assert.Equal(t, "EU_WEST_1", cluster.ProviderSettings.Region)
+
+	// Try updating the instance without specifying a plan ID. The expected
+	// behaviour is for the existing plan (instance size) to remain the same.
+	// We also pass params specifying a new region. The broker should fill in the
+	// providerSettings with the existing plan.
+	updateParams := `{
 		"cluster": {
 			"providerSettings": {
 				"regionName": "EU_CENTRAL_1"
@@ -230,27 +248,23 @@ func TestUpdateWithoutPlan(t *testing.T) {
 		}
 	}`
 
-	// Try updating the instance without specifying a plan ID. The expected
-	// behaviour is for the existing plan (instance size) to remain the same.
-	// We also pass params specifying a new region. The broker should fill in the
-	// providerSettings with the existing plan.
 	res, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
 		ServiceID:     testServiceID,
-		RawParameters: []byte(params),
+		RawParameters: []byte(updateParams),
 	}, true)
 
 	assert.NoError(t, err)
 	assert.True(t, res.IsAsync)
 	assert.Equal(t, OperationUpdate, res.OperationData)
 
-	cluster := client.Clusters[instanceID]
-	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
+	updatedCluster := client.Clusters[instanceID]
+	assert.NotEmptyf(t, updatedCluster, "Expected cluster with name \"%s\" to exist", instanceID)
 
 	// Ensure the service and plan were not changed, whilst the region should
 	// have changed.
-	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
-	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
-	assert.Equal(t, "EU_CENTRAL_1", cluster.ProviderSettings.Region)
+	assert.Equal(t, "M10", updatedCluster.ProviderSettings.Instance)
+	assert.Equal(t, "AWS", updatedCluster.ProviderSettings.Name)
+	assert.Equal(t, "EU_CENTRAL_1", updatedCluster.ProviderSettings.Region)
 }
 
 func TestUpdateNonexistent(t *testing.T) {
