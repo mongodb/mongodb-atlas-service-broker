@@ -1,16 +1,47 @@
 functions:
-  "fetch source" :
+  "fetch_source":
     - command: git.get_project
       params:
-        directory: src/github.com/10gen/atlas-service-broker
+        directory: src/atlas-service-broker
+  "go_unit_tests":
+    - command: shell.exec
+      type: system
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          go test -v ./... > result.suite
+  "go_unit_tests_parse":
+    - command: gotest.parse_files
+      params:
+        files: ["src/atlas-service-broker/*.suite"]
+  "go_vet":
+    - command: shell.exec
+      type: system
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          go vet ./...
+
 
 tasks:
-  - name: fetch
+  - name: unit_tests
     commands:
-      - func: "fetch source"
+      - func: "go_unit_tests"
+      - func: "go_unit_tests_parse"
+  - name: vet
+    commands:
+      - func: "go_vet"
+
+task_groups:
+  - name: unit_task_group
+    setup_group:
+      - func: "fetch_source"
+    tasks:
+      - unit_tests
+      - vet
 
 buildvariants:
   - name: archlinux
     run_on: archlinux-test
     tasks:
-      - fetch
+      - unit_task_group
