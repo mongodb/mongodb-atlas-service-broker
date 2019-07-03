@@ -4,7 +4,7 @@ WIP implementation of the [Open Service Broker API](https://www.openservicebroke
 
 ## Development
 
-*Do not clone this project to your $GOPATH*
+**Do not clone this project to your $GOPATH**
 
 This project uses Go modules which will be disabled if the project is built from the `$GOPATH`. If
 the project is built inside the `$GOPATH` then Go will fetch the dependencies from there as well. This
