@@ -48,3 +48,10 @@ The service broker can be deployed to Kubernetes by following these steps:
 9. After use all bindings can be removed by running `svcat unbind atlas-cluser-instance` and the
    cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance`.
 10. Run `scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.
+
+## Dependencies
+
+Dependencies are handled using Go modules. This means that the project doesn't have to be placed in
+the `$GOPATH` to work but can be used anywhere. If the project is placed inside the `$GOPATH` then
+modules won't be used. When modules are used and the project is run any dependencies should be
+fetched automatically. 
