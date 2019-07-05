@@ -57,13 +57,52 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 
 // Update will change the configuration of an existing Atlas cluster asynchronously.
 func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (spec brokerapi.UpdateServiceSpec, err error) {
-	b.logger.Infof("Updating instance \"%s\" with details %+v", instanceID, details)
+	b.logger.Infow("Updating instance", "instance_id", instanceID, "details", details)
 
 	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
 		err = apiresponses.ErrAsyncRequired
 		return
 	}
+
+	// Fetch the cluster from Atlas. The Atlas API requires an instance size to
+	// be passed during updates (if there are other update to the provider, such
+	// as region). The plan is not included in the OSB call unless it has changed
+	// hence we need to fetch the current value from Atlas.
+	existingCluster, err := b.atlas.GetCluster(normalizeClusterName(instanceID))
+	if err != nil {
+		err = atlasToAPIError(err)
+		return
+	}
+
+	// Construct a cluster from the instance ID, service, plan, and params.
+	cluster, err := clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	if err != nil {
+		return
+	}
+
+	// Make sure the cluster provider has all the neccessary params for the
+	// Atlas API. The Atlas API requires both the provider name and instance
+	// size if the provider object is set. If they are missing we use the
+	// existing values.
+	if cluster.ProviderSettings != nil {
+		if cluster.ProviderSettings.Name == "" {
+			cluster.ProviderSettings.Name = existingCluster.ProviderSettings.Name
+		}
+
+		if cluster.ProviderSettings.Instance == "" {
+			cluster.ProviderSettings.Instance = existingCluster.ProviderSettings.Instance
+		}
+	}
+
+	resultingCluster, err := b.atlas.UpdateCluster(*cluster)
+	if err != nil {
+		b.logger.Errorw("Failed to update Atlas cluster", "error", err, "cluster", cluster)
+		err = atlasToAPIError(err)
+		return
+	}
+
+	b.logger.Infow("Successfully started Atlas cluster update process", "instance_id", instanceID, "cluster", resultingCluster)
 
 	return brokerapi.UpdateServiceSpec{
 		IsAsync:       true,
@@ -73,7 +112,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 
 // Deprovision will destroy an Atlas cluster asynchronously.
 func (b Broker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (spec brokerapi.DeprovisionServiceSpec, err error) {
-	b.logger.Infof("Deprovisioning instance \"%s\" with details %+v", instanceID, details)
+	b.logger.Infow("Deprovisioning instance", "instance_id", instanceID, "details", details)
 
 	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
