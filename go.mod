@@ -5,6 +5,7 @@ go 1.11
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/drewolson/testflight v1.0.0 // indirect
+	github.com/google/uuid v1.0.0
 	github.com/gorilla/mux v1.7.3 // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect

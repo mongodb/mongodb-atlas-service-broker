@@ -24,7 +24,7 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	b.logger.Infow("Creating binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
 
 	// Fetch the cluster from Atlas to ensure it exists.
-	cluster, err := b.atlas.GetCluster(normalizeClusterName(instanceID))
+	cluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
 		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
@@ -65,7 +65,7 @@ func (b Broker) Unbind(ctx context.Context, instanceID string, bindingID string,
 	b.logger.Infow("Releasing binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
 
 	// Fetch the cluster from Atlas to ensure it exists.
-	_, err = b.atlas.GetCluster(normalizeClusterName(instanceID))
+	_, err = b.atlas.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
 		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)

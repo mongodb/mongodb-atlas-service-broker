@@ -73,6 +73,15 @@ func (m MockAtlasClient) CreateUser(user atlas.User) (*atlas.User, error) {
 	return &user, nil
 }
 
+func (m MockAtlasClient) GetUser(name string) (*atlas.User, error) {
+	user := m.Users[name]
+	if user == nil {
+		return nil, atlas.ErrUserNotFound
+	}
+
+	return user, nil
+}
+
 func (m MockAtlasClient) DeleteUser(name string) error {
 	if m.Users[name] == nil {
 		return atlas.ErrUserNotFound
