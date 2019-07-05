@@ -9,11 +9,11 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          go test -v ./... > result.suite
+          go test -v ./pkg/... > unit_result.suite
   "go_unit_tests_parse":
     - command: gotest.parse_files
       params:
-        files: ["src/atlas-service-broker/*.suite"]
+        files: ["src/atlas-service-broker/unit_result.suite"]
   "go_vet":
     - command: shell.exec
       type: system
@@ -21,7 +21,20 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           go vet ./...
-
+  "integration_tests":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          export ATLAS_BASE_URL=${atlas_base_url}
+          export ATLAS_GROUP_ID=${atlas_group_id}
+          export ATLAS_PUBLIC_KEY=${atlas_public_key}
+          export ATLAS_PRIVATE_KEY=${atlas_private_key}
+          go test -v ./test > int_result.suite
+  "integration_tests_parse":
+    - command: gotest.parse_files
+      params:
+        files: ["src/atlas-service-broker/int_result.suite"]
 
 tasks:
   - name: unit_tests
@@ -31,6 +44,10 @@ tasks:
   - name: vet
     commands:
       - func: "go_vet"
+  - name: integration_tests
+    commands:
+      - func: "integration_tests"
+      - func: "integration_tests_parse"
 
 task_groups:
   - name: unit_task_group
@@ -39,9 +56,15 @@ task_groups:
     tasks:
       - unit_tests
       - vet
+  - name: integration_task_group
+    setup_group:
+      - func: "fetch_source"
+    tasks:
+      - integration_tests
 
 buildvariants:
   - name: archlinux
     run_on: archlinux-test
     tasks:
       - unit_task_group
+      - integration_task_group
