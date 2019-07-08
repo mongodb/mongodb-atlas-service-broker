@@ -69,7 +69,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	// be passed during updates (if there are other update to the provider, such
 	// as region). The plan is not included in the OSB call unless it has changed
 	// hence we need to fetch the current value from Atlas.
-	existingCluster, err := b.atlas.GetCluster(normalizeClusterName(instanceID))
+	existingCluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
 		err = atlasToAPIError(err)
 		return
