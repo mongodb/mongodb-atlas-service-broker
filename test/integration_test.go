@@ -100,12 +100,13 @@ func TestUpdate(t *testing.T) {
 		return
 	}
 
-	// Ensure cluster is in the correct starting state.
 	cluster, err := client.GetCluster(clusterName)
 	if !assert.NoError(t, err) {
 		return
 	}
 
+	// Ensure cluster is in the correct starting state.
+	// The instance size should be M10 and backups should be disabled.
 	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
 	assert.False(t, cluster.BackupEnabled)
 
@@ -132,13 +133,12 @@ func TestUpdate(t *testing.T) {
 		return
 	}
 
-	// Ensure cluster was updated correctly.
 	cluster, err = client.GetCluster(clusterName)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	// Instance size should now be "M20" and backup should be enabled.
+	// Ensure instance size is now "M20" and backups are enabled.
 	assert.Equal(t, atlas.ClusterStateIdle, cluster.State)
 	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
 	assert.True(t, cluster.BackupEnabled)
@@ -235,6 +235,9 @@ func TestDeprovision(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// waitForLastOperation will poll the last operation function for a specified
+// opeation. The function returns once the operation was successful or the
+// timeout has been reached.
 func waitForLastOperation(broker *brokerlib.Broker, instanceID string, operation string, timeoutMinutes int) error {
 	return poll(timeoutMinutes, func() (bool, error) {
 		res, err := broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
@@ -254,6 +257,8 @@ func waitForLastOperation(broker *brokerlib.Broker, instanceID string, operation
 func setupInstance(instanceID string) (string, error) {
 	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
+	// Create a cluster running on AWS in eu-west-1. THe instance size should be
+	// M10 and backup should be disabled.
 	_, err := client.CreateCluster(atlas.Cluster{
 		Name:          clusterName,
 		BackupEnabled: false,
@@ -267,6 +272,7 @@ func setupInstance(instanceID string) (string, error) {
 		return "", err
 	}
 
+	// Wait for cluster to reach state "idle".
 	err = poll(15, func() (bool, error) {
 		cluster, err := client.GetCluster(clusterName)
 		if err != nil {
