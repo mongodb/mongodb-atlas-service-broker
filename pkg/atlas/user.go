@@ -49,6 +49,14 @@ func (c *HTTPClient) CreateUser(user User) (*User, error) {
 	return &user, err
 }
 
+func (c *HTTPClient) GetUser(name string) (*User, error) {
+	path := fmt.Sprintf("databaseUsers/admin/%s", name)
+
+	var user User
+	err := c.request(http.MethodGet, path, nil, &user)
+	return &user, err
+}
+
 // DeleteUser will delete an existing database user.
 // Endpoint: DELETE /databaseUsers/{USERNAME}
 func (c *HTTPClient) DeleteUser(name string) error {

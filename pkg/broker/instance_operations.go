@@ -120,7 +120,7 @@ func (b Broker) Deprovision(ctx context.Context, instanceID string, details brok
 		return
 	}
 
-	err = b.atlas.DeleteCluster(normalizeClusterName(instanceID))
+	err = b.atlas.DeleteCluster(NormalizeClusterName(instanceID))
 	if err != nil {
 		b.logger.Errorw("Failed to delete Atlas cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
@@ -149,7 +149,7 @@ func (b Broker) GetInstance(ctx context.Context, instanceID string) (spec broker
 func (b Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (resp brokerapi.LastOperation, err error) {
 	b.logger.Infow("Fetching state of last operation", "instance_id", instanceID, "details", details)
 
-	cluster, err := b.atlas.GetCluster(normalizeClusterName(instanceID))
+	cluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil && err != atlas.ErrClusterNotFound {
 		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
@@ -194,9 +194,9 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 	}, nil
 }
 
-// normalizeClusterName will sanitize a name to make sure it will be accepted
+// NormalizeClusterName will sanitize a name to make sure it will be accepted
 // by the Atlas API. Atlas requires cluster names to be 30 characters or less.
-func normalizeClusterName(name string) string {
+func NormalizeClusterName(name string) string {
 	if len(name) > 30 {
 		return string(name[0:30])
 	}
@@ -241,7 +241,7 @@ func clusterFromParams(instanceID string, serviceID string, planID string, rawPa
 	}
 
 	// Add the instance ID as the name of the cluster.
-	params.Cluster.Name = normalizeClusterName(instanceID)
+	params.Cluster.Name = NormalizeClusterName(instanceID)
 
 	return params.Cluster, nil
 }
