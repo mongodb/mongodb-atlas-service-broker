@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/10gen/atlas-service-broker/pkg/atlas"
 	brokerlib "github.com/10gen/atlas-service-broker/pkg/broker"
 	"github.com/google/uuid"
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -37,43 +39,214 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
-// TestHelpers will test the setupInstance function to ensure a cluster is created
-// as well as the setupBinding function to ensure a database user is created.
-// This test gives an examples of what the other integration test will roughly
-// look like. They'll use the helper functions to set up a fresh environment
-// and use the Atlas client to verify the results.
-func TestHelpers(t *testing.T) {
+func TestProvision(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
-	bindingID := uuid.New().String()
+	clusterName := brokerlib.NormalizeClusterName(instanceID)
 	defer teardownInstance(instanceID)
-	defer teardownBinding(bindingID)
 
-	// Set up an instance and wait for it to be ready.
+	params := `{
+		"cluster": {
+			"diskSizeGB": 15.0,
+			"providerSettings": {
+				"regionName": "EU_WEST_1"
+			}
+		}
+	}`
+
+	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "mongodb-aws",
+		PlanID:        "AWS-M10",
+		RawParameters: []byte(params),
+	}, true)
+
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure the cluster is being created.
+	cluster, err := client.GetCluster(clusterName)
+	assert.NoError(t, err)
+	assert.Equal(t, atlas.ClusterStateCreating, cluster.State)
+
+	// Wait a maximum of 15 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 15)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	cluster, err = client.GetCluster(clusterName)
+	assert.NoError(t, err)
+
+	// Ensure the cluster name is equal to the normalized instance ID.
+	assert.Equal(t, clusterName, cluster.Name)
+
+	// Ensure cluster was set up with the correct provider settings for its
+	// service/plan configuration.
+	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
+	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
+	assert.Equal(t, "EU_WEST_1", cluster.ProviderSettings.Region)
+}
+
+func TestUpdate(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	defer teardownInstance(instanceID)
+
 	clusterName, err := setupInstance(instanceID)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	// Fetch the newly created cluster.
+	// Ensure cluster is in the correct starting state.
 	cluster, err := client.GetCluster(clusterName)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	// Ensure cluster is in idle state.
-	assert.Equal(t, atlas.ClusterStateIdle, cluster.State)
+	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
+	assert.False(t, cluster.BackupEnabled)
 
-	// Set up a new database user.
+	// Update the cluster plan (instance size) and enable backups.
+	params := `{
+		"cluster": {
+			"backupEnabled": true
+		}
+	}`
+
+	_, err = broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+		ServiceID:     "mongodb-aws",
+		PlanID:        "AWS-M20",
+		RawParameters: []byte(params),
+	}, true)
+
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Wait a maximum of 20 minutes for cluster to finish updating.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 20)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure cluster was updated correctly.
+	cluster, err = client.GetCluster(clusterName)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Instance size should now be "M20" and backup should be enabled.
+	assert.Equal(t, atlas.ClusterStateIdle, cluster.State)
+	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
+	assert.True(t, cluster.BackupEnabled)
+}
+
+func TestBind(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	bindingID := uuid.New().String()
+	defer teardownBinding(bindingID)
+	defer teardownInstance(instanceID)
+
+	clusterName, err := setupInstance(instanceID)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	spec, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure user was created.
+	_, err = client.GetUser(bindingID)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	credentials, ok := spec.Credentials.(brokerlib.ConnectionDetails)
+	if !assert.True(t, ok, "Expected credentials to have type broker.ConnectionDetails") {
+		return
+	}
+
+	// Get the cluster to get its connection URI.
+	cluster, err := client.GetCluster(clusterName)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure the MongoDB username is the binding ID, that the password is not
+	// empty and that the connection URI matches the cluster's.
+	assert.Equal(t, bindingID, credentials.Username)
+	assert.NotEmpty(t, credentials.Password, "Expected non-empty password")
+	assert.Equal(t, cluster.URI, credentials.URI)
+}
+
+func TestUnbind(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	bindingID := uuid.New().String()
+	defer teardownBinding(bindingID)
+	defer teardownInstance(instanceID)
+
+	_, err := setupInstance(instanceID)
+	if !assert.NoError(t, err) {
+		return
+	}
+
 	_, err = setupBinding(bindingID)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	// Ensure database user was created.
+	_, err = broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure the user has been deleted and can't be found.
 	_, err = client.GetUser(bindingID)
+	assert.Error(t, err, "Expected user not found error")
+}
+
+func TestDeprovision(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	defer teardownInstance(instanceID)
+
+	_, err := setupInstance(instanceID)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Deprovision the cluster.
+	_, err = broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, true)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationDeprovision, 10)
 	assert.NoError(t, err)
+}
+
+func waitForLastOperation(broker *brokerlib.Broker, instanceID string, operation string, timeoutMinutes int) error {
+	return poll(timeoutMinutes, func() (bool, error) {
+		res, err := broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+			OperationData: operation,
+		})
+
+		if err != nil {
+			return false, err
+		}
+
+		return res.State == brokerapi.Succeeded, nil
+	})
 }
 
 // setupInstance will deploy a simple cluster to Atlas and wait for it to
@@ -82,7 +255,8 @@ func setupInstance(instanceID string) (string, error) {
 	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
 	_, err := client.CreateCluster(atlas.Cluster{
-		Name: clusterName,
+		Name:          clusterName,
+		BackupEnabled: false,
 		ProviderSettings: &atlas.ProviderSettings{
 			Name:     "AWS",
 			Instance: "M10",
