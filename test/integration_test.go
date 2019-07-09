@@ -236,7 +236,7 @@ func TestDeprovision(t *testing.T) {
 }
 
 // waitForLastOperation will poll the last operation function for a specified
-// opeation. The function returns once the operation was successful or the
+// operation. The function returns once the operation was successful or the
 // timeout has been reached.
 func waitForLastOperation(broker *brokerlib.Broker, instanceID string, operation string, timeoutMinutes int) error {
 	return poll(timeoutMinutes, func() (bool, error) {
