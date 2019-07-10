@@ -44,7 +44,6 @@ func TestProvision(t *testing.T) {
 
 	instanceID := uuid.New().String()
 	clusterName := brokerlib.NormalizeClusterName(instanceID)
-	defer teardownInstance(instanceID)
 
 	params := `{
 		"cluster": {
@@ -60,6 +59,7 @@ func TestProvision(t *testing.T) {
 		PlanID:        "AWS-M10",
 		RawParameters: []byte(params),
 	}, true)
+	defer teardownInstance(instanceID)
 
 	if !assert.NoError(t, err) {
 		return
@@ -93,9 +93,9 @@ func TestUpdate(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
-	defer teardownInstance(instanceID)
 
 	clusterName, err := setupInstance(instanceID)
+	defer teardownInstance(instanceID)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -149,15 +149,15 @@ func TestBind(t *testing.T) {
 
 	instanceID := uuid.New().String()
 	bindingID := uuid.New().String()
-	defer teardownBinding(bindingID)
-	defer teardownInstance(instanceID)
 
 	clusterName, err := setupInstance(instanceID)
+	defer teardownInstance(instanceID)
 	if !assert.NoError(t, err) {
 		return
 	}
 
 	spec, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+	defer teardownBinding(bindingID)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -191,15 +191,15 @@ func TestUnbind(t *testing.T) {
 
 	instanceID := uuid.New().String()
 	bindingID := uuid.New().String()
-	defer teardownBinding(bindingID)
-	defer teardownInstance(instanceID)
 
 	_, err := setupInstance(instanceID)
+	defer teardownInstance(instanceID)
 	if !assert.NoError(t, err) {
 		return
 	}
 
 	_, err = setupBinding(bindingID)
+	defer teardownBinding(bindingID)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -218,9 +218,9 @@ func TestDeprovision(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
-	defer teardownInstance(instanceID)
 
 	_, err := setupInstance(instanceID)
+	defer teardownInstance(instanceID)
 	if !assert.NoError(t, err) {
 		return
 	}
