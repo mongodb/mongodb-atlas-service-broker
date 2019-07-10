@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/atlas-service-broker/pkg/atlas"
 	brokerlib "github.com/10gen/atlas-service-broker/pkg/broker"
+	"github.com/10gen/atlas-service-broker/pkg/config"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -19,12 +20,12 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	baseURL := os.Getenv("ATLAS_BASE_URL")
-	groupID := os.Getenv("ATLAS_GROUP_ID")
-	publicKey := os.Getenv("ATLAS_PUBLIC_KEY")
-	privateKey := os.Getenv("ATLAS_PRIVATE_KEY")
+	config, err := config.ParseAtlasConfig()
+	if err != nil {
+		panic(err)
+	}
 
-	client, _ = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
+	client, _ = atlas.NewClient(config.BaseURL, config.GroupID, config.PublicKey, config.PrivateKey)
 
 	// Setup the broker which will be used
 	broker = brokerlib.NewBroker(client, zap.NewNop().Sugar())
