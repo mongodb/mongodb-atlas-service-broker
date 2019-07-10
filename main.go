@@ -39,8 +39,8 @@ func main() {
 	}
 
 	credentials := brokerapi.BrokerCredentials{
-		serverConfig.Username,
-		serverConfig.Password,
+		Username: serverConfig.Username,
+		Password: serverConfig.Password,
 	}
 
 	endpoint := serverConfig.Host + ":" + strconv.Itoa(serverConfig.Port)
