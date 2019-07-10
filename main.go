@@ -2,11 +2,12 @@ package main
 
 import (
 	"net/http"
-	"os"
+	"strconv"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/10gen/atlas-service-broker/pkg/atlas"
-	"github.com/10gen/atlas-service-broker/pkg/broker"
+	atlasclient "github.com/10gen/atlas-service-broker/pkg/atlas"
+	atlasbroker "github.com/10gen/atlas-service-broker/pkg/broker"
+	"github.com/10gen/atlas-service-broker/pkg/config"
 	"github.com/pivotal-cf/brokerapi"
 	"go.uber.org/zap"
 )
@@ -17,28 +18,37 @@ func main() {
 	zapLogger, _ := zap.NewDevelopment()
 	logger := zapLogger.Sugar()
 
-	baseURL := os.Getenv("ATLAS_BASE_URL")
-	groupID := os.Getenv("ATLAS_GROUP_ID")
-	publicKey := os.Getenv("ATLAS_PUBLIC_KEY")
-	privateKey := os.Getenv("ATLAS_PRIVATE_KEY")
-
-	client, err := atlas.NewClient(baseURL, groupID, publicKey, privateKey)
+	// Try parsing Atlas client config from env variables.
+	atlasConfig, err := config.ParseAtlasConfig()
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	broker := broker.NewBroker(client, logger)
-	credentials := brokerapi.BrokerCredentials{
-		Username: "username",
-		Password: "password",
+	client, err := atlasclient.NewClient(atlasConfig.BaseURL, atlasConfig.GroupID, atlasConfig.PublicKey, atlasConfig.PrivateKey)
+	if err != nil {
+		logger.Fatal(err)
 	}
 
-	api := brokerapi.New(broker, lager.NewLogger("api"), credentials)
-	http.Handle("/", api)
+	// Create broker with the previously created Atlas client.
+	broker := atlasbroker.NewBroker(client, logger)
 
-	host := os.Getenv("BROKER_HOST")
-	port := os.Getenv("BROKER_PORT")
-	endpoint := host + ":" + port
-	logger.Infof("Starting API server listening on %s", endpoint)
+	// Try parsing server config and set up broker API server.
+	serverConfig, err := config.ParseBrokerServerConfig()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	credentials := brokerapi.BrokerCredentials{
+		serverConfig.Username,
+		serverConfig.Password,
+	}
+
+	endpoint := serverConfig.Host + ":" + strconv.Itoa(serverConfig.Port)
+
+	// Mount broker server at the root.
+	http.Handle("/", brokerapi.New(broker, lager.NewLogger("api"), credentials))
+
+	// Start broker HTTP server.
+	logger.Infow("Starting API server", "host", serverConfig.Host, "port", serverConfig.Port, "atlas_base_url", atlasConfig.BaseURL, "atlas_group_id", atlasConfig.GroupID)
 	logger.Fatal(http.ListenAndServe(endpoint, nil))
 }
