@@ -233,6 +233,9 @@ func TestDeprovision(t *testing.T) {
 
 	err = waitForLastOperation(broker, instanceID, brokerlib.OperationDeprovision, 10)
 	assert.NoError(t, err)
+
+	_, err = client.GetCluster(brokerlib.NormalizeClusterName(instanceID))
+	assert.Equal(t, atlas.ErrClusterNotFound, err)
 }
 
 // waitForLastOperation will poll the last operation function for a specified
