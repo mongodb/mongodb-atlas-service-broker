@@ -47,7 +47,7 @@ func TestProvision(t *testing.T) {
 
 	params := `{
 		"cluster": {
-			"diskSizeGB": 15.0,
+			"backupEnabled": true,
 			"providerSettings": {
 				"regionName": "EU_WEST_1"
 			}
@@ -87,6 +87,8 @@ func TestProvision(t *testing.T) {
 	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
 	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
 	assert.Equal(t, "EU_WEST_1", cluster.ProviderSettings.Region)
+
+	assert.True(t, cluster.BackupEnabled)
 }
 
 func TestUpdate(t *testing.T) {
