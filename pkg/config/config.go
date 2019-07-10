@@ -11,7 +11,7 @@ import (
 func getVar(name string) (string, error) {
 	value, exists := os.LookupEnv(name)
 	if !exists {
-		return "", fmt.Errorf("could not find environment variable \"%s\"", name)
+		return "", fmt.Errorf(`could not find environment variable %s`, name)
 	}
 
 	return value, nil
@@ -37,7 +37,7 @@ func getIntVar(name string) (int, error) {
 
 	intValue, err := strconv.Atoi(value)
 	if err != nil {
-		return 0, fmt.Errorf("environment variable \"%s\" is not an integer", name)
+		return 0, fmt.Errorf(`environment variable %s is not an integer`, name)
 	}
 
 	return intValue, nil
@@ -53,7 +53,7 @@ func getIntVarWithDefault(name string, def int) (int, error) {
 
 	intValue, err := strconv.Atoi(value)
 	if err != nil {
-		return 0, fmt.Errorf("environment variable \"%s\" is not an integer", name)
+		return 0, fmt.Errorf(`environment variable %s is not an integer`, name)
 	}
 
 	return intValue, nil
