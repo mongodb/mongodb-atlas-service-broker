@@ -8,7 +8,6 @@ import (
 
 	"github.com/10gen/atlas-service-broker/pkg/atlas"
 	brokerlib "github.com/10gen/atlas-service-broker/pkg/broker"
-	"github.com/10gen/atlas-service-broker/pkg/config"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -20,12 +19,11 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	config, err := config.ParseAtlasConfig()
-	if err != nil {
-		panic(err)
-	}
-
-	client, _ = atlas.NewClient(config.BaseURL, config.GroupID, config.PublicKey, config.PrivateKey)
+	baseURL := getEnvOrPanic("ATLAS_BASE_URL")
+	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
+	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
+	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
+	client, _ = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 
 	// Setup the broker which will be used
 	broker = brokerlib.NewBroker(client, zap.NewNop().Sugar())
@@ -147,4 +145,13 @@ func poll(timeoutMinutes int, f func() (bool, error)) error {
 	}
 
 	return fmt.Errorf("timeout while polling (waited %d minutes)", timeoutMinutes)
+}
+
+func getEnvOrPanic(name string) string {
+	value, exists := os.LookupEnv(name)
+	if !exists {
+		panic(fmt.Sprintf(`Could not find environment variable "%s"`, name))
+	}
+
+	return value
 }

@@ -1,15 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+
+	"os"
 
 	"code.cloudfoundry.org/lager"
 	atlasclient "github.com/10gen/atlas-service-broker/pkg/atlas"
 	atlasbroker "github.com/10gen/atlas-service-broker/pkg/broker"
-	"github.com/10gen/atlas-service-broker/pkg/config"
 	"github.com/pivotal-cf/brokerapi"
 	"go.uber.org/zap"
+)
+
+// Default values for the configuration variables.
+const (
+	DefaultAtlasBaseURL = "https://cloud.mongodb.com/api/atlas/v1.0"
+
+	DefaultServerHost = "127.0.0.1"
+	DefaultServerPort = 4000
 )
 
 func main() {
@@ -18,13 +28,13 @@ func main() {
 	zapLogger, _ := zap.NewDevelopment()
 	logger := zapLogger.Sugar()
 
-	// Try parsing Atlas client config from env variables.
-	atlasConfig, err := config.ParseAtlasConfig()
-	if err != nil {
-		logger.Fatal(err)
-	}
+	// Try parsing Atlas client config.
+	baseURL := getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL)
+	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
+	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
+	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
 
-	client, err := atlasclient.NewClient(atlasConfig.BaseURL, atlasConfig.GroupID, atlasConfig.PublicKey, atlasConfig.PrivateKey)
+	client, err := atlasclient.NewClient(baseURL, groupID, publicKey, privateKey)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -33,22 +43,60 @@ func main() {
 	broker := atlasbroker.NewBroker(client, logger)
 
 	// Try parsing server config and set up broker API server.
-	serverConfig, err := config.ParseBrokerServerConfig()
-	if err != nil {
-		logger.Fatal(err)
-	}
+	username := getEnvOrPanic("BROKER_USERNAME")
+	password := getEnvOrPanic("BROKER_PASSWORD")
+	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
+	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
 
 	credentials := brokerapi.BrokerCredentials{
-		Username: serverConfig.Username,
-		Password: serverConfig.Password,
+		Username: username,
+		Password: password,
 	}
 
-	endpoint := serverConfig.Host + ":" + strconv.Itoa(serverConfig.Port)
+	endpoint := host + ":" + strconv.Itoa(port)
 
 	// Mount broker server at the root.
 	http.Handle("/", brokerapi.New(broker, lager.NewLogger("api"), credentials))
 
 	// Start broker HTTP server.
-	logger.Infow("Starting API server", "host", serverConfig.Host, "port", serverConfig.Port, "atlas_base_url", atlasConfig.BaseURL, "atlas_group_id", atlasConfig.GroupID)
+	logger.Infow("Starting API server", "host", host, "port", port, "atlas_base_url", baseURL, "atlas_group_id", groupID)
 	logger.Fatal(http.ListenAndServe(endpoint, nil))
+}
+
+// getEnvOrPanic will try getting an environment variable and fail with a
+// helpful error message in case it doesn't exist.
+func getEnvOrPanic(name string) string {
+	value, exists := os.LookupEnv(name)
+	if !exists {
+		panic(fmt.Sprintf(`Could not find environment variable "%s"`, name))
+	}
+
+	return value
+}
+
+// getEnvOrPanic will try getting an environment variable and return a default
+// value in case it doesn't exist.
+func getEnvOrDefault(name string, def string) string {
+	value, exists := os.LookupEnv(name)
+	if !exists {
+		return def
+	}
+
+	return value
+}
+
+// getIntEnvOrDefault will try getting an environment variable and parse it as
+// an integer. In case the variable is not set it will return the default value.
+func getIntEnvOrDefault(name string, def int) int {
+	value, exists := os.LookupEnv(name)
+	if !exists {
+		return def
+	}
+
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		panic(fmt.Sprintf(`Environment variable "%s" is not an integer`, name))
+	}
+
+	return intValue
 }
