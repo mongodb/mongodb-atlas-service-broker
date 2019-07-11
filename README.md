@@ -15,17 +15,23 @@ automatically be installed when the project is built.
 
 Configuration is handled with environment variables.
 
-### Broker API Server
-
-- `BROKER_HOST`
-- `BROKER_PORT`
-
 ### Atlas API
 
-- `ATLAS_BASE_URL`
-- `ATLAS_GROUP_ID`
-- `ATLAS_PUBLIC_KEY`
-- `ATLAS_PRIVATE_KEY`
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| ATLAS_GROUP_ID | **Required** | Group in which to provision new clusters |
+| ATLAS_PUBLIC_KEY | **Required** | Public part of the Atlas API key |
+| ATLAS_PRIVATE_KEY | **Required** | Private part of the Atlas API key |
+| ATLAS_BASE_URL | `https://cloud.mongodb.com/api/atlas/v1.0` | Base URL used for Atlas API connections |
+
+### Broker API Server
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| BROKER_HOST | `127.0.0.1` | Address which the broker server listens on |
+| BROKER_PORT | `4000` | Port which the broker server listens on |
+| BROKER_USERNAME | **Required** | Username for basic auth against broker |
+| BROKER_PASSWORD | **Required** | Password for basic auth against broker |
 
 ## Deploying to Kubernetes
 

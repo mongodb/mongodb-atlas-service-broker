@@ -21,11 +21,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	baseURL := os.Getenv("ATLAS_BASE_URL")
-	groupID := os.Getenv("ATLAS_GROUP_ID")
-	publicKey := os.Getenv("ATLAS_PUBLIC_KEY")
-	privateKey := os.Getenv("ATLAS_PRIVATE_KEY")
-
+	baseURL := getEnvOrPanic("ATLAS_BASE_URL")
+	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
+	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
+	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
 	client, _ = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 
 	// Setup the broker which will be used
@@ -331,4 +330,13 @@ func poll(timeoutMinutes int, f func() (bool, error)) error {
 	}
 
 	return fmt.Errorf("timeout while polling (waited %d minutes)", timeoutMinutes)
+}
+
+func getEnvOrPanic(name string) string {
+	value, exists := os.LookupEnv(name)
+	if !exists {
+		panic(fmt.Sprintf(`Could not find environment variable "%s"`, name))
+	}
+
+	return value
 }
