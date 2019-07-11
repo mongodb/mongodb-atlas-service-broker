@@ -30,8 +30,8 @@ Configuration is handled with environment variables.
 | -------- | ------- | ----------- |
 | BROKER_HOST | `127.0.0.1` | Address which the broker server listens on |
 | BROKER_PORT | `4000` | Port which the broker server listens on |
-| BROKER_USERNAME | `username` | Username for basic auth against broker |
-| BROKER_PASSWORD | `password` | Password for basic auth against broker |
+| BROKER_USERNAME | **Required** | Username for basic auth against broker |
+| BROKER_PASSWORD | **Required** | Password for basic auth against broker |
 
 ## Deploying to Kubernetes
 
