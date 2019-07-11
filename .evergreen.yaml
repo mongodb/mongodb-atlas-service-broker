@@ -30,7 +30,7 @@ functions:
           export ATLAS_GROUP_ID=${atlas_group_id}
           export ATLAS_PUBLIC_KEY=${atlas_public_key}
           export ATLAS_PRIVATE_KEY=${atlas_private_key}
-          go test -v ./test > int_result.suite
+          go test -timeout 1h -v ./test > int_result.suite
   "integration_tests_parse":
     - command: gotest.parse_files
       params:

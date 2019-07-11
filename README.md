@@ -58,3 +58,16 @@ The service broker can be deployed to Kubernetes by following these steps:
    cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance`.
 10. Run `scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.
 
+## Testing
+
+The project contains both unit tests and integration tests against Atlas. The unit tests can be
+found inside each package in `pkg/` and can be run with `go test ./pkg/...`.
+
+The integration tests are also implemented as Go tests and are found in `test/`. Credentials
+for connecting to the Atlas API should be passed as environment variables as specified in 
+[Configuration](#configuration). These tests can be run with `go test -timeout 1h ./test`. The
+default timeout is 10 minutes which is normally too short for some of the tests, hence it's
+recommended to raise the timeout to 1 hour.
+
+Unit and integration tests can be run at once using `go test -timeout 1h ./...`. Remember
+to pass the necessary environment variables and raise the timeout limit.
