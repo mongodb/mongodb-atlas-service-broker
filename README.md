@@ -73,7 +73,9 @@ The integration tests are also implemented as Go tests and are found in `test/`.
 for connecting to the Atlas API should be passed as environment variables as specified in 
 [Configuration](#configuration). These tests can be run with `go test -timeout 1h ./test`. The
 default timeout is 10 minutes which is normally too short for some of the tests, hence it's
-recommended to raise the timeout to 1 hour.
+recommended to raise the timeout to 1 hour. As part of the integration tests a MongoDB connection is
+set up to test the generated credentials. For this test to not fail the testing host needs to be
+whitelisted in Atlas.
 
 Unit and integration tests can be run at once using `go test -timeout 1h ./...`. Remember
 to pass the necessary environment variables and raise the timeout limit.
