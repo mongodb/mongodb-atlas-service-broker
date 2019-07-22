@@ -49,6 +49,8 @@ func (c *HTTPClient) CreateUser(user User) (*User, error) {
 	return &user, err
 }
 
+// GetUser will find a database user by its username.
+// GET /databaseUsers/admin/{USERNAME}
 func (c *HTTPClient) GetUser(name string) (*User, error) {
 	path := fmt.Sprintf("databaseUsers/admin/%s", name)
 
