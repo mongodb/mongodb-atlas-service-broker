@@ -60,7 +60,9 @@ func main() {
 
 	// Start broker HTTP server.
 	logger.Infow("Starting API server", "host", host, "port", port, "atlas_base_url", baseURL, "atlas_group_id", groupID)
-	logger.Fatal(http.ListenAndServe(endpoint, nil))
+	if err = http.ListenAndServe(endpoint, nil); err != nil {
+		logger.Fatal(err)
+	}
 }
 
 // getEnvOrPanic will try getting an environment variable and fail with a
