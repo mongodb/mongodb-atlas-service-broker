@@ -12,6 +12,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
 )
 
@@ -185,6 +188,41 @@ func TestBind(t *testing.T) {
 	assert.Equal(t, bindingID, credentials.Username)
 	assert.NotEmpty(t, credentials.Password, "Expected non-empty password")
 	assert.Equal(t, cluster.URI, credentials.URI)
+
+	// Ensure the cluster can be connected to with the generated credentials.
+	// We need to reset the auth source using a parameter otherwise the Go
+	// MongoDB library will fail to parse the connection string.
+	conn := options.Client().
+		ApplyURI(credentials.URI + "/?authSource=").
+		SetAuth(options.Credential{
+			Username:    credentials.Username,
+			Password:    credentials.Password,
+			PasswordSet: true,
+		})
+
+	// Try connecting to the cluster to ensure that the credentials are
+	// valid. There is sometimes a slight delay before the user is ready so this
+	// will try to connect for up to a minute.
+	err = poll(1, func() (bool, error) {
+		client, err := mongo.NewClient(conn)
+		if err != nil {
+			return false, nil
+		}
+
+		err = client.Connect(context.Background())
+		if err != nil {
+			return false, nil
+		}
+
+		err = client.Ping(context.Background(), readpref.Primary())
+		if err != nil {
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	assert.NoError(t, err)
 }
 
 func TestUnbind(t *testing.T) {
