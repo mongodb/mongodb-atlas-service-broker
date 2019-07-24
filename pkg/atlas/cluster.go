@@ -70,16 +70,16 @@ type ProviderSettings struct {
 type ReplicationSpec struct {
 	// Unique identifier for a zone's replication document. Required for existing
 	// zones and optional if adding new zones to a Global Cluster.
-	ID            string        `json:"id,omitempty"`
-	NumShards     uint          `json:"numShards,omitempty"`
-	RegionsConfig RegionsConfig `json:"regionsConfig,omitempty"`
-	ZoneName      string        `json:"zoneName,omitempty"`
+	ID            string                   `json:"id,omitempty"`
+	NumShards     uint                     `json:"numShards,omitempty"`
+	RegionsConfig map[string]RegionsConfig `json:"regionsConfig,omitempty"`
+	ZoneName      string                   `json:"zoneName,omitempty"`
 }
 
 // RegionsConfig represents a region's config in a replication spec.
 type RegionsConfig struct {
-	ElectableNodes int `json:"electableNodes,omitempty"`
-	ReadOnlyNodes  int `json:"readOnlyNodes,omitempty"`
+	ElectableNodes int `json:"electableNodes"`
+	ReadOnlyNodes  int `json:"readOnlyNodes"`
 	AnalyticsNodes int `json:"analyticsNodes,omitempty"`
 	Priority       int `json:"priority,omitempty"`
 }
