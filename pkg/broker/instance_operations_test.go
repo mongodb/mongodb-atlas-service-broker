@@ -105,10 +105,12 @@ func TestProvisionParams(t *testing.T) {
 				"id": "ID",
 				"numShards": 2,
 				"regionsConfig": {
-					"electableNodes": 1,
-					"readOnlyNodes": 1,
-					"analyticsNodes": 1,
-					"priority": 1
+					"REGION": {
+						"electableNodes": 1,
+						"readOnlyNodes": 1,
+						"analyticsNodes": 1,
+						"priority": 1
+					}
 				},
 				"zoneName": "ZONE"
 			}
@@ -142,11 +144,13 @@ func TestProvisionParams(t *testing.T) {
 			atlas.ReplicationSpec{
 				ID:        "ID",
 				NumShards: 2,
-				RegionsConfig: atlas.RegionsConfig{
-					ElectableNodes: 1,
-					ReadOnlyNodes:  1,
-					AnalyticsNodes: 1,
-					Priority:       1,
+				RegionsConfig: map[string]atlas.RegionsConfig{
+					"REGION": atlas.RegionsConfig{
+						ElectableNodes: 1,
+						ReadOnlyNodes:  1,
+						AnalyticsNodes: 1,
+						Priority:       1,
+					},
 				},
 				ZoneName: "ZONE",
 			},
