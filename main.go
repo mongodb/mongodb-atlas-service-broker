@@ -43,7 +43,7 @@ func main() {
 	}
 
 	// Create broker with the previously created Atlas client.
-	broker := atlasbroker.NewBroker(client, lagerZapLogger.SugaredLogger)
+	broker := atlasbroker.NewBroker(client, lagerZapLogger.GetSugaredLogger())
 
 	// Try parsing server config and set up broker API server.
 	username := getEnvOrPanic("BROKER_USERNAME")
@@ -63,7 +63,7 @@ func main() {
 
 	//Print out server details
 	//"host", host, "port", port, "atlas_base_url", baseURL, "atlas_group_id", groupID
-	lagerZapLogger.Info("Starting API server ", nil)
+	lagerZapLogger.Info("Starting API server")
 
 	// Start broker HTTP server.
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
