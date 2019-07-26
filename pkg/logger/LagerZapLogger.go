@@ -1,6 +1,9 @@
 package logger
 
 import (
+	"fmt"
+	"sync/atomic"
+
 	"code.cloudfoundry.org/lager"
 	"go.uber.org/zap"
 )
@@ -27,40 +30,56 @@ func (lagerZapLogger *LagerZapLogger) GetSugaredLogger() *zap.SugaredLogger {
 
 //RegisterSink is not used currently
 func (lagerZapLogger *LagerZapLogger) RegisterSink(sink lager.Sink) {
-	//
+	panic("RegisterSink not implemented")
 }
 
 //SessionName not used currently
 func (lagerZapLogger *LagerZapLogger) SessionName() string {
-	return ""
+	panic("SessionName not implemented")
 }
 
 //Session not used currently
 func (lagerZapLogger *LagerZapLogger) Session(task string, data ...lager.Data) lager.Logger {
-	return nil
+	sid := atomic.AddUint32(&lagerZapLogger.nextSession, 1)
+
+	var sessionIDstr string
+
+	if l.sessionID != "" {
+		sessionIDstr = fmt.Sprintf("%s.%d", l.sessionID, sid)
+	} else {
+		sessionIDstr = fmt.Sprintf("%d", sid)
+	}
+
+	return &logger{
+		component: l.component,
+		task:      fmt.Sprintf("%s.%s", l.task, task),
+		sinks:     l.sinks,
+		sessionID: sessionIDstr,
+		data:      l.baseData(data...),
+	}
 }
 
 //WithData is not used currently
 func (lagerZapLogger *LagerZapLogger) WithData(data lager.Data) lager.Logger {
-	return nil
+	panic("WithData not implemented")
 }
 
 //Debug has verbose message
 func (lagerZapLogger *LagerZapLogger) Debug(action string, data ...lager.Data) {
-	lagerZapLogger.sugaredLogger.Debugw(action, nil)
+	lagerZapLogger.sugaredLogger.Debugw(action, data)
 }
 
 //Info is default log level
 func (lagerZapLogger *LagerZapLogger) Info(action string, data ...lager.Data) {
-	lagerZapLogger.sugaredLogger.Infow(action, nil)
+	lagerZapLogger.sugaredLogger.Infow(action, data)
 }
 
 //Error is for logging errors
 func (lagerZapLogger *LagerZapLogger) Error(action string, err error, data ...lager.Data) {
-	lagerZapLogger.sugaredLogger.Errorw(action, nil)
+	lagerZapLogger.sugaredLogger.Errorw(action, data)
 }
 
 //Fatal is for logging fatal messages. The system shutdowns after logging the message
 func (lagerZapLogger *LagerZapLogger) Fatal(action string, err error, data ...lager.Data) {
-	lagerZapLogger.sugaredLogger.Fatalw(action, nil)
+	lagerZapLogger.sugaredLogger.Fatalw(action, data)
 }

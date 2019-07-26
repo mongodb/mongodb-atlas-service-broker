@@ -39,7 +39,7 @@ func main() {
 
 	client, err := atlasclient.NewClient(baseURL, groupID, publicKey, privateKey)
 	if err != nil {
-		lagerZapLogger.Fatal("", nil) //TODO
+		lagerZapLogger.Fatal(err.Error(), err)
 	}
 
 	// Create broker with the previously created Atlas client.
@@ -62,12 +62,11 @@ func main() {
 	http.Handle("/", brokerapi.New(broker, lagerZapLogger, credentials))
 
 	//Print out server details
-	//"host", host, "port", port, "atlas_base_url", baseURL, "atlas_group_id", groupID
-	lagerZapLogger.Info("Starting API server")
+	lagerZapLogger.GetSugaredLogger().Info("Starting API server ", "host", host, "port", port, "atlas_base_url", baseURL, "groupID", groupID)
 
 	// Start broker HTTP server.
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
-		lagerZapLogger.Fatal("", nil) //TODO
+		lagerZapLogger.Fatal(err.Error(), err)
 	}
 }
 

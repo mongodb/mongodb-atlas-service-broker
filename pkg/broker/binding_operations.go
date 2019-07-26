@@ -21,12 +21,12 @@ type ConnectionDetails struct {
 // Bind will create a new database user with a username matching the binding ID
 // and a randomly generated password. The user credentials will be returned back.
 func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (spec brokerapi.Binding, err error) {
-	b.logger.Infow("Creating binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
+	b.logger.Info("Creating binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
 
 	// Fetch the cluster from Atlas to ensure it exists.
 	cluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
-		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
+		b.logger.Error("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
 		return
 	}
@@ -34,7 +34,7 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	// Generate a cryptographically secure random password.
 	password, err := generatePassword()
 	if err != nil {
-		b.logger.Errorw("Failed to generate password", "error", err, "instance_id", instanceID, "binding_id", bindingID)
+		b.logger.Error("Failed to generate password", "error", err, "instance_id", instanceID, "binding_id", bindingID)
 		err = errors.New("Failed to generate binding password")
 		return
 	}
@@ -42,12 +42,12 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	// Create a new user with the binding ID as its username.
 	_, err = b.atlas.CreateUser(atlas.User{Username: bindingID, Password: password})
 	if err != nil {
-		b.logger.Errorw("Failed to create Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
+		b.logger.Error("Failed to create Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
 		err = atlasToAPIError(err)
 		return
 	}
 
-	b.logger.Infow("Successfully created Atlas database user", "instance_id", instanceID, "binding_id", bindingID)
+	b.logger.Info("Successfully created Atlas database user", "instance_id", instanceID, "binding_id", bindingID)
 
 	spec = brokerapi.Binding{
 		Credentials: ConnectionDetails{
@@ -62,12 +62,12 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 // Unbind will delete the database user for a specific binding. The database
 // user should have the binding ID as its username.
 func (b Broker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (spec brokerapi.UnbindSpec, err error) {
-	b.logger.Infow("Releasing binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
+	b.logger.Info("Releasing binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
 
 	// Fetch the cluster from Atlas to ensure it exists.
 	_, err = b.atlas.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
-		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
+		b.logger.Error("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
 		return
 	}
@@ -75,12 +75,12 @@ func (b Broker) Unbind(ctx context.Context, instanceID string, bindingID string,
 	// Delete database user which has the binding ID as its username.
 	err = b.atlas.DeleteUser(bindingID)
 	if err != nil {
-		b.logger.Errorw("Failed to delete Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
+		b.logger.Error("Failed to delete Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
 		err = atlasToAPIError(err)
 		return
 	}
 
-	b.logger.Infow("Successfully deleted Atlas database user", "instance_id", instanceID, "binding_id", bindingID)
+	b.logger.Info("Successfully deleted Atlas database user", "instance_id", instanceID, "binding_id", bindingID)
 
 	spec = brokerapi.UnbindSpec{}
 	return
@@ -89,7 +89,7 @@ func (b Broker) Unbind(ctx context.Context, instanceID string, bindingID string,
 // GetBinding is currently not supported as specified by the
 // BindingsRetrievable setting in the service catalog.
 func (b Broker) GetBinding(ctx context.Context, instanceID string, bindingID string) (spec brokerapi.GetBindingSpec, err error) {
-	b.logger.Infow("Retrieving binding", "instance_id", instanceID, "binding_id", bindingID)
+	b.logger.Info("Retrieving binding", "instance_id", instanceID, "binding_id", bindingID)
 
 	err = brokerapi.NewFailureResponse(fmt.Errorf("Unknown binding ID %s", bindingID), 404, "get-binding")
 	return
