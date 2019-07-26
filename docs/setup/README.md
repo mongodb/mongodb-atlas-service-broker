@@ -46,7 +46,7 @@ The service broker needs a set of API keys to be able to communicate with Atlas.
 2. Run `scripts/kubernetes-deploy.sh atlas`
 
 ##### Deploying a cluster
-Now the setup should be all done and Kubernetes is ready to provision clusters.
+Now the setup should be all done and Kubernetes ready to provision clusters.
 1. A new cluster can be deployed by running `kubectl create -filename scripts/kubernetes/instance.yaml -n atlas`.
 2. The progress can be checked inside of cloud-qa.
 3. Once the cluster has been provisioned a binding can be created using `kubectl create -f scripts/kubernetes/binding.yaml -n atlas`.
