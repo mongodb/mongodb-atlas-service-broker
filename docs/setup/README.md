@@ -14,7 +14,7 @@ press enter, wait for a moment until the installation is completed. You now have
 Install the kubectl command line tool by following these instructions:
 1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-on-macos) 
 2. [Install Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/). For the hypervisor we recommend installing [Virtualbox](https://www.virtualbox.org/wiki/Downloads).
-3. Verify that Minikube was installed by running`minikube start` from the command line.
+3. Verify that Minikube was installed by running `minikube start` from the command line.
 
 ##### Install Helm with Homebrew
 1. `brew install kubernetes-helm`
