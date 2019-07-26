@@ -8,20 +8,14 @@ import (
 // Ensure LagerZapLogger adheres to the Logger interface.
 var _ lager.Logger = &LagerZapLogger{}
 
-/*
-	RegisterSink(Sink)
-	Session(task string, data ...Data) Logger
-	SessionName() string
-	Debug(action string, data ...Data)
-	Info(action string, data ...Data)
-	Error(action string, err error, data ...Data)
-	Fatal(action string, err error, data ...Data)
-	WithData(Data) Logger
-*/
-
 //LagerZapLogger STRUCT
 type LagerZapLogger struct {
 	sugaredLogger *zap.SugaredLogger
+}
+
+//NewLagerZapLogger constructor
+func NewLagerZapLogger(zap *zap.SugaredLogger) *LagerZapLogger {
+	return &LagerZapLogger{zap}
 }
 
 //RegisterSink is not used currently
@@ -46,7 +40,7 @@ func (lagerZapLogger *LagerZapLogger) WithData(data lager.Data) lager.Logger {
 
 //Debug has verbose message
 func (lagerZapLogger *LagerZapLogger) Debug(action string, data ...lager.Data) {
-
+	//lagerZapLogger.sugaredLogger.Debugf(action, data...)
 }
 
 //Info is default log level
