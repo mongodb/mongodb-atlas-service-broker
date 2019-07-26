@@ -42,7 +42,7 @@ The service broker needs a set of API keys to be able to communicate with Atlas.
 
 ##### Install the Service Broker
 1. Run the following command and replace GROUPID with your project ID from the previous step. Also replace PUBLICKEY and PRIVATEKEY with the API public and private key:
-`kubectl create secret generic atlas-api --from-literal=group-id="GROUPID" --from-literal=public-key="PUBLICKEY" --from-literal=private-key="PRIVATEKEY" --from-literal=base-url="https://cloud-qa.mongodb.com/api/atlas/v1.0" -n atlas`
+`kubectl create secret generic atlas-api --from-literal=group-id="GROUPID" --from-literal=public-key="PUBLICKEY" --from-literal=private-key="PRIVATEKEY" --from-literal=base-url="https://cloud-qa.mongodb.com/api/atlas/v1.0" --namespace atlas`
 2. Run `scripts/kubernetes-deploy.sh atlas`
 
 ##### Deploying a cluster
