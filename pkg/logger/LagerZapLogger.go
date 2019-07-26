@@ -1,9 +1,6 @@
 package logger
 
 import (
-	"fmt"
-	"sync/atomic"
-
 	"code.cloudfoundry.org/lager"
 	"go.uber.org/zap"
 )
@@ -30,38 +27,40 @@ func (lagerZapLogger *LagerZapLogger) GetSugaredLogger() *zap.SugaredLogger {
 
 //RegisterSink is not used currently
 func (lagerZapLogger *LagerZapLogger) RegisterSink(sink lager.Sink) {
-	panic("RegisterSink not implemented")
+	panic("RegisterSink(sink lager.Sink) not implemented")
 }
 
 //SessionName not used currently
 func (lagerZapLogger *LagerZapLogger) SessionName() string {
-	panic("SessionName not implemented")
+	panic("SessionName() not implemented")
 }
 
 //Session not used currently
 func (lagerZapLogger *LagerZapLogger) Session(task string, data ...lager.Data) lager.Logger {
-	sid := atomic.AddUint32(&lagerZapLogger.nextSession, 1)
+	//NOT FINAL, THIS NEEDS ADJUSTING. IT'S A BIT HACKY NOW!!
 
-	var sessionIDstr string
+	logger := lager.NewLogger("my-app")
+	// sid := atomic.AddUint32(&lagerZapLogger.nextSession, 1)
 
-	if l.sessionID != "" {
-		sessionIDstr = fmt.Sprintf("%s.%d", l.sessionID, sid)
-	} else {
-		sessionIDstr = fmt.Sprintf("%d", sid)
-	}
+	// var sessionIDstr string
 
-	return &logger{
-		component: l.component,
-		task:      fmt.Sprintf("%s.%s", l.task, task),
-		sinks:     l.sinks,
-		sessionID: sessionIDstr,
-		data:      l.baseData(data...),
-	}
+	// if lagerZapLogger.sessionID != "" {
+	// 	sessionIDstr = fmt.Sprintf("%s.%d", lagerZapLogger.sessionID, sid)
+	// } else {
+	// 	sessionIDstr = fmt.Sprintf("%d", sid)
+	// }
+
+	// return &lager.Logger{
+	// 	component: lagerZapLogger.component,
+	// 	task:      fmt.Sprintf("%s.%s", lagerZapLogger.task, task),
+	// 	sessionID: sessionIDstr,
+	// }
+	return logger.Session(task, nil)
 }
 
 //WithData is not used currently
 func (lagerZapLogger *LagerZapLogger) WithData(data lager.Data) lager.Logger {
-	panic("WithData not implemented")
+	panic("WithData(data lager.Data) not implemented")
 }
 
 //Debug has verbose message
