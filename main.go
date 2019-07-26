@@ -25,6 +25,7 @@ const (
 )
 
 func main() {
+	//Single logger usage
 	zapLogger, _ := zap.NewProduction()
 	defer zapLogger.Sync() // flushes buffer, if any
 	sugar := zapLogger.Sugar()
@@ -42,7 +43,7 @@ func main() {
 	}
 
 	// Create broker with the previously created Atlas client.
-	broker := atlasbroker.NewBroker(client, lagerZapLogger)
+	broker := atlasbroker.NewBroker(client, lagerZapLogger.SugaredLogger)
 
 	// Try parsing server config and set up broker API server.
 	username := getEnvOrPanic("BROKER_USERNAME")
@@ -61,7 +62,9 @@ func main() {
 	http.Handle("/", brokerapi.New(broker, lagerZapLogger, credentials))
 
 	//Print out server details
-	lagerZapLogger.Info("Starting API server", "host", host, "port", port, "atlas_base_url", baseURL, "atlas_group_id", groupID)
+	//"host", host, "port", port, "atlas_base_url", baseURL, "atlas_group_id", groupID
+	lagerZapLogger.Info("Starting API server ", nil)
+
 	// Start broker HTTP server.
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
 		lagerZapLogger.Fatal("", nil) //TODO

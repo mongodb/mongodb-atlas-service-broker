@@ -10,12 +10,14 @@ var _ lager.Logger = &LagerZapLogger{}
 
 //LagerZapLogger STRUCT
 type LagerZapLogger struct {
-	sugaredLogger *zap.SugaredLogger
+	SugaredLogger *zap.SugaredLogger
 }
 
 //NewLagerZapLogger constructor
 func NewLagerZapLogger(zap *zap.SugaredLogger) *LagerZapLogger {
-	return &LagerZapLogger{zap}
+	return &LagerZapLogger{
+		SugaredLogger: zap,
+	}
 }
 
 //RegisterSink is not used currently
@@ -40,20 +42,20 @@ func (lagerZapLogger *LagerZapLogger) WithData(data lager.Data) lager.Logger {
 
 //Debug has verbose message
 func (lagerZapLogger *LagerZapLogger) Debug(action string, data ...lager.Data) {
-	//lagerZapLogger.sugaredLogger.Debugf(action, data...)
+	lagerZapLogger.SugaredLogger.Debug(action, nil)
 }
 
 //Info is default log level
 func (lagerZapLogger *LagerZapLogger) Info(action string, data ...lager.Data) {
-
+	lagerZapLogger.SugaredLogger.Info(action, nil)
 }
 
 //Error is for logging errors
 func (lagerZapLogger *LagerZapLogger) Error(action string, err error, data ...lager.Data) {
-
+	lagerZapLogger.SugaredLogger.Error(action, nil)
 }
 
 //Fatal is for logging fatal messages. The system shutdowns after logging the message
 func (lagerZapLogger *LagerZapLogger) Fatal(action string, err error, data ...lager.Data) {
-
+	lagerZapLogger.SugaredLogger.Fatal(action, nil)
 }
