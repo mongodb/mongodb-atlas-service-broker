@@ -29,7 +29,7 @@ func main() {
 	zapLogger, _ := zap.NewProduction()
 	defer zapLogger.Sync() // flushes buffer, if any
 	sugar := zapLogger.Sugar()
-	lagerZapLogger := logger.NewLagerZapLogger(sugar)
+	lagerZapLogger := logger.NewLagerZapLogger(sugar, "api")
 
 	// Try parsing Atlas client config.
 	baseURL := getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL)

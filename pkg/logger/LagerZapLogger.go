@@ -1,6 +1,9 @@
 package logger
 
 import (
+	"fmt"
+	"sync/atomic"
+
 	"code.cloudfoundry.org/lager"
 	"go.uber.org/zap"
 )
@@ -11,12 +14,18 @@ var _ lager.Logger = &LagerZapLogger{}
 //LagerZapLogger STRUCT
 type LagerZapLogger struct {
 	sugaredLogger *zap.SugaredLogger
+	component     string
+	task          string
+	sessionID     string
+	nextSession   uint32
 }
 
 //NewLagerZapLogger constructor
-func NewLagerZapLogger(zap *zap.SugaredLogger) *LagerZapLogger {
+func NewLagerZapLogger(zap *zap.SugaredLogger, component string) *LagerZapLogger {
 	return &LagerZapLogger{
 		sugaredLogger: zap,
+		component:     component,
+		task:          component,
 	}
 }
 
@@ -32,35 +41,33 @@ func (lagerZapLogger *LagerZapLogger) RegisterSink(sink lager.Sink) {
 
 //SessionName not used currently
 func (lagerZapLogger *LagerZapLogger) SessionName() string {
-	panic("SessionName() not implemented")
+	return lagerZapLogger.task
 }
 
-//Session not used currently
+//Session of the logger
 func (lagerZapLogger *LagerZapLogger) Session(task string, data ...lager.Data) lager.Logger {
-	//NOT FINAL, THIS NEEDS ADJUSTING. IT'S A BIT HACKY NOW!!
 
-	logger := lager.NewLogger("my-app")
-	// sid := atomic.AddUint32(&lagerZapLogger.nextSession, 1)
+	sid := atomic.AddUint32(&lagerZapLogger.nextSession, 1)
 
-	// var sessionIDstr string
+	var sessionIDstr string
 
-	// if lagerZapLogger.sessionID != "" {
-	// 	sessionIDstr = fmt.Sprintf("%s.%d", lagerZapLogger.sessionID, sid)
-	// } else {
-	// 	sessionIDstr = fmt.Sprintf("%d", sid)
-	// }
+	if lagerZapLogger.sessionID != "" {
+		sessionIDstr = fmt.Sprintf("%s.%d", lagerZapLogger.sessionID, sid)
+	} else {
+		sessionIDstr = fmt.Sprintf("%d", sid)
+	}
 
-	// return &lager.Logger{
-	// 	component: lagerZapLogger.component,
-	// 	task:      fmt.Sprintf("%s.%s", lagerZapLogger.task, task),
-	// 	sessionID: sessionIDstr,
-	// }
-	return logger.Session(task, nil)
+	return &LagerZapLogger{
+		component: lagerZapLogger.component,
+		task:      fmt.Sprintf("%s.%s", lagerZapLogger.task, task),
+		sessionID: sessionIDstr,
+	}
+	//return lager.NewLogger("my-app")
 }
 
-//WithData is not used currently
+//WithData creates a new child with the parent fields
 func (lagerZapLogger *LagerZapLogger) WithData(data lager.Data) lager.Logger {
-	panic("WithData(data lager.Data) not implemented")
+	return lagerZapLogger.With(data)
 }
 
 //Debug has verbose message
@@ -81,4 +88,14 @@ func (lagerZapLogger *LagerZapLogger) Error(action string, err error, data ...la
 //Fatal is for logging fatal messages. The system shutdowns after logging the message
 func (lagerZapLogger *LagerZapLogger) Fatal(action string, err error, data ...lager.Data) {
 	lagerZapLogger.sugaredLogger.Fatalw(action, data)
+}
+
+// With creates a child logger and adds structured context to it. Fields added
+// to the child don't affect the parent, and vice versa.
+func (lagerZapLogger *LagerZapLogger) With(data ...lager.Data) lager.Logger {
+	return &LagerZapLogger{
+		component: lagerZapLogger.component,
+		task:      lagerZapLogger.task,
+		sessionID: lagerZapLogger.sessionID,
+	}
 }
