@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/10gen/atlas-service-broker/pkg/logger"
-
 	"go.uber.org/zap"
 
 	"os"
@@ -25,11 +23,9 @@ const (
 )
 
 func main() {
-	//Single logger usage
-	zapLogger, _ := zap.NewProduction()
-	defer zapLogger.Sync() // flushes buffer, if any
-	sugar := zapLogger.Sugar()
-	lagerZapLogger := logger.NewLagerZapLogger(sugar, "api")
+	zapLogger, _ := zap.NewDevelopment()
+	defer zapLogger.Sync() // Flushes buffer, if any
+	logger := zapLogger.Sugar()
 
 	// Try parsing Atlas client config.
 	baseURL := getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL)
@@ -39,11 +35,11 @@ func main() {
 
 	client, err := atlasclient.NewClient(baseURL, groupID, publicKey, privateKey)
 	if err != nil {
-		lagerZapLogger.Fatal(err.Error(), err)
+		logger.Fatal(err)
 	}
 
 	// Create broker with the previously created Atlas client.
-	broker := atlasbroker.NewBroker(client, lagerZapLogger.GetSugaredLogger())
+	broker := atlasbroker.NewBroker(client, logger)
 
 	// Try parsing server config and set up broker API server.
 	username := getEnvOrPanic("BROKER_USERNAME")
@@ -59,14 +55,13 @@ func main() {
 	endpoint := host + ":" + strconv.Itoa(port)
 
 	// Mount broker server at the root.
-	http.Handle("/", brokerapi.New(broker, lagerZapLogger, credentials))
+	http.Handle("/", brokerapi.New(broker, NewLagerZapLogger(logger), credentials))
 
-	//Print out server details
-	lagerZapLogger.GetSugaredLogger().Info("Starting API server ", "host", host, "port", port, "atlas_base_url", baseURL, "groupID", groupID)
+	logger.Infow("Starting API server ", "host", host, "port", port, "atlas_base_url", baseURL, "groupID", groupID)
 
 	// Start broker HTTP server.
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
-		lagerZapLogger.Fatal(err.Error(), err)
+		logger.Fatal(err)
 	}
 }
 
