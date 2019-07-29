@@ -35,6 +35,60 @@ functions:
     - command: gotest.parse_files
       params:
         files: ["src/atlas-service-broker/int_result.suite"]
+  "get_tagged_version":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          # Get version from tag on head and throw error if none exists
+          export VERSION=$(git tag -l --points-at HEAD | sed 's/v//')
+          [[ -z "$VERSION" ]] && { echo "No version tag on HEAD" ; exit 1; }
+
+          echo "version: \"$VERSION\"" > version_expansion.yaml
+  "expand_version":
+    - command: expansions.update
+      params:
+        ignore_missing_file: true
+        file: src/atlas-service-broker/version_expansion.yaml
+  "build_binaries":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          go build -o artifacts/atlas-service-broker-linux-arm64-${version}
+  "setup_hub":
+    - command: shell.exec
+      params:
+        script: |
+          sudo pacman  --refresh --noconfirm -S hub
+          echo "Installed Hub CLI"
+  "publish_github_release":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          export GITHUB_TOKEN=${github_token}
+          export ARTIFACT="artifacts/$(ls artifacts)"
+          hub release create --message "Atlas Service Broker ${version}" --attach $ARTIFACT v${version}
+  "setup_docker":
+    - command: shell.exec
+      params:
+        script: |
+          sudo pacman --refresh --noconfirm -S community/docker
+          systemctl start docker.service
+  "build_docker":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          docker build . -t ${docker_repo}/${docker_name}:${version}
+  "publish_docker":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          docker login --username ${docker_username} --password ${docker_password} ${docker_repo}
+          docker push ${docker_repo}/${docker_name}:${version}
 
 tasks:
   - name: unit_tests
@@ -48,6 +102,24 @@ tasks:
     commands:
       - func: "integration_tests"
       - func: "integration_tests_parse"
+  - name: release_github
+    commands:
+      - func: "fetch_source"
+      - func: "get_tagged_version"
+      - func: "expand_version"
+      - func: "build_binaries"
+      - func: "setup_hub"
+      - func: "publish_github_release"
+  - name: release_docker
+    depends_on:
+      - name: release_github
+    commands:
+      - func: "fetch_source"
+      - func: "get_tagged_version"
+      - func: "expand_version"
+      - func: "setup_docker"
+      - func: "build_docker"
+      - func: "publish_docker"
 
 task_groups:
   - name: unit_task_group
@@ -68,3 +140,8 @@ buildvariants:
     tasks:
       - unit_task_group
       - integration_task_group
+  - name: release
+    run_on: archlinux-test
+    tasks:
+      - release_github
+      - release_docker
