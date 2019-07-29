@@ -15,7 +15,6 @@ Install the kubectl command line tool by following these instructions:
 1. Run the installation command `brew install kubernetes-cli`
 2. The easiest way to install MiniKube is executing the following command `brew cask install minikube`. For the Hypervisor we recommend installing [Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 3. Verify that Minikube was installed by running`minikube start` from the command line.
-
 ##### Install Helm with Homebrew
 1. `brew install kubernetes-helm`
 3. Verify in the terminal that Helm was installed by running `helm help` and
@@ -42,7 +41,7 @@ The service broker needs a set of API keys to be able to communicate with Atlas.
 
 ##### Install the Service Broker
 1. Execute the following command `kubectl create namespace atlas`. This will now create a namespace with the name `atlas`.
-2. Run the following command and replace GROUPID with your project ID from the previous step. Also replace PUBLICKEY and PRIVATEKEY with the API public and private key:
+2. Run the following command and replace GROUPID w ith your project ID from the previous step. Also replace PUBLICKEY and PRIVATEKEY with the API public and private key:
 `kubectl create secret generic atlas-api --from-literal=group-id="GROUPID" --from-literal=public-key="PUBLICKEY" --from-literal=private-key="PRIVATEKEY" --from-literal=base-url="https://cloud-qa.mongodb.com/api/atlas/v1.0" -n atlas`
 3. Run `scripts/kubernetes-deploy.sh atlas`
 
