@@ -10,10 +10,10 @@ These instructions are split in two parts. One for installing all the necessary 
 1. Open up a terminal, copy the following command: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` 
 press enter, wait for a moment until the installation is completed. You now have installed homebrew successfully.
 
-##### Install Minikube and Kubernetes
+##### Install Minikube and Kubernetes with Homebrew
 Install the kubectl command line tool by following these instructions:
-1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-on-macos) 
-2. [Install Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/). For the Hypervisor we recommend installing [Virtualbox](https://www.virtualbox.org/wiki/Downloads)
+1. Run the installation command `brew install kubernetes-cli`
+2. The easiest way to install MiniKube is executing the following command `brew cask install minikube`. For the Hypervisor we recommend installing [Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 3. Verify that Minikube was installed by running`minikube start` from the command line.
 
 ##### Install Helm with Homebrew
@@ -41,15 +41,16 @@ The service broker needs a set of API keys to be able to communicate with Atlas.
 2. Create a new project by clicking on Projects, which is found on the left sidebar. Create a new project and take note of the project/group ID. The project ID can be found in Settings.
 
 ##### Install the Service Broker
-1. Run the following command and replace GROUPID with your project ID from the previous step. Also replace PUBLICKEY and PRIVATEKEY with the API public and private key:
+1. Execute the following command `kubectl create namespace atlas`. This will now create a namespace with the name `atlas`.
+2. Run the following command and replace GROUPID with your project ID from the previous step. Also replace PUBLICKEY and PRIVATEKEY with the API public and private key:
 `kubectl create secret generic atlas-api --from-literal=group-id="GROUPID" --from-literal=public-key="PUBLICKEY" --from-literal=private-key="PRIVATEKEY" --from-literal=base-url="https://cloud-qa.mongodb.com/api/atlas/v1.0" -n atlas`
-2. Run `scripts/kubernetes-deploy.sh atlas`
+3. Run `scripts/kubernetes-deploy.sh atlas`
 
 ##### Deploying a cluster
 Now the setup should be all done and Kubernetes is ready to provision clusters.
 1. A new cluster can be deployed by running `kubectl create -filename scripts/kubernetes/instance.yaml -n atlas`.
-2. The progress can be checked inside of cloud-qa.
-3. Once the cluster has been provisioned a binding can be created using `kubectl create -f scripts/kubernetes/binding.yaml -n atlas`.
+2. The progress can be checked inside of cloud-qa, where your cluster should be present and is being provisioned.
+3. Once the cluster has been provisioned a binding can be created using `kubectl create -f scripts/kubernetes/binding.yaml -n atlas`, and afterwards the user should be present under the Database Access menu.
 4. The provisioned cluster and binding can be removed again using `kubectl delete serviceinstance atlas-cluster-instance`.
 
 More on Kubernetes commands can be found [here](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands).
