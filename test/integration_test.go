@@ -45,27 +45,32 @@ func TestProvision(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
-	//clusterName := brokerlib.NormalizeClusterName(instanceID)
-	clusterName := "cluster0"
+	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
+	// TODO I temporarly left out DiskIOPS, diskTypeName, backingProviderName
 	// Setting up our Expected cluster
-	var expectedCluster atlas.Cluster
+	var expectedCluster *atlas.Cluster
+	expectedCluster = new(atlas.Cluster)
+
 	expectedCluster.AutoScaling.DiskGBEnabled = true
+	expectedCluster.Name = clusterName
 	expectedCluster.BackupEnabled = true
-	expectedCluster.BIConnector.Enabled = true
-	expectedCluster.BIConnector.ReadPreference = "primary"
+	expectedCluster.BIConnector = atlas.BIConnectorConfig{
+		Enabled:        true,
+		ReadPreference: "primary",
+	}
 	expectedCluster.Type = "REPLICASET"
 	expectedCluster.DiskSizeGB = 10
-	expectedCluster.Name = clusterName
+	expectedCluster.EncryptionAtRestProvider = "NONE"
 	expectedCluster.MongoDBMajorVersion = "4.0"
 	expectedCluster.NumShards = 1
 	expectedCluster.ProviderBackupEnabled = false
 	expectedCluster.ProviderSettings = &atlas.ProviderSettings{
-		BackingProvider:  "AWS",
 		EncryptEBSVolume: true,
 		Instance:         "M10",
 		Name:             "AWS",
 		Region:           "EU_WEST_1",
+		VolumeType:       "STANDARD",
 	}
 	expectedCluster.ReplicationSpecs = []atlas.ReplicationSpec{
 		atlas.ReplicationSpec{
@@ -82,10 +87,11 @@ func TestProvision(t *testing.T) {
 			ZoneName: "Zone 1",
 		},
 	}
+	expectedCluster.State = "IDLE"
+	expectedCluster.URI = "mongodb+srv://" + clusterName + "-z5gca.mongodb-qa.net"
 
 	// Setting up the Request Body Parameters
-	// TODO I temporarly left out encryptionAtRestProvider, DiskIOPS, diskTypeName,
-	// backingProviderName
+	// TODO I temporarly left out, DiskIOPS, diskTypeName, backingProviderName
 	params := `{
 		"cluster": {
 			"autoScaling": { 
@@ -98,7 +104,6 @@ func TestProvision(t *testing.T) {
 			},
 			"clusterType": "REPLICASET",
 			"diskSizeGB": 10,
-			"name": "cluster0",
 			"mongoDBMajorVersion": "4.0",
 			"numShards": 1,
 			"providerBackupEnabled": false,
@@ -152,7 +157,6 @@ func TestProvision(t *testing.T) {
 	// Request
 	cluster, err = client.GetCluster(clusterName)
 	assert.NoError(t, err)
-
 	assert.Equal(t, expectedCluster, cluster)
 }
 
