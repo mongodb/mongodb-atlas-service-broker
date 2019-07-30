@@ -79,3 +79,11 @@ whitelisted in Atlas.
 
 Unit and integration tests can be run at once using `go test -timeout 1h ./...`. Remember
 to pass the necessary environment variables and raise the timeout limit.
+
+## Releasing
+
+The release process consists of publishing a new Github release with attached binaries as well as publishing a Docker image to [quay.io](https://quay.io). Evergreen can automatically build and publish the artifacts based on a tagged commit.
+
+1. Add a new annotated tag using `git tag -a vX.X.X`. Git will prompt for a message which later will be used for the Github release message.
+2. Push the tag using `git push <remote> vX.X.X`.
+3. Run `evergreen patch -v release -t release_github -t release_docker -y -f` and Evergreen will automatically complete the release.
