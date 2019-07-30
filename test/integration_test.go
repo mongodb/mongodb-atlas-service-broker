@@ -45,12 +45,67 @@ func TestProvision(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
-	clusterName := brokerlib.NormalizeClusterName(instanceID)
+	//clusterName := brokerlib.NormalizeClusterName(instanceID)
+	clusterName := "cluster0"
 
+	// Setting up our Expected cluster
+	var expectedCluster atlas.Cluster
+	expectedCluster.AutoScaling.DiskGBEnabled = true
+	expectedCluster.BackupEnabled = true
+	expectedCluster.BIConnector.Enabled = true
+	expectedCluster.BIConnector.ReadPreference = "primary"
+	expectedCluster.Type = "REPLICASET"
+	expectedCluster.DiskSizeGB = 10
+	expectedCluster.Name = clusterName
+	expectedCluster.MongoDBMajorVersion = "4.0"
+	expectedCluster.NumShards = 1
+	expectedCluster.ProviderBackupEnabled = false
+	expectedCluster.ProviderSettings = &atlas.ProviderSettings{
+		BackingProvider:  "AWS",
+		EncryptEBSVolume: true,
+		Instance:         "M10",
+		Name:             "AWS",
+		Region:           "EU_WEST_1",
+	}
+	expectedCluster.ReplicationSpecs = []atlas.ReplicationSpec{
+		atlas.ReplicationSpec{
+			ID:        "XSW",
+			NumShards: 1,
+			RegionsConfig: map[string]atlas.RegionsConfig{
+				"0": atlas.RegionsConfig{
+					ElectableNodes: 1,
+					ReadOnlyNodes:  1,
+					AnalyticsNodes: 1,
+					Priority:       1,
+				},
+			},
+			ZoneName: "Europe",
+		},
+	}
+
+	// Setting up the Request Body Parameters
+	// TODO I temporarly left out encryptionAtRestProvider, DiskIOPS, diskTypeName,
+	// backingProviderName
 	params := `{
 		"cluster": {
+			"autoScaling": { 
+				"diskGBEnabled": true
+			},
 			"backupEnabled": true,
+			"biConnector": {
+				"enabled": true,
+				"readPreference": "primary"
+			},
+			"clusterType": "REPLICASET",
+			"diskSizeGB": 10,
+			"name": "cluster0",
+			"mongoDBMajorVersion": "4.0",
+			"numShards": 1,
+			"providerBackupEnabled": false,
 			"providerSettings": {
+				"encryptEBSVolume": true,
+				"instanceSizeName": "M10",
+				"providerName": "AWS",
 				"regionName": "EU_WEST_1"
 			}
 		}
@@ -61,6 +116,7 @@ func TestProvision(t *testing.T) {
 		PlanID:        "AWS-M10",
 		RawParameters: []byte(params),
 	}, true)
+
 	defer teardownInstance(instanceID)
 
 	if !assert.NoError(t, err) {
@@ -72,25 +128,17 @@ func TestProvision(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, atlas.ClusterStateCreating, cluster.State)
 
-	// Wait a maximum of 15 minutes for cluster to reach state idle.
-	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 15)
+	// Wait a maximum of 20 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
 	if !assert.NoError(t, err) {
 		return
 	}
 
+	// Request
 	cluster, err = client.GetCluster(clusterName)
 	assert.NoError(t, err)
 
-	// Ensure the cluster name is equal to the normalized instance ID.
-	assert.Equal(t, clusterName, cluster.Name)
-
-	// Ensure cluster was set up with the correct provider settings for its
-	// service/plan configuration.
-	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
-	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
-	assert.Equal(t, "EU_WEST_1", cluster.ProviderSettings.Region)
-
-	assert.True(t, cluster.BackupEnabled)
+	assert.Equal(t, expectedCluster, cluster)
 }
 
 func TestUpdate(t *testing.T) {

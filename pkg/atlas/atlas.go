@@ -68,6 +68,7 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 	// Construct the JSON payload if a body has been passed
 	if body != nil {
 		json, err := json.Marshal(body)
+		fmt.Println(string(json))
 		if err != nil {
 			return err
 		}
