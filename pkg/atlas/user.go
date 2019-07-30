@@ -10,15 +10,15 @@ type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Database string `json:"databaseName"`
-	LDAPType string `json:"ldapAuthType"`
-	Roles    []Role `json:"roles"`
+	LDAPType string `json:"ldapAuthType,omitempty"`
+	Roles    []Role `json:"roles,omitempty"`
 }
 
 // Role represents the role of a database user.
 type Role struct {
 	Name       string `json:"roleName"`
-	Database   string `json:"databaseName"`
-	Collection string `json:"collectionName"`
+	Database   string `json:"databaseName,omitempty"`
+	Collection string `json:"collectionName,omitempty"`
 }
 
 // CreateUser will create a new database user with read/write access to all
