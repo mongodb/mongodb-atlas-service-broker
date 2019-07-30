@@ -9,8 +9,7 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          go test -v ./pkg/... > unit_result.suite
-  "go_unit_tests_parse":
+          go test -v ./pkg/... | tee unit_result.suite
     - command: gotest.parse_files
       params:
         files: ["src/atlas-service-broker/unit_result.suite"]
@@ -30,8 +29,7 @@ functions:
           export ATLAS_GROUP_ID=${atlas_group_id}
           export ATLAS_PUBLIC_KEY=${atlas_public_key}
           export ATLAS_PRIVATE_KEY=${atlas_private_key}
-          go test -timeout 1h -v ./test > int_result.suite
-  "integration_tests_parse":
+          go test -timeout 1h -v ./test | tee int_result.suite
     - command: gotest.parse_files
       params:
         files: ["src/atlas-service-broker/int_result.suite"]
@@ -93,14 +91,12 @@ tasks:
   - name: unit_tests
     commands:
       - func: "go_unit_tests"
-      - func: "go_unit_tests_parse"
   - name: vet
     commands:
       - func: "go_vet"
   - name: integration_tests
     commands:
       - func: "integration_tests"
-      - func: "integration_tests_parse"
   - name: release_github
     patch_only: true
     commands:
