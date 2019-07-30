@@ -33,9 +33,6 @@ func TestMain(m *testing.M) {
 	// Setup the broker which will be used
 	broker = brokerlib.NewBroker(client, zap.NewNop().Sugar())
 
-	// Run all tests in order. The tests will first provision a new instance,
-	// create a new binding for the provsioned instance, delete the binding,
-	// and finally deprovision the instance.
 	result := m.Run()
 
 	os.Exit(result)
