@@ -45,7 +45,6 @@ functions:
           [[ -z "$VERSION" ]] && { echo "No version tag on HEAD" ; exit 1; }
 
           echo "version: \"$VERSION\"" > version_expansion.yaml
-  "expand_version":
     - command: expansions.update
       params:
         ignore_missing_file: true
@@ -107,7 +106,6 @@ tasks:
     commands:
       - func: "fetch_source"
       - func: "get_tagged_version"
-      - func: "expand_version"
       - func: "build_binaries"
       - func: "setup_hub"
       - func: "publish_github_release"
@@ -118,7 +116,6 @@ tasks:
     commands:
       - func: "fetch_source"
       - func: "get_tagged_version"
-      - func: "expand_version"
       - func: "setup_docker"
       - func: "build_docker"
       - func: "publish_docker"
