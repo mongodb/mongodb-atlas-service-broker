@@ -69,17 +69,17 @@ func TestProvision(t *testing.T) {
 	}
 	expectedCluster.ReplicationSpecs = []atlas.ReplicationSpec{
 		atlas.ReplicationSpec{
-			ID:        "XSW",
+			ID:        "5c87f79087d9d612a175f46c",
 			NumShards: 1,
 			RegionsConfig: map[string]atlas.RegionsConfig{
-				"0": atlas.RegionsConfig{
-					ElectableNodes: 1,
+				"EU_WEST_1": atlas.RegionsConfig{
+					ElectableNodes: 3,
 					ReadOnlyNodes:  1,
 					AnalyticsNodes: 1,
-					Priority:       1,
+					Priority:       7,
 				},
 			},
-			ZoneName: "Europe",
+			ZoneName: "Zone 1",
 		},
 	}
 
@@ -107,7 +107,22 @@ func TestProvision(t *testing.T) {
 				"instanceSizeName": "M10",
 				"providerName": "AWS",
 				"regionName": "EU_WEST_1"
-			}
+			},
+			"replicationSpecs": [
+				{
+					"id": "5c87f79087d9d612a175f46c",
+					"numShards": 1,
+					"regionsConfig": {
+						"EU_WEST_1": {
+							"electableNodes": 3,
+							"readOnlyNodes": 1,
+							"analyticsNodes": 1,
+							"priority": 7
+						}
+					},
+					"zoneName": "Zone 1"
+				}
+			]
 		}
 	}`
 
