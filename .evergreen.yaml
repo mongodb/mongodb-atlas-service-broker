@@ -133,7 +133,7 @@ task_groups:
       - integration_tests
 
 buildvariants:
-  - name: archlinux
+  - name: test
     run_on: archlinux-test
     tasks:
       - unit_task_group
