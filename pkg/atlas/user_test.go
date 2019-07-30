@@ -10,10 +10,26 @@ import (
 func TestCreateUser(t *testing.T) {
 	expected := User{
 		Username: "username",
+		Database: "admin",
+		LDAPType: "NONE",
+		Roles: []Role{
+			Role{
+				Name:     "readWriteAnyDatabase",
+				Database: "admin",
+			},
+		},
 	}
 
 	response := map[string]interface{}{
-		"username": "username",
+		"username":     "username",
+		"databaseName": "admin",
+		"ldapAuthType": "NONE",
+		"roles": []map[string]interface{}{
+			map[string]interface{}{
+				"roleName":     "readWriteAnyDatabase",
+				"databaseName": "admin",
+			},
+		},
 	}
 
 	atlas, server := setupTest(t, "/databaseUsers", http.MethodPost, 200, response)

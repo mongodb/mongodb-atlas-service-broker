@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -39,8 +40,15 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 		return
 	}
 
-	// Create a new user with the binding ID as its username.
-	_, err = b.atlas.CreateUser(atlas.User{Username: bindingID, Password: password})
+	// Construct a cluster definition from the instance ID, service, plan, and params.
+	user, err := userFromParams(bindingID, password, details.RawParameters)
+	if err != nil {
+		b.logger.Errorw("Couldn't create user from the passed parameters", "error", err, "instance_id", instanceID, "binding_id", bindingID, "details", details)
+		return
+	}
+
+	// Create a new Atlas database user from the generated definition.
+	_, err = b.atlas.CreateUser(*user)
 	if err != nil {
 		b.logger.Errorw("Failed to create Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
 		err = atlasToAPIError(err)
@@ -113,4 +121,38 @@ func generatePassword() (string, error) {
 	}
 
 	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+func userFromParams(bindingID string, password string, rawParams []byte) (*atlas.User, error) {
+	// Set up a params object which will be used for deserialiation.
+	params := struct {
+		User *atlas.User `json:"user"`
+	}{
+		&atlas.User{},
+	}
+
+	// If params were passed we unmarshal them into the params object.
+	if len(rawParams) > 0 {
+		err := json.Unmarshal(rawParams, &params)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Set binding ID as username and add password.
+	params.User.Username = bindingID
+	params.User.Password = password
+
+	// If no role is specified we default to read/write on any database.
+	// This is the default role when creating a user through the Atlas UI.
+	if len(params.User.Roles) == 0 {
+		params.User.Roles = []atlas.Role{
+			atlas.Role{
+				Name:     "readWriteAnyDatabase",
+				Database: "admin",
+			},
+		}
+	}
+
+	return params.User, nil
 }
