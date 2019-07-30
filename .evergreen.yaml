@@ -103,6 +103,7 @@ tasks:
       - func: "integration_tests"
       - func: "integration_tests_parse"
   - name: release_github
+    patch_only: true
     commands:
       - func: "fetch_source"
       - func: "get_tagged_version"
@@ -111,6 +112,7 @@ tasks:
       - func: "setup_hub"
       - func: "publish_github_release"
   - name: release_docker
+    patch_only: true
     depends_on:
       - name: release_github
     commands:
