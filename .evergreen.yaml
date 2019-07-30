@@ -65,8 +65,11 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           export GITHUB_TOKEN=${github_token}
-          export ARTIFACT="artifacts/$(ls artifacts)"
-          hub release create --message "Atlas Service Broker ${version}" --attach $ARTIFACT v${version}
+
+          # Get all artifacts and turn them into a list with --attach flags
+          export ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
+
+          hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
   "setup_docker":
     - command: shell.exec
       params:
