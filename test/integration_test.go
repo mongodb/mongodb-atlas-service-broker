@@ -361,6 +361,12 @@ func setupBinding(bindingID string) (*atlas.User, error) {
 	return client.CreateUser(atlas.User{
 		Username: bindingID,
 		Password: uuid.New().String(),
+		Roles: []atlas.Role{
+			atlas.Role{
+				Name:     "readWriteAnyDatabase",
+				Database: "admin",
+			},
+		},
 	})
 }
 
