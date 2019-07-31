@@ -23,7 +23,7 @@ func NewLagerZapLogger(zap *zap.SugaredLogger) *LagerZapLogger {
 }
 
 // RegisterSink A Sink represents a write destination for a Logger. It provides a thread-safe interface for writing logs.
-// We are not using this function, because zap doesn't require nor needs it but the OSBAPI does.
+// We are not using this function, because zap doesn't require nor need it but the OSBAPI does.
 func (lagerZapLogger *LagerZapLogger) RegisterSink(sink lager.Sink) {}
 
 // SessionName returns the name of the session. This is normally added when initializing a new logger but zap doesn't require nor needs it.
