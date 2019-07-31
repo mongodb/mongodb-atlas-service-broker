@@ -33,7 +33,7 @@ func (lagerZapLogger *LagerZapLogger) SessionName() string {
 }
 
 // Session sets the session of the logger and returns a new logger with a nested session. We are currently
-// returing the same logger back, because zap doesn't require nor needs it but the OSBAPI does.
+// returning the same logger back, because zap doesn't require nor need it but the OSBAPI does.
 func (lagerZapLogger *LagerZapLogger) Session(task string, data ...lager.Data) lager.Logger {
 	return lagerZapLogger
 }
