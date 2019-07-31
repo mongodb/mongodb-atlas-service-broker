@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -19,19 +20,17 @@ import (
 )
 
 var (
-	broker *brokerlib.Broker
-	client atlas.Client
+	broker          *brokerlib.Broker
+	client          atlas.Client
+	expectedCluster *atlas.Cluster
+	params          string
+	instanceID      string
+	clusterName     string
 )
 
 func TestMain(m *testing.M) {
-	baseURL := getEnvOrPanic("ATLAS_BASE_URL")
-	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
-	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
-	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
-	client, _ = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
-
-	// Setup the broker which will be used
-	broker = brokerlib.NewBroker(client, zap.NewNop().Sugar())
+	// Necessary to do extra setup before or after each test
+	setup()
 
 	// Run all tests in order. The tests will first provision a new instance,
 	// create a new binding for the provsioned instance, delete the binding,
@@ -41,17 +40,22 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
-func TestProvision(t *testing.T) {
-	t.Parallel()
+func setup() {
+	baseURL := getEnvOrPanic("ATLAS_BASE_URL")
+	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
+	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
+	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
+	client, _ = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 
-	instanceID := uuid.New().String()
-	clusterName := brokerlib.NormalizeClusterName(instanceID)
+	// Setup the broker which will be used
+	broker = brokerlib.NewBroker(client, zap.NewNop().Sugar())
 
-	// TODO I temporarly left out DiskIOPS, diskTypeName, backingProviderName
+	instanceID = uuid.New().String()
+	clusterName = brokerlib.NormalizeClusterName(instanceID)
+
+	// TODO missing DiskIOPS, diskTypeName, backingProviderName
 	// Setting up our Expected cluster
-	var expectedCluster *atlas.Cluster
 	expectedCluster = new(atlas.Cluster)
-
 	expectedCluster.AutoScaling.DiskGBEnabled = true
 	expectedCluster.Name = clusterName
 	expectedCluster.BackupEnabled = true
@@ -77,7 +81,7 @@ func TestProvision(t *testing.T) {
 			ID:        "5c87f79087d9d612a175f46c",
 			NumShards: 1,
 			RegionsConfig: map[string]atlas.RegionsConfig{
-				"EU_WEST_1": atlas.RegionsConfig{
+				"" + expectedCluster.ProviderSettings.Region + "": atlas.RegionsConfig{
 					ElectableNodes: 3,
 					ReadOnlyNodes:  1,
 					AnalyticsNodes: 1,
@@ -90,46 +94,49 @@ func TestProvision(t *testing.T) {
 	expectedCluster.State = "IDLE"
 	expectedCluster.URI = "mongodb+srv://" + clusterName + "-z5gca.mongodb-qa.net"
 
-	// Setting up the Request Body Parameters
-	// TODO I temporarly left out, DiskIOPS, diskTypeName, backingProviderName
-	params := `{
+	// Setting up the params for the body request
+	params = `{
 		"cluster": {
 			"autoScaling": { 
-				"diskGBEnabled": true
+				"diskGBEnabled": ` + strconv.FormatBool(expectedCluster.AutoScaling.DiskGBEnabled) + `
 			},
-			"backupEnabled": true,
+			"backupEnabled": ` + strconv.FormatBool(expectedCluster.BackupEnabled) + `,
 			"biConnector": {
-				"enabled": true,
-				"readPreference": "primary"
+				"enabled": ` + strconv.FormatBool(expectedCluster.BIConnector.Enabled) + `,
+				"readPreference": "` + expectedCluster.BIConnector.ReadPreference + `"
 			},
-			"clusterType": "REPLICASET",
-			"diskSizeGB": 10,
-			"mongoDBMajorVersion": "4.0",
-			"numShards": 1,
-			"providerBackupEnabled": false,
+			"clusterType": "` + expectedCluster.Type + `",
+			"diskSizeGB": ` + fmt.Sprintf("%f", expectedCluster.DiskSizeGB) + `,
+			"mongoDBMajorVersion": "` + expectedCluster.MongoDBMajorVersion + `",
+			"numShards": ` + fmt.Sprint(expectedCluster.NumShards) + `,
+			"providerBackupEnabled": ` + strconv.FormatBool(expectedCluster.ProviderBackupEnabled) + `,
 			"providerSettings": {
-				"encryptEBSVolume": true,
-				"instanceSizeName": "M10",
-				"providerName": "AWS",
-				"regionName": "EU_WEST_1"
+				"encryptEBSVolume": ` + strconv.FormatBool(expectedCluster.ProviderSettings.EncryptEBSVolume) + `,
+				"instanceSizeName": "` + expectedCluster.ProviderSettings.Instance + `",
+				"providerName": "` + expectedCluster.ProviderSettings.Name + `",
+				"regionName": "` + expectedCluster.ProviderSettings.Region + `"
 			},
 			"replicationSpecs": [
 				{
-					"id": "5c87f79087d9d612a175f46c",
-					"numShards": 1,
+					"id": "` + expectedCluster.ReplicationSpecs[0].ID + `",
+					"numShards": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].NumShards) + `,
 					"regionsConfig": {
-						"EU_WEST_1": {
-							"electableNodes": 3,
-							"readOnlyNodes": 1,
-							"analyticsNodes": 1,
-							"priority": 7
+						"` + expectedCluster.ProviderSettings.Region + `": {
+							"electableNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].ElectableNodes) + `,
+							"readOnlyNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].ReadOnlyNodes) + `,
+							"analyticsNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].AnalyticsNodes) + `,
+							"priority": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].Priority) + `
 						}
 					},
-					"zoneName": "Zone 1"
+					"zoneName": "` + expectedCluster.ReplicationSpecs[0].ZoneName + `"
 				}
 			]
 		}
 	}`
+}
+
+func TestProvision(t *testing.T) {
+	t.Parallel()
 
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
 		ServiceID:     "mongodb-aws",
@@ -157,13 +164,15 @@ func TestProvision(t *testing.T) {
 	// Request
 	cluster, err = client.GetCluster(clusterName)
 	assert.NoError(t, err)
+
+	// Ensure response is equal to request cluster
 	assert.Equal(t, expectedCluster, cluster)
 }
 
 func TestUpdate(t *testing.T) {
 	t.Parallel()
 
-	instanceID := uuid.New().String()
+	// instanceID := uuid.New().String()
 
 	clusterName, err := setupInstance(instanceID)
 	defer teardownInstance(instanceID)
