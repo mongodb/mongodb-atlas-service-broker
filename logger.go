@@ -11,11 +11,6 @@ var _ lager.Logger = &LagerZapLogger{}
 // The LagerZapLogger is implementing the Lager interface. The OSBAPI expects us to use the lager logger,
 // but we wanted to use the Zap logger for its fast, leveled, and structured logging.
 // The zap methods are wrapped in the Lager method calls and is merely mapping them.
-//
-// The Logger is designed for contexts in which every microsecond and every
-// allocation matters, so its API intentionally favors performance and type
-// safety over brevity. For most applications, the SugaredLogger strikes a
-// better balance between performance and ergonomics.
 type LagerZapLogger struct {
 	logger *zap.SugaredLogger
 }
