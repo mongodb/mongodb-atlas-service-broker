@@ -20,27 +20,11 @@ import (
 )
 
 var (
-	broker          *brokerlib.Broker
-	client          atlas.Client
-	expectedCluster *atlas.Cluster
-	params          string
-	instanceID      string
-	clusterName     string
+	broker *brokerlib.Broker
+	client atlas.Client
 )
 
 func TestMain(m *testing.M) {
-	// Necessary to do extra setup before or after each test
-	setup()
-
-	// Run all tests in order. The tests will first provision a new instance,
-	// create a new binding for the provsioned instance, delete the binding,
-	// and finally deprovision the instance.
-	result := m.Run()
-
-	os.Exit(result)
-}
-
-func setup() {
 	baseURL := getEnvOrPanic("ATLAS_BASE_URL")
 	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
 	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
@@ -50,11 +34,22 @@ func setup() {
 	// Setup the broker which will be used
 	broker = brokerlib.NewBroker(client, zap.NewNop().Sugar())
 
-	instanceID = uuid.New().String()
-	clusterName = brokerlib.NormalizeClusterName(instanceID)
+	// Run all tests in order. The tests will first provision a new instance,
+	// create a new binding for the provsioned instance, delete the binding,
+	// and finally deprovision the instance.
+	result := m.Run()
 
-	// TODO missing DiskIOPS, diskTypeName, backingProviderName
+	os.Exit(result)
+}
+
+func TestProvision(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	clusterName := brokerlib.NormalizeClusterName(instanceID)
+
 	// Setting up our Expected cluster
+	var expectedCluster *atlas.Cluster
 	expectedCluster = new(atlas.Cluster)
 	expectedCluster.AutoScaling.DiskGBEnabled = true
 	expectedCluster.Name = clusterName
@@ -75,6 +70,8 @@ func setup() {
 		Name:             "AWS",
 		Region:           "EU_WEST_1",
 		VolumeType:       "STANDARD",
+		DiskIOPS:         300,
+		DiskType:         "P4",
 	}
 	expectedCluster.ReplicationSpecs = []atlas.ReplicationSpec{
 		atlas.ReplicationSpec{
@@ -92,10 +89,10 @@ func setup() {
 		},
 	}
 	expectedCluster.State = "IDLE"
-	expectedCluster.URI = "mongodb+srv://" + clusterName + "-z5gca.mongodb-qa.net"
+	expectedCluster.URI = "mongodb+srv://" + clusterName + "-fsvlp.mongodb-qa.net"
 
 	// Setting up the params for the body request
-	params = `{
+	params := `{
 		"cluster": {
 			"autoScaling": { 
 				"diskGBEnabled": ` + strconv.FormatBool(expectedCluster.AutoScaling.DiskGBEnabled) + `
@@ -114,7 +111,9 @@ func setup() {
 				"encryptEBSVolume": ` + strconv.FormatBool(expectedCluster.ProviderSettings.EncryptEBSVolume) + `,
 				"instanceSizeName": "` + expectedCluster.ProviderSettings.Instance + `",
 				"providerName": "` + expectedCluster.ProviderSettings.Name + `",
-				"regionName": "` + expectedCluster.ProviderSettings.Region + `"
+				"regionName": "` + expectedCluster.ProviderSettings.Region + `",
+				"diskIOPS": ` + fmt.Sprint(expectedCluster.ProviderSettings.DiskIOPS) + `,
+				"diskTypeName":"` + expectedCluster.ProviderSettings.DiskType + `"
 			},
 			"replicationSpecs": [
 				{
@@ -133,10 +132,6 @@ func setup() {
 			]
 		}
 	}`
-}
-
-func TestProvision(t *testing.T) {
-	t.Parallel()
 
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
 		ServiceID:     "mongodb-aws",
@@ -172,7 +167,7 @@ func TestProvision(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	t.Parallel()
 
-	// instanceID := uuid.New().String()
+	instanceID := uuid.New().String()
 
 	clusterName, err := setupInstance(instanceID)
 	defer teardownInstance(instanceID)
@@ -208,7 +203,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// Wait a maximum of 20 minutes for cluster to finish updating.
-	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 20)
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 25)
 	if !assert.NoError(t, err) {
 		return
 	}
