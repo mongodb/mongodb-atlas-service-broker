@@ -52,6 +52,8 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		IsAsync:       true,
 		OperationData: OperationProvision,
 	}
+
+	fmt.Println("dashboard url: " + spec.DashboardURL)
 	return
 }
 
