@@ -68,7 +68,9 @@ func (lagerZapLogger *LagerZapLogger) Fatal(action string, err error, data ...la
 	lagerZapLogger.logger.Fatalw(action, createFields(data)...)
 }
 
-// createFields converts the data of type Data (used by lager) to field of type Field (used by zap).
+// createFields converts the structured log data that the lager library uses to
+// the format that zap expects. lager uses a list of maps while zap expects a flat list
+// of alternating keys and values.
 func createFields(data []lager.Data) []interface{} {
 	var fields []interface{}
 
