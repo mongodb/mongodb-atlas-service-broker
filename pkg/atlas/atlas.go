@@ -25,6 +25,7 @@ type Client interface {
 // HTTPClient is the main implementation of the Client interface which
 // communicates with the Atlas API.
 type HTTPClient struct {
+	apiURL     string
 	baseURL    string
 	groupID    string
 	publicKey  string
@@ -49,13 +50,17 @@ func NewClient(baseURL string, groupID string, publicKey string, privateKey stri
 		groupID:    groupID,
 		publicKey:  publicKey,
 		privateKey: privateKey,
-
-		HTTP: &http.Client{},
+		apiURL:     "api/atlas/v1.0",
+		HTTP:       &http.Client{},
 	}, nil
 }
 
 func (c *HTTPClient) getEndpointURL(endpoint string) string {
-	return fmt.Sprintf("%s/groups/%s/%s", c.baseURL, c.groupID, endpoint)
+	return fmt.Sprintf("%s/%s/groups/%s/%s", c.baseURL, c.apiURL, c.groupID, endpoint)
+}
+
+func (c *HTTPClient) getDashboardURL(cluster Cluster) string {
+	return fmt.Sprintf("https://cloud-qa.mongodb.com/v2/%s#clusters/detail/%s", c.groupID, cluster.Name)
 }
 
 // request makes an HTTP request using the specified method.
@@ -68,11 +73,12 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 	// Construct the JSON payload if a body has been passed
 	if body != nil {
 		json, err := json.Marshal(body)
-		fmt.Println(string(json))
 		if err != nil {
 			return err
 		}
 
+		// print out url for the dashboard UI for this cluster
+		fmt.Println("\ndashboar_url: " + c.getDashboardURL(body.(Cluster)) + "\n")
 		data = bytes.NewBuffer(json)
 	}
 
@@ -102,6 +108,7 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 
 	// Decode response if request was successful.
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+
 		if response != nil {
 			err = json.NewDecoder(resp.Body).Decode(response)
 
