@@ -70,7 +70,7 @@ The project contains both unit tests and integration tests against Atlas. The un
 found inside each package in `pkg/` and can be run with `go test ./pkg/...`.
 
 The integration tests are also implemented as Go tests and are found in `test/`. Credentials
-for connecting to the Atlas API should be passed as environment variables as specified in 
+for connecting to the Atlas API should be passed as environment variables as specified in
 [Configuration](#configuration). These tests can be run with `go test -timeout 1h ./test`. The
 default timeout is 10 minutes which is normally too short for some of the tests, hence it's
 recommended to raise the timeout to 1 hour. As part of the integration tests a MongoDB connection is
@@ -87,3 +87,9 @@ The release process consists of publishing a new Github release with attached bi
 1. Add a new annotated tag using `git tag -a vX.X.X`. Git will prompt for a message which later will be used for the Github release message.
 2. Push the tag using `git push <remote> vX.X.X`.
 3. Run `evergreen patch -v release -t release_github -t release_docker -y -f` and Evergreen will automatically complete the release.
+
+## Adding third-party dependencies
+
+Please include their license in the notices/ directory.
+
+
