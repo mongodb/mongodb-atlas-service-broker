@@ -70,8 +70,7 @@ func TestProvision(t *testing.T) {
 		Name:             "AWS",
 		Region:           "EU_WEST_1",
 		VolumeType:       "STANDARD",
-		DiskIOPS:         300,
-		DiskType:         "P4",
+		DiskIOPS:         0,
 	}
 	expectedCluster.ReplicationSpecs = []atlas.ReplicationSpec{
 		atlas.ReplicationSpec{
@@ -112,8 +111,7 @@ func TestProvision(t *testing.T) {
 				"instanceSizeName": "` + expectedCluster.ProviderSettings.Instance + `",
 				"providerName": "` + expectedCluster.ProviderSettings.Name + `",
 				"regionName": "` + expectedCluster.ProviderSettings.Region + `",
-				"diskIOPS": ` + fmt.Sprint(expectedCluster.ProviderSettings.DiskIOPS) + `,
-				"diskTypeName":"` + expectedCluster.ProviderSettings.DiskType + `"
+				"diskIOPS": ` + fmt.Sprint(expectedCluster.ProviderSettings.DiskIOPS) + `
 			},
 			"replicationSpecs": [
 				{
