@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strconv"
 
+	"go.uber.org/zap"
+
 	"os"
 
-	"code.cloudfoundry.org/lager"
 	atlasclient "github.com/10gen/atlas-service-broker/pkg/atlas"
 	atlasbroker "github.com/10gen/atlas-service-broker/pkg/broker"
 	"github.com/pivotal-cf/brokerapi"
-	"go.uber.org/zap"
 )
 
 // Default values for the configuration variables.
@@ -23,9 +23,8 @@ const (
 )
 
 func main() {
-	// Zap is the main logger used for the broker. A lager logger is also
-	// created as the brokerapi library requires one.
 	zapLogger, _ := zap.NewDevelopment()
+	defer zapLogger.Sync() // Flushes buffer, if any
 	logger := zapLogger.Sugar()
 
 	// Try parsing Atlas client config.
@@ -56,10 +55,11 @@ func main() {
 	endpoint := host + ":" + strconv.Itoa(port)
 
 	// Mount broker server at the root.
-	http.Handle("/", brokerapi.New(broker, lager.NewLogger("api"), credentials))
+	http.Handle("/", brokerapi.New(broker, NewLagerZapLogger(logger), credentials))
+
+	logger.Infow("Starting API server ", "host", host, "port", port, "atlas_base_url", baseURL, "groupID", groupID)
 
 	// Start broker HTTP server.
-	logger.Infow("Starting API server", "host", host, "port", port, "atlas_base_url", baseURL, "atlas_group_id", groupID)
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
 		logger.Fatal(err)
 	}
