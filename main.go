@@ -19,8 +19,9 @@ import (
 // Default values for the configuration variables.
 const (
 	DefaultAtlasBaseURL = "https://cloud.mongodb.com"
-	DefaultServerHost   = "127.0.0.1"
-	DefaultServerPort   = 4000
+
+	DefaultServerHost = "127.0.0.1"
+	DefaultServerPort = 4000
 )
 
 func main() {
