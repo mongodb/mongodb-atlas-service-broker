@@ -9,44 +9,28 @@ import (
 type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Database string `json:"databaseName"`
+	LDAPType string `json:"ldapAuthType,omitempty"`
+	Roles    []Role `json:"roles,omitempty"`
 }
 
-type role struct {
-	DatabaseName string `json:"databaseName"`
-	RoleName     string `json:"roleName"`
+// Role represents the role of a database user.
+type Role struct {
+	Name       string `json:"roleName"`
+	Database   string `json:"databaseName,omitempty"`
+	Collection string `json:"collectionName,omitempty"`
 }
-
-type createUserRequest struct {
-	Username     string `json:"username"`
-	Password     string `json:"password"`
-	DatabaseName string `json:"databaseName"`
-	Roles        []role `json:"roles"`
-}
-
-const (
-	// The default database in Atlas is "admin".
-	defaultDatabaseName = "admin"
-	defaultRole         = "readWriteAnyDatabase"
-)
 
 // CreateUser will create a new database user with read/write access to all
 // databases.
 // Endpoint: POST /databaseUsers
 func (c *HTTPClient) CreateUser(user User) (*User, error) {
-	req := createUserRequest{
-		Username:     user.Username,
-		Password:     user.Password,
-		DatabaseName: defaultDatabaseName,
-		Roles: []role{
-			role{
-				DatabaseName: defaultDatabaseName,
-				RoleName:     defaultRole,
-			},
-		},
-	}
+	// Atlas always uses "admin" for the authentication database.
+	user.Database = "admin"
 
-	err := c.request(http.MethodPost, "databaseUsers", req, nil)
-	return &user, err
+	var resultingUser User
+	err := c.request(http.MethodPost, "databaseUsers", user, &resultingUser)
+	return &resultingUser, err
 }
 
 // GetUser will find a database user by its username.
