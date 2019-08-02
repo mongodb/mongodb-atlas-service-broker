@@ -99,6 +99,7 @@ func TestProvisionParams(t *testing.T) {
 			"regionName": "EU_CENTRAL_1",
 			"volumeType": "STANDARD"
 		},
+		"replicationFactor": 5,
 		"replicationSpecs": [
 			{
 				"id": "ID",
@@ -129,13 +130,13 @@ func TestProvisionParams(t *testing.T) {
 		State: "CREATING",
 
 		Name:                     instanceID,
-		AutoScaling:              atlas.AutoScalingConfig{DiskGBEnabled: true},
+		AutoScaling:              atlas.AutoScalingConfig{DiskEnabled: true},
 		BackupEnabled:            true,
 		BIConnector:              atlas.BIConnectorConfig{Enabled: true, ReadPreference: "primary"},
 		Type:                     "SHARDED",
-		DiskSizeGB:               100.0,
+		DiskSize:                 100.0,
 		EncryptionAtRestProvider: "NONE",
-		MongoDBMajorVersion:      "4.0",
+		MongoDBVersion:           "4.0",
 		NumShards:                2,
 		ProviderBackupEnabled:    true,
 		ReplicationSpecs: []atlas.ReplicationSpec{
@@ -154,13 +155,13 @@ func TestProvisionParams(t *testing.T) {
 			},
 		},
 		ProviderSettings: &atlas.ProviderSettings{
-			Name:             "AWS",
-			Instance:         "M10",
-			Region:           "EU_CENTRAL_1",
-			DiskIOPS:         10,
-			DiskType:         "P4",
-			EncryptEBSVolume: true,
-			VolumeType:       "STANDARD",
+			Name:       "AWS",
+			Instance:   "M10",
+			Region:     "EU_CENTRAL_1",
+			DiskIOPS:   10,
+			DiskType:   "P4",
+			EncryptEBS: true,
+			VolumeType: "STANDARD",
 		},
 	}
 

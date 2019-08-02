@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -48,86 +47,12 @@ func TestProvision(t *testing.T) {
 	instanceID := uuid.New().String()
 	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
-	// Setting up our Expected cluster
-	var expectedCluster *atlas.Cluster
-	expectedCluster = new(atlas.Cluster)
-	expectedCluster.AutoScaling.DiskGBEnabled = true
-	expectedCluster.Name = clusterName
-	expectedCluster.BackupEnabled = true
-	expectedCluster.BIConnector = atlas.BIConnectorConfig{
-		Enabled:        true,
-		ReadPreference: "primary",
-	}
-	expectedCluster.Type = "REPLICASET"
-	expectedCluster.DiskSizeGB = 10
-	expectedCluster.EncryptionAtRestProvider = "NONE"
-	expectedCluster.MongoDBMajorVersion = "4.0"
-	expectedCluster.NumShards = 1
-	expectedCluster.ProviderBackupEnabled = false
-	expectedCluster.ProviderSettings = &atlas.ProviderSettings{
-		EncryptEBSVolume: true,
-		Instance:         "M10",
-		Name:             "AWS",
-		Region:           "EU_WEST_1",
-		VolumeType:       "STANDARD",
-		DiskIOPS:         0,
-	}
-	expectedCluster.ReplicationSpecs = []atlas.ReplicationSpec{
-		atlas.ReplicationSpec{
-			ID:        "5c87f79087d9d612a175f46c",
-			NumShards: 1,
-			RegionsConfig: map[string]atlas.RegionsConfig{
-				"" + expectedCluster.ProviderSettings.Region + "": atlas.RegionsConfig{
-					ElectableNodes: 3,
-					ReadOnlyNodes:  1,
-					AnalyticsNodes: 1,
-					Priority:       7,
-				},
-			},
-			ZoneName: "Zone 1",
-		},
-	}
-	expectedCluster.State = "IDLE"
-	expectedCluster.URI = "mongodb+srv://" + clusterName + "-fsvlp.mongodb-qa.net"
-
-	// Setting up the params for the body request
 	params := `{
 		"cluster": {
-			"autoScaling": { 
-				"diskGBEnabled": ` + strconv.FormatBool(expectedCluster.AutoScaling.DiskGBEnabled) + `
-			},
-			"backupEnabled": ` + strconv.FormatBool(expectedCluster.BackupEnabled) + `,
-			"biConnector": {
-				"enabled": ` + strconv.FormatBool(expectedCluster.BIConnector.Enabled) + `,
-				"readPreference": "` + expectedCluster.BIConnector.ReadPreference + `"
-			},
-			"clusterType": "` + expectedCluster.Type + `",
-			"diskSizeGB": ` + fmt.Sprintf("%f", expectedCluster.DiskSizeGB) + `,
-			"mongoDBMajorVersion": "` + expectedCluster.MongoDBMajorVersion + `",
-			"numShards": ` + fmt.Sprint(expectedCluster.NumShards) + `,
-			"providerBackupEnabled": ` + strconv.FormatBool(expectedCluster.ProviderBackupEnabled) + `,
+			"backupEnabled": true,
 			"providerSettings": {
-				"encryptEBSVolume": ` + strconv.FormatBool(expectedCluster.ProviderSettings.EncryptEBSVolume) + `,
-				"instanceSizeName": "` + expectedCluster.ProviderSettings.Instance + `",
-				"providerName": "` + expectedCluster.ProviderSettings.Name + `",
-				"regionName": "` + expectedCluster.ProviderSettings.Region + `",
-				"diskIOPS": ` + fmt.Sprint(expectedCluster.ProviderSettings.DiskIOPS) + `
-			},
-			"replicationSpecs": [
-				{
-					"id": "` + expectedCluster.ReplicationSpecs[0].ID + `",
-					"numShards": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].NumShards) + `,
-					"regionsConfig": {
-						"` + expectedCluster.ProviderSettings.Region + `": {
-							"electableNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].ElectableNodes) + `,
-							"readOnlyNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].ReadOnlyNodes) + `,
-							"analyticsNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].AnalyticsNodes) + `,
-							"priority": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].Priority) + `
-						}
-					},
-					"zoneName": "` + expectedCluster.ReplicationSpecs[0].ZoneName + `"
-				}
-			]
+				"regionName": "EU_WEST_1"
+			}
 		}
 	}`
 
@@ -148,8 +73,8 @@ func TestProvision(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, atlas.ClusterStateCreating, cluster.State)
 
-	// Wait a maximum of 20 minutes for cluster to reach state idle.
-	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
+	// Wait a maximum of 15 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 15)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -157,8 +82,16 @@ func TestProvision(t *testing.T) {
 	cluster, err = client.GetCluster(clusterName)
 	assert.NoError(t, err)
 
-	// Ensure response is equal to request cluster
-	assert.Equal(t, expectedCluster, cluster)
+	// Ensure the cluster name is equal to the normalized instance ID.
+	assert.Equal(t, clusterName, cluster.Name)
+
+	// Ensure cluster was set up with the correct provider settings for its
+	// service/plan configuration.
+	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
+	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
+	assert.Equal(t, "EU_WEST_1", cluster.ProviderSettings.Region)
+
+	assert.True(t, cluster.BackupEnabled)
 }
 
 func TestUpdate(t *testing.T) {
@@ -200,7 +133,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// Wait a maximum of 20 minutes for cluster to finish updating.
-	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 25)
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 20)
 	if !assert.NoError(t, err) {
 		return
 	}
