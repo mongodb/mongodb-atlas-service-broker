@@ -92,8 +92,8 @@ func (m MockAtlasClient) DeleteUser(name string) error {
 	return nil
 }
 
-func (m MockAtlasClient) GetDashboardURL() string {
-	return ""
+func (m MockAtlasClient) GetDashboardURL(clusterName string) string {
+	return "http://dashboard"
 }
 
 func setupTest() (*Broker, MockAtlasClient) {

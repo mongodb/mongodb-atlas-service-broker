@@ -64,6 +64,7 @@ func TestProvision(t *testing.T) {
 	assert.True(t, res.IsAsync)
 	assert.Equal(t, OperationProvision, res.OperationData)
 	assert.Len(t, client.Clusters, 1)
+	assert.NotEmpty(t, res.DashboardURL)
 
 	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)

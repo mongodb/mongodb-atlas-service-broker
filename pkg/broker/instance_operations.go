@@ -48,12 +48,10 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 
 	b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
 
-	dashboardURL := fmt.Sprintf(b.atlas.GetDashboardURL()+"%s", resultingCluster.Name)
-
 	return brokerapi.ProvisionedServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationProvision,
-		DashboardURL:  dashboardURL,
+		DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
 	}, nil
 }
 
@@ -106,12 +104,10 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 
 	b.logger.Infow("Successfully started Atlas cluster update process", "instance_id", instanceID, "cluster", resultingCluster)
 
-	dashboardURL := b.atlas.GetDashboardURL(resultingCluster.Name)
-
 	return brokerapi.UpdateServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationUpdate,
-		DashboardURL:  dashboardURL,
+		DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
 	}, nil
 }
 

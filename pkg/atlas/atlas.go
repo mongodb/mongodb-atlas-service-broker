@@ -16,7 +16,7 @@ type Client interface {
 	UpdateCluster(cluster Cluster) (*Cluster, error)
 	DeleteCluster(name string) error
 	GetCluster(name string) (*Cluster, error)
-	GetDashboardURL() string
+	GetDashboardURL(clusterName string) string
 
 	CreateUser(user User) (*User, error)
 	GetUser(name string) (*User, error)
