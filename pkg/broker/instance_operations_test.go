@@ -139,6 +139,7 @@ func TestProvisionParams(t *testing.T) {
 		MongoDBVersion:           "4.0",
 		NumShards:                2,
 		ProviderBackupEnabled:    true,
+		ReplicationFactor:        5,
 		ReplicationSpecs: []atlas.ReplicationSpec{
 			atlas.ReplicationSpec{
 				ID:        "ID",

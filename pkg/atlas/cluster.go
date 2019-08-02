@@ -34,6 +34,7 @@ type Cluster struct {
 	MongoDBVersion           string            `json:"mongoDBMajorVersion,omitempty"`
 	NumShards                uint              `json:"numShards,omitempty"`
 	ProviderBackupEnabled    bool              `json:"providerBackupEnabled,omitempty"`
+	ReplicationFactor        uint              `json:"replicationFactor,omitempty"`
 	ReplicationSpecs         []ReplicationSpec `json:"replicationSpecs,omitempty"`
 	ProviderSettings         *ProviderSettings `json:"providerSettings"`
 
