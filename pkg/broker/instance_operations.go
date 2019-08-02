@@ -38,7 +38,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		return
 	}
 
-	// Create a new Atlas cluster from the generated definition, and also return dashboard url from this provision.
+	// Create a new Atlas cluster from the generated definition
 	resultingCluster, err := b.atlas.CreateCluster(*cluster)
 	if err != nil {
 		b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
