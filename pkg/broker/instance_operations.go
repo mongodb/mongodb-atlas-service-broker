@@ -38,8 +38,8 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		return
 	}
 
-	// Create a new Atlas cluster from the generated definition.
-	resultingCluster, err := b.atlas.CreateCluster(*cluster)
+	// Create a new Atlas cluster from the generated definition, and also return dashboard url from this provision.
+	resultingCluster, dashboardURL, err := b.atlas.CreateCluster(*cluster)
 	if err != nil {
 		b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
 		err = atlasToAPIError(err)
@@ -48,12 +48,13 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 
 	b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
 
-	spec = brokerapi.ProvisionedServiceSpec{
+	dashboardURL = fmt.Sprintf(dashboardURL+"%s", instanceID)
+
+	return brokerapi.ProvisionedServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationProvision,
-	}
-
-	return
+		DashboardURL:  dashboardURL,
+	}, nil
 }
 
 // Update will change the configuration of an existing Atlas cluster asynchronously.
@@ -96,7 +97,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 		}
 	}
 
-	resultingCluster, err := b.atlas.UpdateCluster(*cluster)
+	resultingCluster, dashboardURL, err := b.atlas.UpdateCluster(*cluster)
 	if err != nil {
 		b.logger.Errorw("Failed to update Atlas cluster", "error", err, "cluster", cluster)
 		err = atlasToAPIError(err)
@@ -108,6 +109,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	return brokerapi.UpdateServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationUpdate,
+		DashboardURL:  dashboardURL,
 	}, nil
 }
 
@@ -130,11 +132,10 @@ func (b Broker) Deprovision(ctx context.Context, instanceID string, details brok
 
 	b.logger.Infow("Successfully started Atlas cluster deletion process", "instance_id", instanceID)
 
-	spec = brokerapi.DeprovisionServiceSpec{
+	return brokerapi.DeprovisionServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationDeprovision,
-	}
-	return
+	}, nil
 }
 
 // GetInstance is currently not supported as specified by the

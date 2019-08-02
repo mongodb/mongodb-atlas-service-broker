@@ -12,8 +12,8 @@ import (
 
 // Client is an interface for interacting with the Atlas API.
 type Client interface {
-	CreateCluster(cluster Cluster) (*Cluster, error)
-	UpdateCluster(cluster Cluster) (*Cluster, error)
+	CreateCluster(cluster Cluster) (*Cluster, string, error)
+	UpdateCluster(cluster Cluster) (*Cluster, string, error)
 	DeleteCluster(name string) error
 	GetCluster(name string) (*Cluster, error)
 
@@ -43,6 +43,9 @@ var (
 	ErrUserAlreadyExists = errors.New("User already exists")
 )
 
+// This is the API url being used throughout the application.
+const apiURL = "api/atlas/v1.0"
+
 // NewClient will create a new HTTPClient with the specified connection details.
 func NewClient(baseURL string, groupID string, publicKey string, privateKey string) (*HTTPClient, error) {
 	return &HTTPClient{
@@ -50,17 +53,17 @@ func NewClient(baseURL string, groupID string, publicKey string, privateKey stri
 		groupID:    groupID,
 		publicKey:  publicKey,
 		privateKey: privateKey,
-		apiURL:     "api/atlas/v1.0",
 		HTTP:       &http.Client{},
 	}, nil
 }
 
 func (c *HTTPClient) getEndpointURL(endpoint string) string {
-	return fmt.Sprintf("%s/%s/groups/%s/%s", c.baseURL, c.apiURL, c.groupID, endpoint)
+	return fmt.Sprintf("%s/%s/groups/%s/%s", c.baseURL, apiURL, c.groupID, endpoint)
 }
 
-func (c *HTTPClient) getDashboardURL(cluster Cluster) string {
-	return fmt.Sprintf("https://cloud-qa.mongodb.com/v2/%s#clusters/detail/%s", c.groupID, cluster.Name)
+// GetDashboardURL prepares the url where the specific cluster can be found in the Dashboard UI
+func (c *HTTPClient) GetDashboardURL() string {
+	return fmt.Sprintf("%s/v2/%s#clusters/detail/", c.baseURL, c.groupID)
 }
 
 // request makes an HTTP request using the specified method.
@@ -77,8 +80,6 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 			return err
 		}
 
-		// print out url for the dashboard UI for this cluster
-		fmt.Println("\ndashboar_url: " + c.getDashboardURL(body.(Cluster)) + "\n")
 		data = bytes.NewBuffer(json)
 	}
 

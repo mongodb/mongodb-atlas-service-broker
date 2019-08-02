@@ -86,20 +86,29 @@ type RegionsConfig struct {
 
 // CreateCluster will create a new cluster asynchronously.
 // POST /clusters
-func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, error) {
+func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, string, error) {
 	var resultingCluster Cluster
+	var dashboardURL string
+
 	err := c.request(http.MethodPost, "clusters", cluster, &resultingCluster)
-	return &resultingCluster, err
+	if err == nil {
+		dashboardURL = c.GetDashboardURL()
+	}
+	return &resultingCluster, dashboardURL, err
 }
 
 // UpdateCluster will update a cluster asynchronously.
 // PATCH /clusters/{CLUSTER-NAME}
-func (c *HTTPClient) UpdateCluster(cluster Cluster) (*Cluster, error) {
+func (c *HTTPClient) UpdateCluster(cluster Cluster) (*Cluster, string, error) {
 	path := fmt.Sprintf("clusters/%s", cluster.Name)
-
 	var resultingCluster Cluster
+	var dashboardURL string
+
 	err := c.request(http.MethodPatch, path, cluster, &resultingCluster)
-	return &resultingCluster, err
+	if err == nil {
+		dashboardURL = c.GetDashboardURL()
+	}
+	return &resultingCluster, dashboardURL, err
 }
 
 // DeleteCluster will terminate a cluster asynchronously.

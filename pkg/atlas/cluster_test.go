@@ -17,10 +17,11 @@ func TestCreateCluster(t *testing.T) {
 	atlas, server := setupTest(t, "/clusters", http.MethodPost, 200, expected)
 	defer server.Close()
 
-	cluster, err := atlas.CreateCluster(expected)
+	cluster, dashboardURL, err := atlas.CreateCluster(expected)
 
 	assert.NoError(t, err)
 	assert.Equal(t, &expected, cluster)
+	assert.NotEqual(t, dashboardURL, "")
 }
 
 func TestCreateClusterExistingName(t *testing.T) {
@@ -33,8 +34,9 @@ func TestCreateClusterExistingName(t *testing.T) {
 	atlas, server := setupTest(t, "/clusters", http.MethodPost, 400, errorResponse("DUPLICATE_CLUSTER_NAME"))
 	defer server.Close()
 
-	_, err := atlas.CreateCluster(cluster)
+	_, dashboardURL, err := atlas.CreateCluster(cluster)
 
+	assert.Equal(t, dashboardURL, "")
 	assert.EqualError(t, err, ErrClusterAlreadyExists.Error())
 }
 
@@ -48,10 +50,11 @@ func TestUpdateCluster(t *testing.T) {
 	atlas, server := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 200, expected)
 	defer server.Close()
 
-	cluster, err := atlas.UpdateCluster(expected)
+	cluster, dashboardURL, err := atlas.UpdateCluster(expected)
 
 	assert.NoError(t, err)
 	assert.Equal(t, &expected, cluster)
+	assert.Equal(t, dashboardURL, atlas.GetDashboardURL())
 }
 
 func TestUpdateNonexistentCluster(t *testing.T) {
@@ -64,9 +67,10 @@ func TestUpdateNonexistentCluster(t *testing.T) {
 	atlas, server := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 400, errorResponse("CLUSTER_NOT_FOUND"))
 	defer server.Close()
 
-	_, err := atlas.UpdateCluster(expected)
+	_, dashboardURL, err := atlas.UpdateCluster(expected)
 
 	assert.EqualError(t, err, ErrClusterNotFound.Error())
+	assert.Equal(t, dashboardURL, "")
 }
 
 func TestGetCluster(t *testing.T) {

@@ -154,7 +154,6 @@ func TestProvision(t *testing.T) {
 		return
 	}
 
-	// Request
 	cluster, err = client.GetCluster(clusterName)
 	assert.NoError(t, err)
 
@@ -370,7 +369,7 @@ func setupInstance(instanceID string) (string, error) {
 
 	// Create a cluster running on AWS in eu-west-1. THe instance size should be
 	// M10 and backup should be disabled.
-	_, err := client.CreateCluster(atlas.Cluster{
+	_, _, err := client.CreateCluster(atlas.Cluster{
 		Name:          clusterName,
 		BackupEnabled: false,
 		ProviderSettings: &atlas.ProviderSettings{

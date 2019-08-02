@@ -16,7 +16,7 @@ import (
 
 // Default values for the configuration variables.
 const (
-	DefaultAtlasBaseURL = "https://cloud.mongodb.com"
+	DefaultAtlasBaseURL = "https://cloud.mongodb.com/"
 	DefaultServerHost   = "127.0.0.1"
 	DefaultServerPort   = 4000
 )
@@ -57,7 +57,6 @@ func main() {
 	// Mount broker server at the root.
 	http.Handle("/", brokerapi.New(broker, lager.NewLogger("api"), credentials))
 
-	// Log server paremetersc
 	logger.Infow("Starting API server", "host", host, "port", port, "atlas_base_url", baseURL, "atlas_group_id", groupID)
 
 	// Start broker HTTP server.
