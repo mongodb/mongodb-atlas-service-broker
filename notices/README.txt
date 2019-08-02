@@ -8,4 +8,4 @@ please bring it to our attention through any of the ways detailed here:
 
 The attached notices are provided for information only.
 
-Source code for open source libraries can be obtained from 10gen.
+Source code for open source libraries can be obtained from MongoDB.
