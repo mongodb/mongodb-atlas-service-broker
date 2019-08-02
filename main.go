@@ -7,6 +7,8 @@ import (
 
 	"os"
 
+	"strings"
+
 	"code.cloudfoundry.org/lager"
 	atlasclient "github.com/10gen/atlas-service-broker/pkg/atlas"
 	atlasbroker "github.com/10gen/atlas-service-broker/pkg/broker"
@@ -28,15 +30,10 @@ func main() {
 	logger := zapLogger.Sugar()
 
 	// Try parsing Atlas client config.
-	baseURL := getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL)
+	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
 	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
 	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
 	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
-
-	// Trim if last character is a "/"
-	if last := len(baseURL) - 1; last >= 0 && baseURL[last] == '/' {
-		baseURL = baseURL[:last]
-	}
 
 	client, err := atlasclient.NewClient(baseURL, groupID, publicKey, privateKey)
 	if err != nil {
