@@ -16,17 +16,16 @@ type Client interface {
 	UpdateCluster(cluster Cluster) (*Cluster, error)
 	DeleteCluster(name string) error
 	GetCluster(name string) (*Cluster, error)
+	GetDashboardURL() string
 
 	CreateUser(user User) (*User, error)
 	GetUser(name string) (*User, error)
 	DeleteUser(name string) error
-	GetDashboardURL() string
 }
 
 // HTTPClient is the main implementation of the Client interface which
 // communicates with the Atlas API.
 type HTTPClient struct {
-	apiURL     string
 	baseURL    string
 	groupID    string
 	publicKey  string
@@ -44,7 +43,6 @@ var (
 	ErrUserAlreadyExists = errors.New("User already exists")
 )
 
-// This is the API path
 const apiPath = "/api/atlas/v1.0"
 
 // NewClient will create a new HTTPClient with the specified connection details.
@@ -63,8 +61,8 @@ func (c *HTTPClient) getEndpointURL(endpoint string) string {
 }
 
 // GetDashboardURL prepares the url where the specific cluster can be found in the Dashboard UI
-func (c *HTTPClient) GetDashboardURL() string {
-	return fmt.Sprintf("%s/v2/%s#clusters/detail/", c.baseURL, c.groupID)
+func (c *HTTPClient) GetDashboardURL(clusterName string) string {
+	return fmt.Sprintf("%s/v2/%s#clusters/detail/%s", c.baseURL, c.groupID, clusterName)
 }
 
 // request makes an HTTP request using the specified method.

@@ -106,7 +106,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 
 	b.logger.Infow("Successfully started Atlas cluster update process", "instance_id", instanceID, "cluster", resultingCluster)
 
-	dashboardURL := fmt.Sprintf(b.atlas.GetDashboardURL()+"%s", resultingCluster.Name)
+	dashboardURL := b.atlas.GetDashboardURL(resultingCluster.Name)
 
 	return brokerapi.UpdateServiceSpec{
 		IsAsync:       true,
