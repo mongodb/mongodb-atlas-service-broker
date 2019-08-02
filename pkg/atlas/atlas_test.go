@@ -19,9 +19,8 @@ func setupTest(t *testing.T, expectedPath string, method string, status int, res
 	const groupID = "group"
 	const publicKey = "pubkey"
 	const privateKey = "privkey"
-	const apiURL = "/api/atlas/v1.0"
 
-	fullPath := fmt.Sprintf("%s/groups/%s%s", apiURL, groupID, expectedPath)
+	fullPath := fmt.Sprintf("%s/groups/%s%s", apiPath, groupID, expectedPath)
 
 	s := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, fullPath, req.URL.String())

@@ -16,7 +16,7 @@ import (
 
 // Default values for the configuration variables.
 const (
-	DefaultAtlasBaseURL = "https://cloud.mongodb.com/"
+	DefaultAtlasBaseURL = "https://cloud.mongodb.com"
 	DefaultServerHost   = "127.0.0.1"
 	DefaultServerPort   = 4000
 )
@@ -32,6 +32,11 @@ func main() {
 	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
 	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
 	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
+
+	// Trim if last character is a "/"
+	if last := len(baseURL) - 1; last >= 0 && baseURL[last] == '/' {
+		baseURL = baseURL[:last]
+	}
 
 	client, err := atlasclient.NewClient(baseURL, groupID, publicKey, privateKey)
 	if err != nil {

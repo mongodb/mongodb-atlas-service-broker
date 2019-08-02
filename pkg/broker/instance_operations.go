@@ -39,7 +39,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 
 	// Create a new Atlas cluster from the generated definition, and also return dashboard url from this provision.
-	resultingCluster, dashboardURL, err := b.atlas.CreateCluster(*cluster)
+	resultingCluster, err := b.atlas.CreateCluster(*cluster)
 	if err != nil {
 		b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
 		err = atlasToAPIError(err)
@@ -48,7 +48,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 
 	b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
 
-	dashboardURL = fmt.Sprintf(dashboardURL+"%s", instanceID)
+	dashboardURL := fmt.Sprintf(b.atlas.GetDashboardURL()+"%s", resultingCluster.Name)
 
 	return brokerapi.ProvisionedServiceSpec{
 		IsAsync:       true,
@@ -97,7 +97,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 		}
 	}
 
-	resultingCluster, dashboardURL, err := b.atlas.UpdateCluster(*cluster)
+	resultingCluster, err := b.atlas.UpdateCluster(*cluster)
 	if err != nil {
 		b.logger.Errorw("Failed to update Atlas cluster", "error", err, "cluster", cluster)
 		err = atlasToAPIError(err)
@@ -105,6 +105,8 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	}
 
 	b.logger.Infow("Successfully started Atlas cluster update process", "instance_id", instanceID, "cluster", resultingCluster)
+
+	dashboardURL := fmt.Sprintf(b.atlas.GetDashboardURL()+"%s", resultingCluster.Name)
 
 	return brokerapi.UpdateServiceSpec{
 		IsAsync:       true,

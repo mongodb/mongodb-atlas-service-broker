@@ -92,6 +92,10 @@ func (m MockAtlasClient) DeleteUser(name string) error {
 	return nil
 }
 
+func (m MockAtlasClient) GetDashboardURL() string {
+	return ""
+}
+
 func setupTest() (*Broker, MockAtlasClient) {
 	client := MockAtlasClient{
 		Clusters: make(map[string]*atlas.Cluster),
