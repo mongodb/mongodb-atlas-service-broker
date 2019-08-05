@@ -130,55 +130,89 @@ func TestUpdate(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
+	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
-	clusterName, err := setupInstance(instanceID)
-	defer teardownInstance(instanceID)
-	if !assert.NoError(t, err) {
-		return
+	// Setting up our Expected cluster
+	var expectedCluster = &atlas.Cluster{
+		AutoScaling: atlas.AutoScalingConfig{
+			DiskGBEnabled: true,
+		},
+		Name:          clusterName,
+		BackupEnabled: true,
+		BIConnector: atlas.BIConnectorConfig{
+			Enabled:        true,
+			ReadPreference: "primary",
+		},
+		Type:                     "REPLICASET",
+		DiskSizeGB:               10,
+		EncryptionAtRestProvider: "NONE",
+		MongoDBMajorVersion:      "4.0",
+		NumShards:                1,
+		ProviderBackupEnabled:    false,
+		ProviderSettings: &atlas.ProviderSettings{
+			EncryptEBSVolume: true,
+			Instance:         "M10",
+			Name:             "AWS",
+			Region:           "EU_WEST_1",
+			VolumeType:       "STANDARD",
+			DiskIOPS:         100,
+		},
+		ReplicationSpecs: []atlas.ReplicationSpec{
+			atlas.ReplicationSpec{
+				ID:        "5c87f79087d9d612a175f46c",
+				NumShards: 1,
+				RegionsConfig: map[string]atlas.RegionsConfig{
+					"EU_WEST_1": atlas.RegionsConfig{
+						ElectableNodes: 3,
+						ReadOnlyNodes:  1,
+						AnalyticsNodes: 1,
+						Priority:       7,
+					},
+				},
+				ZoneName: "Zone 1",
+			},
+		},
 	}
 
-	cluster, err := client.GetCluster(clusterName)
-	if !assert.NoError(t, err) {
-		return
-	}
+	// Setting up the params for the body request
+	paramsByte, error := json.Marshal(expectedCluster)
+	assert.NoError(t, error)
 
-	// Ensure cluster is in the correct starting state.
-	// The instance size should be M10 and backups should be disabled.
-	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
-	assert.False(t, cluster.BackupEnabled)
+	params := `{"cluster":` + string(paramsByte) + `}`
 
-	// Update the cluster plan (instance size) and enable backups.
-	params := `{
-		"cluster": {
-			"backupEnabled": true
-		}
-	}`
-
-	_, err = broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
 		ServiceID:     "mongodb-aws",
-		PlanID:        "AWS-M20",
+		PlanID:        "AWS-M10",
 		RawParameters: []byte(params),
 	}, true)
 
+	defer teardownInstance(instanceID)
+
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	// Wait a maximum of 25 minutes for cluster to finish updating.
-	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 25)
+	// Ensure the cluster is being created.
+	cluster, err := client.GetCluster(clusterName)
+	assert.NoError(t, err)
+	assert.Equal(t, atlas.ClusterStateCreating, cluster.State)
+
+	// Wait a maximum of 20 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
 	if !assert.NoError(t, err) {
 		return
 	}
 
+	// Request
 	cluster, err = client.GetCluster(clusterName)
-	if !assert.NoError(t, err) {
-		return
-	}
+	assert.NoError(t, err)
 
-	// Ensure instance size is now "M20" and backups are enabled.
-	assert.Equal(t, atlas.ClusterStateIdle, cluster.State)
-	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
-	assert.True(t, cluster.BackupEnabled)
+	// Altering these parameters due to the fact that, they can't be configured from upfront
+	cluster.URI = ""
+	expectedCluster.State = "IDLE"
+
+	// Ensure response is equal to request cluster
+	assert.Equal(t, expectedCluster, cluster)
 }
 
 func TestBind(t *testing.T) {
