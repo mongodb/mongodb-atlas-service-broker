@@ -71,90 +71,6 @@ func TestProvision(t *testing.T) {
 			Name:             "AWS",
 			Region:           "EU_WEST_1",
 			VolumeType:       "STANDARD",
-			DiskIOPS:         0,
-		},
-		ReplicationSpecs: []atlas.ReplicationSpec{
-			atlas.ReplicationSpec{
-				ID:        "5c87f79087d9d612a175f46c",
-				NumShards: 1,
-				RegionsConfig: map[string]atlas.RegionsConfig{
-					"EU_WEST_1": atlas.RegionsConfig{
-						ElectableNodes: 3,
-						ReadOnlyNodes:  1,
-						AnalyticsNodes: 1,
-						Priority:       7,
-					},
-				},
-				ZoneName: "Zone 1",
-			},
-		},
-		State: "IDLE",
-	}
-
-	// Setting up the params for the body request
-	params, error := json.Marshal(expectedCluster)
-	assert.NoError(t, error)
-
-	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		ServiceID:     "mongodb-aws",
-		PlanID:        "AWS-M10",
-		RawParameters: []byte(params),
-	}, true)
-
-	defer teardownInstance(instanceID)
-
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	// Ensure the cluster is being created.
-	cluster, err := client.GetCluster(clusterName)
-	assert.NoError(t, err)
-	assert.Equal(t, atlas.ClusterStateCreating, cluster.State)
-
-	// Wait a maximum of 20 minutes for cluster to reach state idle.
-	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	// Request
-	cluster, err = client.GetCluster(clusterName)
-	assert.NoError(t, err)
-
-	// Ensure response is equal to request cluster
-	assert.Equal(t, expectedCluster, cluster)
-}
-
-func TestUpdate(t *testing.T) {
-	t.Parallel()
-
-	instanceID := uuid.New().String()
-	clusterName := brokerlib.NormalizeClusterName(instanceID)
-
-	// Setting up our Expected cluster
-	var expectedCluster = &atlas.Cluster{
-		AutoScaling: atlas.AutoScalingConfig{
-			DiskGBEnabled: true,
-		},
-		Name:          clusterName,
-		BackupEnabled: true,
-		BIConnector: atlas.BIConnectorConfig{
-			Enabled:        true,
-			ReadPreference: "primary",
-		},
-		Type:                     "REPLICASET",
-		DiskSizeGB:               10,
-		EncryptionAtRestProvider: "NONE",
-		MongoDBMajorVersion:      "4.0",
-		NumShards:                1,
-		ProviderBackupEnabled:    false,
-		ProviderSettings: &atlas.ProviderSettings{
-			EncryptEBSVolume: true,
-			Instance:         "M10",
-			Name:             "AWS",
-			Region:           "EU_WEST_1",
-			VolumeType:       "STANDARD",
 			DiskIOPS:         100,
 		},
 		ReplicationSpecs: []atlas.ReplicationSpec{
@@ -213,6 +129,61 @@ func TestUpdate(t *testing.T) {
 
 	// Ensure response is equal to request cluster
 	assert.Equal(t, expectedCluster, cluster)
+}
+
+func TestUpdate(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+
+	clusterName, err := setupInstance(instanceID)
+	defer teardownInstance(instanceID)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	cluster, err := client.GetCluster(clusterName)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure cluster is in the correct starting state.
+	// The instance size should be M10 and backups should be disabled.
+	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
+	assert.False(t, cluster.BackupEnabled)
+
+	// Update the cluster plan (instance size) and enable backups.
+	params := `{
+		"cluster": {
+			"backupEnabled": true
+		}
+	}`
+
+	_, err = broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+		ServiceID:     "mongodb-aws",
+		PlanID:        "AWS-M20",
+		RawParameters: []byte(params),
+	}, true)
+
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Wait a maximum of 25 minutes for cluster to finish updating.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 25)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	cluster, err = client.GetCluster(clusterName)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure instance size is now "M20" and backups are enabled.
+	assert.Equal(t, atlas.ClusterStateIdle, cluster.State)
+	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
+	assert.True(t, cluster.BackupEnabled)
 }
 
 func TestBind(t *testing.T) {
