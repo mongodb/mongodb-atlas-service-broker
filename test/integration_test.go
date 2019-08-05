@@ -2,9 +2,9 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -49,87 +49,51 @@ func TestProvision(t *testing.T) {
 	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
 	// Setting up our Expected cluster
-	var expectedCluster *atlas.Cluster
-	expectedCluster = new(atlas.Cluster)
-	expectedCluster.AutoScaling.DiskGBEnabled = true
-	expectedCluster.Name = clusterName
-	expectedCluster.BackupEnabled = true
-	expectedCluster.BIConnector = atlas.BIConnectorConfig{
-		Enabled:        true,
-		ReadPreference: "primary",
-	}
-	expectedCluster.Type = "REPLICASET"
-	expectedCluster.DiskSizeGB = 10
-	expectedCluster.EncryptionAtRestProvider = "NONE"
-	expectedCluster.MongoDBMajorVersion = "4.0"
-	expectedCluster.NumShards = 1
-	expectedCluster.ProviderBackupEnabled = false
-	expectedCluster.ProviderSettings = &atlas.ProviderSettings{
-		EncryptEBSVolume: true,
-		Instance:         "M10",
-		Name:             "AWS",
-		Region:           "EU_WEST_1",
-		VolumeType:       "STANDARD",
-		DiskIOPS:         0,
-	}
-	expectedCluster.ReplicationSpecs = []atlas.ReplicationSpec{
-		atlas.ReplicationSpec{
-			ID:        "5c87f79087d9d612a175f46c",
-			NumShards: 1,
-			RegionsConfig: map[string]atlas.RegionsConfig{
-				"" + expectedCluster.ProviderSettings.Region + "": atlas.RegionsConfig{
-					ElectableNodes: 3,
-					ReadOnlyNodes:  1,
-					AnalyticsNodes: 1,
-					Priority:       7,
-				},
-			},
-			ZoneName: "Zone 1",
+	var expectedCluster = &atlas.Cluster{
+		AutoScaling: atlas.AutoScalingConfig{
+			DiskGBEnabled: true,
 		},
+		Name:          clusterName,
+		BackupEnabled: true,
+		BIConnector: atlas.BIConnectorConfig{
+			Enabled:        true,
+			ReadPreference: "primary",
+		},
+		Type:                     "REPLICASET",
+		DiskSizeGB:               10,
+		EncryptionAtRestProvider: "NONE",
+		MongoDBMajorVersion:      "4.0",
+		NumShards:                1,
+		ProviderBackupEnabled:    false,
+		ProviderSettings: &atlas.ProviderSettings{
+			EncryptEBSVolume: true,
+			Instance:         "M10",
+			Name:             "AWS",
+			Region:           "EU_WEST_1",
+			VolumeType:       "STANDARD",
+			DiskIOPS:         0,
+		},
+		ReplicationSpecs: []atlas.ReplicationSpec{
+			atlas.ReplicationSpec{
+				ID:        "5c87f79087d9d612a175f46c",
+				NumShards: 1,
+				RegionsConfig: map[string]atlas.RegionsConfig{
+					"EU_WEST_1": atlas.RegionsConfig{
+						ElectableNodes: 3,
+						ReadOnlyNodes:  1,
+						AnalyticsNodes: 1,
+						Priority:       7,
+					},
+				},
+				ZoneName: "Zone 1",
+			},
+		},
+		State: "IDLE",
 	}
-	expectedCluster.State = "IDLE"
-	expectedCluster.URI = "mongodb+srv://" + clusterName + "-fsvlp.mongodb-qa.net"
 
 	// Setting up the params for the body request
-	params := `{
-		"cluster": {
-			"autoScaling": { 
-				"diskGBEnabled": ` + strconv.FormatBool(expectedCluster.AutoScaling.DiskGBEnabled) + `
-			},
-			"backupEnabled": ` + strconv.FormatBool(expectedCluster.BackupEnabled) + `,
-			"biConnector": {
-				"enabled": ` + strconv.FormatBool(expectedCluster.BIConnector.Enabled) + `,
-				"readPreference": "` + expectedCluster.BIConnector.ReadPreference + `"
-			},
-			"clusterType": "` + expectedCluster.Type + `",
-			"diskSizeGB": ` + fmt.Sprintf("%f", expectedCluster.DiskSizeGB) + `,
-			"mongoDBMajorVersion": "` + expectedCluster.MongoDBMajorVersion + `",
-			"numShards": ` + fmt.Sprint(expectedCluster.NumShards) + `,
-			"providerBackupEnabled": ` + strconv.FormatBool(expectedCluster.ProviderBackupEnabled) + `,
-			"providerSettings": {
-				"encryptEBSVolume": ` + strconv.FormatBool(expectedCluster.ProviderSettings.EncryptEBSVolume) + `,
-				"instanceSizeName": "` + expectedCluster.ProviderSettings.Instance + `",
-				"providerName": "` + expectedCluster.ProviderSettings.Name + `",
-				"regionName": "` + expectedCluster.ProviderSettings.Region + `",
-				"diskIOPS": ` + fmt.Sprint(expectedCluster.ProviderSettings.DiskIOPS) + `
-			},
-			"replicationSpecs": [
-				{
-					"id": "` + expectedCluster.ReplicationSpecs[0].ID + `",
-					"numShards": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].NumShards) + `,
-					"regionsConfig": {
-						"` + expectedCluster.ProviderSettings.Region + `": {
-							"electableNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].ElectableNodes) + `,
-							"readOnlyNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].ReadOnlyNodes) + `,
-							"analyticsNodes": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].AnalyticsNodes) + `,
-							"priority": ` + fmt.Sprint(expectedCluster.ReplicationSpecs[0].RegionsConfig[expectedCluster.ProviderSettings.Region].Priority) + `
-						}
-					},
-					"zoneName": "` + expectedCluster.ReplicationSpecs[0].ZoneName + `"
-				}
-			]
-		}
-	}`
+	params, error := json.Marshal(expectedCluster)
+	assert.NoError(t, error)
 
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
 		ServiceID:     "mongodb-aws",
@@ -200,7 +164,7 @@ func TestUpdate(t *testing.T) {
 		return
 	}
 
-	// Wait a maximum of 20 minutes for cluster to finish updating.
+	// Wait a maximum of 25 minutes for cluster to finish updating.
 	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 25)
 	if !assert.NoError(t, err) {
 		return
