@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/atlas-service-broker/pkg/atlas"
-	brokerlib "github.com/10gen/atlas-service-broker/pkg/broker"
+	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
+	brokerlib "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
 	"github.com/google/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/stretchr/testify/assert"
