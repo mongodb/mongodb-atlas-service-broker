@@ -91,8 +91,8 @@ func TestProvision(t *testing.T) {
 	}
 
 	// Setting up the params for the body request
-	paramsByte, error := json.Marshal(expectedCluster)
-	assert.NoError(t, error)
+	paramsByte, marshalErr := json.Marshal(expectedCluster)
+	assert.NoError(t, marshalErr)
 
 	params := `{"cluster":` + string(paramsByte) + `}`
 
@@ -119,7 +119,6 @@ func TestProvision(t *testing.T) {
 		return
 	}
 
-	// Request
 	cluster, err = client.GetCluster(clusterName)
 	assert.NoError(t, err)
 
