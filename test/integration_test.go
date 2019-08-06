@@ -33,9 +33,6 @@ func TestMain(m *testing.M) {
 	// Setup the broker which will be used
 	broker = brokerlib.NewBroker(client, zap.NewNop().Sugar())
 
-	// Run all tests in order. The tests will first provision a new instance,
-	// create a new binding for the provsioned instance, delete the binding,
-	// and finally deprovision the instance.
 	result := m.Run()
 
 	os.Exit(result)
@@ -161,17 +158,41 @@ func TestBind(t *testing.T) {
 		return
 	}
 
-	spec, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+	params := `{
+		"user": {
+			"ldapAuthType": "NONE",
+			"roles": [{
+				"roleName": "read",
+				"databaseName": "database",
+				"collectionName": "collection"
+			}]
+		}}`
+
+	spec, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		RawParameters: []byte(params),
+	}, true)
 	defer teardownBinding(bindingID)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	// Ensure user was created.
-	_, err = client.GetUser(bindingID)
+	// Ensure user was created and all parameters made it through.
+	user, err := client.GetUser(bindingID)
 	if !assert.NoError(t, err) {
 		return
 	}
+
+	assert.Equal(t, bindingID, user.Username)
+	assert.Equal(t, "NONE", user.LDAPType)
+
+	expectedRoles := []atlas.Role{
+		atlas.Role{
+			Name:       "read",
+			Database:   "database",
+			Collection: "collection",
+		},
+	}
+	assert.Equal(t, expectedRoles, user.Roles)
 
 	credentials, ok := spec.Credentials.(brokerlib.ConnectionDetails)
 	if !assert.True(t, ok, "Expected credentials to have type broker.ConnectionDetails") {
@@ -338,6 +359,12 @@ func setupBinding(bindingID string) (*atlas.User, error) {
 	return client.CreateUser(atlas.User{
 		Username: bindingID,
 		Password: uuid.New().String(),
+		Roles: []atlas.Role{
+			atlas.Role{
+				Name:     "readWriteAnyDatabase",
+				Database: "admin",
+			},
+		},
 	})
 }
 
