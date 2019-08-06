@@ -22,7 +22,7 @@ Configuration is handled with environment variables.
 | ATLAS_GROUP_ID | **Required** | Group in which to provision new clusters |
 | ATLAS_PUBLIC_KEY | **Required** | Public part of the Atlas API key |
 | ATLAS_PRIVATE_KEY | **Required** | Private part of the Atlas API key |
-| ATLAS_BASE_URL | `https://cloud.mongodb.com/api/atlas/v1.0` | Base URL used for Atlas API connections |
+| ATLAS_BASE_URL | `https://cloud.mongodb.com` | Base URL used for Atlas API connections |
 
 ### Broker API Server
 
