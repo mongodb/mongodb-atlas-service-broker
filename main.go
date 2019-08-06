@@ -9,8 +9,8 @@ import (
 
 	"os"
 
-	atlasclient "github.com/10gen/atlas-service-broker/pkg/atlas"
-	atlasbroker "github.com/10gen/atlas-service-broker/pkg/broker"
+	atlasclient "github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
+	atlasbroker "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
 	"github.com/pivotal-cf/brokerapi"
 )
 

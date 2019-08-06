@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/10gen/atlas-service-broker/pkg/atlas"
+	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
 )
 
