@@ -195,10 +195,14 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 }
 
 // NormalizeClusterName will sanitize a name to make sure it will be accepted
-// by the Atlas API. Atlas requires cluster names to be 30 characters or less.
+// by the Atlas API. Atlas has different name length requirements depending on
+// which environment it's running in. A length of 23 is a safe choice and
+// truncates UUIDs nicely.
 func NormalizeClusterName(name string) string {
-	if len(name) > 30 {
-		return string(name[0:30])
+	const maximumNameLength = 23
+
+	if len(name) > maximumNameLength {
+		return string(name[0:maximumNameLength])
 	}
 
 	return name
