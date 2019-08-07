@@ -24,6 +24,7 @@ Configuration is handled with environment variables.
 | BROKER_PORT | `4000` | Port which the broker server listens on |
 | BROKER_USERNAME | **Required** | Username for basic auth against broker |
 | BROKER_PASSWORD | **Required** | Password for basic auth against broker |
+| BROKER_LOG_LEVEL | `INFO` | Accepted values: `DEBUG`, `INFO`, `WARN`, `ERROR` |
 
 ## Deploying to Kubernetes
 
