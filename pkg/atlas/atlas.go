@@ -16,6 +16,7 @@ type Client interface {
 	UpdateCluster(cluster Cluster) (*Cluster, error)
 	DeleteCluster(name string) error
 	GetCluster(name string) (*Cluster, error)
+	GetDashboardURL(clusterName string) string
 
 	CreateUser(user User) (*User, error)
 	GetUser(name string) (*User, error)
@@ -42,6 +43,8 @@ var (
 	ErrUserAlreadyExists = errors.New("User already exists")
 )
 
+const apiPath = "/api/atlas/v1.0"
+
 // NewClient will create a new HTTPClient with the specified connection details.
 func NewClient(baseURL string, groupID string, publicKey string, privateKey string) (*HTTPClient, error) {
 	return &HTTPClient{
@@ -49,13 +52,17 @@ func NewClient(baseURL string, groupID string, publicKey string, privateKey stri
 		groupID:    groupID,
 		publicKey:  publicKey,
 		privateKey: privateKey,
-
-		HTTP: &http.Client{},
+		HTTP:       &http.Client{},
 	}, nil
 }
 
 func (c *HTTPClient) getEndpointURL(endpoint string) string {
-	return fmt.Sprintf("%s/groups/%s/%s", c.baseURL, c.groupID, endpoint)
+	return fmt.Sprintf("%s%s/groups/%s/%s", c.baseURL, apiPath, c.groupID, endpoint)
+}
+
+// GetDashboardURL prepares the url where the specific cluster can be found in the Dashboard UI
+func (c *HTTPClient) GetDashboardURL(clusterName string) string {
+	return fmt.Sprintf("%s/v2/%s#clusters/detail/%s", c.baseURL, c.groupID, clusterName)
 }
 
 // request makes an HTTP request using the specified method.
@@ -101,6 +108,7 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 
 	// Decode response if request was successful.
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+
 		if response != nil {
 			err = json.NewDecoder(resp.Body).Decode(response)
 
