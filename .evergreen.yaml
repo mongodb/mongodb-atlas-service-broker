@@ -134,11 +134,13 @@ task_groups:
 
 buildvariants:
   - name: test
+    display_name: test
     run_on: archlinux-test
     tasks:
       - unit_task_group
       - integration_task_group
   - name: release
+    display_name: release
     run_on: archlinux-test
     tasks:
       - release_github
