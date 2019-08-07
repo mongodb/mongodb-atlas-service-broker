@@ -4,7 +4,7 @@ metadata:
   name: atlas-cluster-instance
   namespace: atlas
 spec:
-  clusterServiceClassExternalName: mongodb-aws
+  clusterServiceClassExternalName: mongodb-atlas-aws
   clusterServicePlanExternalName: M10
   parameters:
     cluster:

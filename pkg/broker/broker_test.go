@@ -9,6 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	testServiceID = "aosb-cluster-service-aws"
+	testPlanID    = "aosb-cluster-plan-aws-m10"
+)
+
 type MockAtlasClient struct {
 	Clusters map[string]*atlas.Cluster
 	Users    map[string]*atlas.User

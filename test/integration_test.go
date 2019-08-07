@@ -94,8 +94,8 @@ func TestProvision(t *testing.T) {
 	params := `{"cluster":` + string(paramsByte) + `}`
 
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		ServiceID:     "mongodb-aws",
-		PlanID:        "AWS-M10",
+		ServiceID:     "aosb-cluster-service-aws",
+		PlanID:        "aosb-cluster-plan-aws-m10",
 		RawParameters: []byte(params),
 	}, true)
 
@@ -156,8 +156,8 @@ func TestUpdate(t *testing.T) {
 	}`
 
 	_, err = broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
-		ServiceID:     "mongodb-aws",
-		PlanID:        "AWS-M20",
+		ServiceID:     "aosb-cluster-service-aws",
+		PlanID:        "aosb-cluster-plan-aws-m20",
 		RawParameters: []byte(params),
 	}, true)
 
