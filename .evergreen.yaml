@@ -56,7 +56,7 @@ functions:
   "setup_hub":
     - command: shell.exec
       params:
-        script: |
+        script: | 
           sudo pacman  --refresh --noconfirm -S hub
           echo "Installed Hub CLI"
   "publish_github_release":
