@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"os"
 
@@ -16,6 +17,8 @@ import (
 
 // Default values for the configuration variables.
 const (
+	DefaultLogLevel = "INFO"
+
 	DefaultAtlasBaseURL = "https://cloud.mongodb.com/api/atlas/v1.0"
 
 	DefaultServerHost = "127.0.0.1"
@@ -23,9 +26,12 @@ const (
 )
 
 func main() {
-	zapLogger, _ := zap.NewDevelopment()
-	defer zapLogger.Sync() // Flushes buffer, if any
-	logger := zapLogger.Sugar()
+	logLevel := getEnvOrDefault("BROKER_LOG_LEVEL", DefaultLogLevel)
+	logger, err := createLogger(logLevel)
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync() // Flushes buffer, if any
 
 	// Try parsing Atlas client config.
 	baseURL := getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL)
@@ -57,7 +63,7 @@ func main() {
 	// Mount broker server at the root.
 	http.Handle("/", brokerapi.New(broker, NewLagerZapLogger(logger), credentials))
 
-	logger.Infow("Starting API server ", "host", host, "port", port, "atlas_base_url", baseURL, "groupID", groupID)
+	logger.Infow("Starting API server ", "host", host, "port", port, "atlas_base_url", baseURL, "group_id", groupID)
 
 	// Start broker HTTP server.
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
@@ -101,4 +107,30 @@ func getIntEnvOrDefault(name string, def int) int {
 	}
 
 	return intValue
+}
+
+// createLogger will create a zap sugared logger with the specified log level.
+func createLogger(levelName string) (*zap.SugaredLogger, error) {
+	levelByName := map[string]zapcore.Level{
+		"DEBUG": zapcore.DebugLevel,
+		"INFO":  zapcore.InfoLevel,
+		"WARN":  zapcore.WarnLevel,
+		"ERROR": zapcore.ErrorLevel,
+	}
+
+	// Convert log level string to a zap level.
+	level, ok := levelByName[levelName]
+	if !ok {
+		return nil, fmt.Errorf(`invalid log level "%s"`, levelName)
+	}
+
+	config := zap.NewProductionConfig()
+	config.Level = zap.NewAtomicLevelAt(level)
+
+	logger, err := config.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return logger.Sugar(), nil
 }
