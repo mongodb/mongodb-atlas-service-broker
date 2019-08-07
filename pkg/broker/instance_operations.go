@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/10gen/atlas-service-broker/pkg/atlas"
+	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 )
@@ -38,7 +38,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		return
 	}
 
-	// Create a new Atlas cluster from the generated definition.
+	// Create a new Atlas cluster from the generated definition
 	resultingCluster, err := b.atlas.CreateCluster(*cluster)
 	if err != nil {
 		b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
@@ -48,11 +48,11 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 
 	b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
 
-	spec = brokerapi.ProvisionedServiceSpec{
+	return brokerapi.ProvisionedServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationProvision,
-	}
-	return
+		DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
+	}, nil
 }
 
 // Update will change the configuration of an existing Atlas cluster asynchronously.
@@ -107,6 +107,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	return brokerapi.UpdateServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationUpdate,
+		DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
 	}, nil
 }
 
@@ -129,11 +130,10 @@ func (b Broker) Deprovision(ctx context.Context, instanceID string, details brok
 
 	b.logger.Infow("Successfully started Atlas cluster deletion process", "instance_id", instanceID)
 
-	spec = brokerapi.DeprovisionServiceSpec{
+	return brokerapi.DeprovisionServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationDeprovision,
-	}
-	return
+	}, nil
 }
 
 // GetInstance is currently not supported as specified by the
@@ -195,10 +195,14 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 }
 
 // NormalizeClusterName will sanitize a name to make sure it will be accepted
-// by the Atlas API. Atlas requires cluster names to be 30 characters or less.
+// by the Atlas API. Atlas has different name length requirements depending on
+// which environment it's running in. A length of 23 is a safe choice and
+// truncates UUIDs nicely.
 func NormalizeClusterName(name string) string {
-	if len(name) > 30 {
-		return string(name[0:30])
+	const maximumNameLength = 23
+
+	if len(name) > maximumNameLength {
+		return string(name[0:maximumNameLength])
 	}
 
 	return name

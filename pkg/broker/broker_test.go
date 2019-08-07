@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/atlas-service-broker/pkg/atlas"
+	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -95,6 +95,10 @@ func (m MockAtlasClient) DeleteUser(name string) error {
 	m.Users[name] = nil
 
 	return nil
+}
+
+func (m MockAtlasClient) GetDashboardURL(clusterName string) string {
+	return "http://dashboard"
 }
 
 func setupTest() (*Broker, MockAtlasClient) {

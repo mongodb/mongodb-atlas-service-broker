@@ -2,13 +2,14 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/10gen/atlas-service-broker/pkg/atlas"
-	brokerlib "github.com/10gen/atlas-service-broker/pkg/broker"
+	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
+	brokerlib "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
 	"github.com/google/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/stretchr/testify/assert"
@@ -44,20 +45,60 @@ func TestProvision(t *testing.T) {
 	instanceID := uuid.New().String()
 	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
-	params := `{
-		"cluster": {
-			"backupEnabled": true,
-			"providerSettings": {
-				"regionName": "EU_WEST_1"
-			}
-		}
-	}`
+	// Setting up our Expected cluster
+	var expectedCluster = &atlas.Cluster{
+		AutoScaling: atlas.AutoScalingConfig{
+			DiskGBEnabled: true,
+		},
+		Name:          clusterName,
+		BackupEnabled: true,
+		BIConnector: atlas.BIConnectorConfig{
+			Enabled:        true,
+			ReadPreference: "primary",
+		},
+		Type:                     "REPLICASET",
+		DiskSizeGB:               10,
+		EncryptionAtRestProvider: "NONE",
+		MongoDBMajorVersion:      "4.0",
+		NumShards:                1,
+		ProviderBackupEnabled:    false,
+		ProviderSettings: &atlas.ProviderSettings{
+			EncryptEBSVolume: true,
+			Instance:         "M10",
+			Name:             "AWS",
+			Region:           "EU_WEST_1",
+			VolumeType:       "STANDARD",
+			DiskIOPS:         100,
+		},
+		ReplicationSpecs: []atlas.ReplicationSpec{
+			atlas.ReplicationSpec{
+				ID:        "5c87f79087d9d612a175f46c",
+				NumShards: 1,
+				RegionsConfig: map[string]atlas.RegionsConfig{
+					"EU_WEST_1": atlas.RegionsConfig{
+						ElectableNodes: 3,
+						ReadOnlyNodes:  1,
+						AnalyticsNodes: 1,
+						Priority:       7,
+					},
+				},
+				ZoneName: "Zone 1",
+			},
+		},
+	}
+
+	// Setting up the params for the body request
+	paramsByte, marshalErr := json.Marshal(expectedCluster)
+	assert.NoError(t, marshalErr)
+
+	params := `{"cluster":` + string(paramsByte) + `}`
 
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
 		ServiceID:     "aosb-cluster-service-aws",
 		PlanID:        "aosb-cluster-plan-aws-m10",
 		RawParameters: []byte(params),
 	}, true)
+
 	defer teardownInstance(instanceID)
 
 	if !assert.NoError(t, err) {
@@ -69,8 +110,8 @@ func TestProvision(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, atlas.ClusterStateCreating, cluster.State)
 
-	// Wait a maximum of 15 minutes for cluster to reach state idle.
-	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 15)
+	// Wait a maximum of 20 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -78,16 +119,12 @@ func TestProvision(t *testing.T) {
 	cluster, err = client.GetCluster(clusterName)
 	assert.NoError(t, err)
 
-	// Ensure the cluster name is equal to the normalized instance ID.
-	assert.Equal(t, clusterName, cluster.Name)
+	// Altering these parameters due to the fact that, they can't be configured from upfront
+	cluster.URI = ""
+	expectedCluster.State = "IDLE"
 
-	// Ensure cluster was set up with the correct provider settings for its
-	// service/plan configuration.
-	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
-	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
-	assert.Equal(t, "EU_WEST_1", cluster.ProviderSettings.Region)
-
-	assert.True(t, cluster.BackupEnabled)
+	// Ensure response is equal to request cluster
+	assert.Equal(t, expectedCluster, cluster)
 }
 
 func TestUpdate(t *testing.T) {
@@ -128,8 +165,8 @@ func TestUpdate(t *testing.T) {
 		return
 	}
 
-	// Wait a maximum of 20 minutes for cluster to finish updating.
-	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 20)
+	// Wait a maximum of 25 minutes for cluster to finish updating.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationUpdate, 25)
 	if !assert.NoError(t, err) {
 		return
 	}
