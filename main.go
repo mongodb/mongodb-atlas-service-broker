@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -19,7 +20,7 @@ import (
 const (
 	DefaultLogLevel = "INFO"
 
-	DefaultAtlasBaseURL = "https://cloud.mongodb.com/api/atlas/v1.0"
+	DefaultAtlasBaseURL = "https://cloud.mongodb.com"
 
 	DefaultServerHost = "127.0.0.1"
 	DefaultServerPort = 4000
@@ -34,7 +35,7 @@ func main() {
 	defer logger.Sync() // Flushes buffer, if any
 
 	// Try parsing Atlas client config.
-	baseURL := getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL)
+	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
 	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
 	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
 	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
