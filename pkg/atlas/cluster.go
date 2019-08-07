@@ -29,12 +29,11 @@ type Cluster struct {
 	BackupEnabled            bool              `json:"backupEnabled,omitempty"`
 	BIConnector              BIConnectorConfig `json:"biConnector,omitempty"`
 	Type                     string            `json:"clusterType,omitempty"`
-	DiskSize                 float64           `json:"diskSizeGB,omitempty"`
+	DiskSizeGB               float64           `json:"diskSizeGB,omitempty"`
 	EncryptionAtRestProvider string            `json:"encryptionAtRestProvider,omitempty"`
-	MongoDBVersion           string            `json:"mongoDBMajorVersion,omitempty"`
+	MongoDBMajorVersion      string            `json:"mongoDBMajorVersion,omitempty"`
 	NumShards                uint              `json:"numShards,omitempty"`
 	ProviderBackupEnabled    bool              `json:"providerBackupEnabled,omitempty"`
-	ReplicationFactor        uint              `json:"replicationFactor,omitempty"`
 	ReplicationSpecs         []ReplicationSpec `json:"replicationSpecs,omitempty"`
 	ProviderSettings         *ProviderSettings `json:"providerSettings"`
 
@@ -45,7 +44,7 @@ type Cluster struct {
 
 // AutoScalingConfig represents the autoscaling settings for a cluster.
 type AutoScalingConfig struct {
-	DiskEnabled bool `json:"diskGBEnabled,omitempty"`
+	DiskGBEnabled bool `json:"diskGBEnabled,omitempty"`
 }
 
 // BIConnectorConfig represents the BI connector settings for a cluster.
@@ -56,14 +55,15 @@ type BIConnectorConfig struct {
 
 // ProviderSettings represents the provider setting for a cluster.
 type ProviderSettings struct {
-	Name     string `json:"providerName"`
-	Instance string `json:"instanceSizeName"`
-	Region   string `json:"regionName,omitempty"`
+	Name            string `json:"providerName"`
+	Instance        string `json:"instanceSizeName"`
+	Region          string `json:"regionName,omitempty"`
+	BackingProvider string `json:"backingProviderName,omitempty"`
 
-	DiskIOPS   uint   `json:"diskIOPS,omitempty"`
-	DiskType   string `json:"diskTypeName,omitempty"`
-	EncryptEBS bool   `json:"encryptEBSVolume,omitempty"`
-	VolumeType string `json:"volumeType,omitempty"`
+	DiskIOPS         uint   `json:"diskIOPS,omitempty"`
+	DiskType         string `json:"diskTypeName,omitempty"`
+	EncryptEBSVolume bool   `json:"encryptEBSVolume,omitempty"`
+	VolumeType       string `json:"volumeType,omitempty"`
 }
 
 // ReplicationSpec represents the replication settings for a single region.
