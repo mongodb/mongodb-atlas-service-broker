@@ -10,11 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	testServiceID = "mongodb-aws"
-	testPlanID    = "AWS-M10"
-)
-
 // TestMissingAsync will make sure all async operations don't accept non-async
 // clients.
 func TestMissingAsync(t *testing.T) {
@@ -200,7 +195,7 @@ func TestUpdate(t *testing.T) {
 	}, true)
 
 	res, err := broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
-		PlanID:    "AWS-M20",
+		PlanID:    "aosb-cluster-plan-aws-m20",
 		ServiceID: testServiceID,
 	}, true)
 
