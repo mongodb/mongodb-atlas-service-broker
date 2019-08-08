@@ -16,6 +16,8 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 )
 
+const version = "0.1.0"
+
 // Default values for the configuration variables.
 const (
 	DefaultLogLevel = "INFO"
@@ -64,7 +66,7 @@ func main() {
 	// Mount broker server at the root.
 	http.Handle("/", brokerapi.New(broker, NewLagerZapLogger(logger), credentials))
 
-	logger.Infow("Starting API server ", "host", host, "port", port, "atlas_base_url", baseURL, "group_id", groupID)
+	logger.Infow("Starting API server", "version", version, "host", host, "port", port, "atlas_base_url", baseURL, "group_id", groupID)
 
 	// Start broker HTTP server.
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
