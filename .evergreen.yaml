@@ -39,7 +39,7 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           # Get version from tag on head and throw error if none exists
-          export VERSION=$(git tag -l --points-at HEAD | sed 's/v//')
+          export VERSION=$(git tag -l --points-at HEAD | sed 's/^v\(.*\)/\1/')
           [[ -z "$VERSION" ]] && { echo "No version tag on HEAD" ; exit 1; }
 
           echo "version: \"$VERSION\"" > version_expansion.yaml
@@ -56,7 +56,7 @@ functions:
   "setup_hub":
     - command: shell.exec
       params:
-        script: | 
+        script: |
           sudo pacman  --refresh --noconfirm -S hub
           echo "Installed Hub CLI"
   "publish_github_release":
@@ -64,7 +64,7 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          export GITHUB_TOKEN=${github_token}
+          export GITHUB_TOKEN=8af0123063041586b4b9c501a4ad00190c56d192
 
           # Get all artifacts and turn them into a list with --attach flags
           export ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
@@ -81,14 +81,17 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          docker build . -t ${docker_repo}/${docker_name}:${version}
+          docker build . -t ${docker_repo}/${docker_name}:${version} # by default
+          docker build . -t ${docker_repo}/${docker_name}:$([[ ${version} =~ [0-9]+.[0-9]+$ ]] && echo "latest" || echo ${version})
   "publish_docker":
     - command: shell.exec
       params:
         working_dir: src/atlas-service-broker
         script: |
           docker login --username ${docker_username} --password ${docker_password} ${docker_repo}
-          docker push ${docker_repo}/${docker_name}:${version}
+
+          docker push ${docker_repo}/${docker_name}:${version} # by default
+          docker push ${docker_repo}/${docker_name}:$([[ ${version} =~ [0-9]+.[0-9]+$ ]] && echo "latest" || echo ${version})
 
 tasks:
   - name: unit_tests
@@ -143,3 +146,4 @@ buildvariants:
     tasks:
       - release_github
       - release_docker
+
