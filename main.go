@@ -47,7 +47,13 @@ func getHelpMessage() string {
 
 This is a Service Broker which provides access to MongoDB deployments running
 in MongoDB Atlas. It conforms to the Open Service Broker specification and can
-be used with any compatible platform, such as the Kubernetes Service Catalog.`
+be used with any compatible platform, for example the Kubernetes Service Catalog.
+
+For instructions on how to install and use the service broker please refer to
+the documentation: https://docs.mongodb.com/atlas-open-service-broker
+
+Github: https://github.com/mongodb/mongodb-atlas-service-broker
+Docker Image: quay.io/mongodb/mongodb-atlas-service-broker`
 
 	return fmt.Sprintf(helpMessage, version)
 }
