@@ -39,6 +39,7 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           # Get version from tag on head and throw error if none exists
+          # Take the character v at the beginning of the string if any, and keep the rest
           export VERSION=$(git tag -l --points-at HEAD | sed 's/^v\(.*\)/\1/')
           [[ -z "$VERSION" ]] && { echo "No version tag on HEAD" ; exit 1; }
 
@@ -64,7 +65,7 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          export GITHUB_TOKEN=8af0123063041586b4b9c501a4ad00190c56d192
+          export GITHUB_TOKEN=${github}
 
           # Get all artifacts and turn them into a list with --attach flags
           export ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
@@ -81,12 +82,7 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          if [[ ${version} =~ [0-9]+.[0-9]+$ ]]; then
-            docker build . -t ${docker_repo}/${docker_name}:${version}
-            docker build . -t ${docker_repo}/${docker_name}:latest
-          else
-            docker build . -t ${docker_repo}/${docker_name}:${version}
-          fi
+          docker build . -t ${docker_repo}/${docker_name}:${version}
   "publish_docker":
     - command: shell.exec
       params:
@@ -94,11 +90,10 @@ functions:
         script: |
           docker login --username ${docker_username} --password ${docker_password} ${docker_repo}
 
+          docker push ${docker_repo}/${docker_name}:${version}
           if [[ ${version} =~ [0-9]+.[0-9]+$ ]]; then
-            docker push ${docker_repo}/${docker_name}:${version}
-            docker push ${docker_repo}/${docker_name}:latest
-          else
-            docker push ${docker_repo}/${docker_name}:${version}
+            docker image tag ${docker_repo}/${docker_name}:${version} ${docker_repo}/${docker_name}:latest 
+            docker push ${docker_repo}/${docker_name}:latest 
           fi
 
 tasks:
