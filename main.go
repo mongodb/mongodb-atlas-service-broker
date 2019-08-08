@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -29,6 +30,29 @@ const (
 )
 
 func main() {
+	help := flag.Bool("help", false, "")
+	flag.Parse()
+
+	// Output help message if help flag was specified.
+	if *help {
+		fmt.Println(getHelpMessage())
+		return
+	}
+
+	startBrokerServer()
+}
+
+func getHelpMessage() string {
+	const helpMessage = `MongoDB Atlas Service Broker %s
+
+This is a Service Broker which provides access to MongoDB deployments running
+in MongoDB Atlas. It conforms to the Open Service Broker specification and can
+be used with any compatible platform, such as the Kubernetes Service Catalog.`
+
+	return fmt.Sprintf(helpMessage, version)
+}
+
+func startBrokerServer() {
 	logLevel := getEnvOrDefault("BROKER_LOG_LEVEL", DefaultLogLevel)
 	logger, err := createLogger(logLevel)
 	if err != nil {
