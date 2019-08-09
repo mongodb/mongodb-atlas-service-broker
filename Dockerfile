@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN ./scripts/build-production-binary.sh bin/atlas-service-broker
+RUN ./dev/build-production-binary.sh bin/atlas-service-broker
 
 # Run stage uses a much smaller base image to run the prebuilt binary
 FROM alpine:3.10
