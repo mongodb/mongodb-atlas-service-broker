@@ -38,7 +38,7 @@ func (lagerZapLogger *LagerZapLogger) Session(task string, data ...lager.Data) l
 }
 
 // WithData creates a new child with the parent fields and returns a logger with newly added data. We are currently
-// returing the same logger back.
+// returning the same logger back.
 func (lagerZapLogger *LagerZapLogger) WithData(data lager.Data) lager.Logger {
 	return lagerZapLogger
 }
