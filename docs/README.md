@@ -53,6 +53,6 @@ Follow these steps to test the broker in a Kubernetes cluster. For local testing
    `atlas-cluster-binding` can be created by running `kubectl create -f
    script/kubernetes/binding.yaml`. The binding credentials will automatically be stored in a secret
    of the same name.
-9. After use all bindings can be removed by running `svcat unbind atlas-cluser-instance` and the
+9. After use, all bindings can be removed by running `svcat unbind atlas-cluser-instance` and the
    cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance`.
 10. Run `scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.
