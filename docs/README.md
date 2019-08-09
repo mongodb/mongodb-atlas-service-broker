@@ -28,7 +28,7 @@ Please include their license in the notices/ directory.
 
 ## Testing in Kubernetes
 
-Follow these steps to test the broker in a Kubernetes cluster. For local testing we recommend using [minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/).
+Follow these steps to test the broker in a Kubernetes cluster. For local testing we recommend using [minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/). We also recommend using the [service catalog CLI](https://github.com/kubernetes-sigs/service-catalog/blob/master/docs/cli.md) (`svcat`) to control the service catalog.
 
 1. Run `scripts/install-service-catalog.sh` to install the service catalog extension in Kubernetes.
    Make sure you have Helm installed and configured before running.
