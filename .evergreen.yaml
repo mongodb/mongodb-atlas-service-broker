@@ -39,7 +39,7 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           # Get version from tag on head and throw error if none exists
-          # Take the character v at the beginning of the string if any, and keep the rest
+          # Remove the character v at the beginning of the string if any, and keep the rest
           export VERSION=$(git tag -l --points-at HEAD | sed 's/^v\(.*\)/\1/')
           [[ -z "$VERSION" ]] && { echo "No version tag on HEAD" ; exit 1; }
 
@@ -92,8 +92,8 @@ functions:
 
           docker push ${docker_repo}/${docker_name}:${version}
           if [[ ${version} =~ [0-9]+.[0-9]+$ ]]; then
-            docker image tag ${docker_repo}/${docker_name}:${version} ${docker_repo}/${docker_name}:latest 
-            docker push ${docker_repo}/${docker_name}:latest 
+            docker image tag ${docker_repo}/${docker_name}:${version} ${docker_repo}/${docker_name}:latest
+            docker push ${docker_repo}/${docker_name}:latest
           fi
 
 tasks:
