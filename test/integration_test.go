@@ -1,16 +1,15 @@
-package integration
+package test
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
-	"time"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	brokerlib "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
-	"github.com/google/uuid"
+	testutil "github.com/mongodb/mongodb-atlas-service-broker/test/util"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,10 +24,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	baseURL := getEnvOrPanic("ATLAS_BASE_URL")
-	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
-	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
-	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
+	baseURL := testutil.GetEnvOrPanic("ATLAS_BASE_URL")
+	groupID := testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
+	publicKey := testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
+	privateKey := testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
 	client, _ = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 
 	// Setup the broker which will be used
@@ -261,7 +260,7 @@ func TestBind(t *testing.T) {
 	// Try connecting to the cluster to ensure that the credentials are
 	// valid. There is sometimes a slight delay before the user is ready so this
 	// will try to connect for up to a minute.
-	err = poll(1, func() (bool, error) {
+	err = testutil.Poll(1, func() (bool, error) {
 		client, err := mongo.NewClient(conn)
 		if err != nil {
 			return false, nil
@@ -339,7 +338,7 @@ func TestDeprovision(t *testing.T) {
 // operation. The function returns once the operation was successful or the
 // timeout has been reached.
 func waitForLastOperation(broker *brokerlib.Broker, instanceID string, operation string, timeoutMinutes int) error {
-	return poll(timeoutMinutes, func() (bool, error) {
+	return testutil.Poll(timeoutMinutes, func() (bool, error) {
 		res, err := broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
 			OperationData: operation,
 		})
@@ -373,7 +372,7 @@ func setupInstance(instanceID string) (string, error) {
 	}
 
 	// Wait for cluster to reach state "idle".
-	err = poll(15, func() (bool, error) {
+	err = testutil.Poll(15, func() (bool, error) {
 		cluster, err := client.GetCluster(clusterName)
 		if err != nil {
 			return false, err
@@ -410,35 +409,4 @@ func teardownInstance(instanceID string) {
 
 func teardownBinding(bindingID string) {
 	client.DeleteUser(bindingID)
-}
-
-// poll will run f every 10 seconds until it returns true or the timout is
-// reached.
-func poll(timeoutMinutes int, f func() (bool, error)) error {
-	pollInterval := 10
-
-	for i := 0; i < timeoutMinutes*60; i++ {
-		res, err := f()
-		if err != nil {
-			return err
-		}
-
-		if res {
-			return nil
-		}
-
-		i += pollInterval
-		time.Sleep(time.Duration(pollInterval) * time.Second)
-	}
-
-	return fmt.Errorf("timeout while polling (waited %d minutes)", timeoutMinutes)
-}
-
-func getEnvOrPanic(name string) string {
-	value, exists := os.LookupEnv(name)
-	if !exists {
-		panic(fmt.Sprintf(`Could not find environment variable "%s"`, name))
-	}
-
-	return value
 }
