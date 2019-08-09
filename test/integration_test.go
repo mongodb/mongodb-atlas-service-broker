@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	brokerlib "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
-	"github.com/google/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -53,8 +53,7 @@ func TestProvision(t *testing.T) {
 		Name:          clusterName,
 		BackupEnabled: true,
 		BIConnector: atlas.BIConnectorConfig{
-			Enabled:        true,
-			ReadPreference: "primary",
+			Enabled: false,
 		},
 		Type:                     "REPLICASET",
 		DiskSizeGB:               10,
