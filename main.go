@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -16,6 +17,9 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 )
 
+// releaseVersion should be set by the linker at compile time.
+var releaseVersion = "development-build"
+
 // Default values for the configuration variables.
 const (
 	DefaultLogLevel = "INFO"
@@ -27,6 +31,50 @@ const (
 )
 
 func main() {
+	// Add --help and -h flag.
+	helpDescription := "Print information about the MongoDB Atlas Service Broker and helpful links."
+	helpFlag := flag.Bool("help", false, helpDescription)
+	flag.BoolVar(helpFlag, "h", false, helpDescription)
+
+	// Add --version and -v flag.
+	versionDescription := "Print current version of MongoDB Atlas Service Broker."
+	versionFlag := flag.Bool("version", false, versionDescription)
+	flag.BoolVar(versionFlag, "v", false, versionDescription)
+
+	flag.Parse()
+
+	// Output help message if help flag was specified.
+	if *helpFlag {
+		fmt.Println(getHelpMessage())
+		return
+	}
+
+	// Output current version if version flag was specified.
+	if *versionFlag {
+		fmt.Println(releaseVersion)
+		return
+	}
+
+	startBrokerServer()
+}
+
+func getHelpMessage() string {
+	const helpMessage = `MongoDB Atlas Service Broker %s
+
+This is a Service Broker which provides access to MongoDB deployments running
+in MongoDB Atlas. It conforms to the Open Service Broker specification and can
+be used with any compatible platform, for example the Kubernetes Service Catalog.
+
+For instructions on how to install and use the Service Broker please refer to
+the documentation: https://docs.mongodb.com/atlas-open-service-broker
+
+Github: https://github.com/mongodb/mongodb-atlas-service-broker
+Docker Image: quay.io/mongodb/mongodb-atlas-service-broker`
+
+	return fmt.Sprintf(helpMessage, releaseVersion)
+}
+
+func startBrokerServer() {
 	logLevel := getEnvOrDefault("BROKER_LOG_LEVEL", DefaultLogLevel)
 	logger, err := createLogger(logLevel)
 	if err != nil {
@@ -64,7 +112,7 @@ func main() {
 	// Mount broker server at the root.
 	http.Handle("/", brokerapi.New(broker, NewLagerZapLogger(logger), credentials))
 
-	logger.Infow("Starting API server ", "host", host, "port", port, "atlas_base_url", baseURL, "group_id", groupID)
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL, "group_id", groupID)
 
 	// Start broker HTTP server.
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
