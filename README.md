@@ -34,7 +34,7 @@ Configuration is handled with environment variables.
 
 ### Logs
 
-Logs are written to stderr and each line is in a structured JSON format.
+Logs are written to `stderr` and each line is in a structured JSON format.
 
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
