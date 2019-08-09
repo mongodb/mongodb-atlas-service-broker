@@ -76,19 +76,83 @@ functions:
         script: |
           sudo pacman --refresh --noconfirm -S community/docker
           systemctl start docker.service
+  "teardown_docker":
+    - command: shell.exec
+      params:
+        script: |
+          # Remove all Docker images
+          docker rmi -f $(docker images -a -q) &> /dev/null || true
   "build_docker":
     - command: shell.exec
       params:
         working_dir: src/atlas-service-broker
         script: |
-          docker build . -t ${docker_repo}/${docker_name}:${version}
+          docker build . -t ${docker_repo}/${docker_name}
   "publish_docker":
     - command: shell.exec
       params:
         working_dir: src/atlas-service-broker
         script: |
           docker login --username ${docker_username} --password ${docker_password} ${docker_repo}
+          docker image tag ${docker_repo}/${docker_name} ${docker_repo}/${docker_name}:${version}
           docker push ${docker_repo}/${docker_name}:${version}
+  "setup_kubernetes":
+    - command: shell.exec
+      params:
+        script: |
+          # Install kubectl
+          curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/
+
+          # Install kind
+          curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-linux-amd64
+          chmod +x ./kind-linux-amd64
+          sudo mv ./kind-linux-amd64 /usr/local/bin/kind
+
+          # Start cluster
+          kind create cluster 
+          export KUBECONFIG="$(kind get kubeconfig-path)"
+          echo "Cluster info:"
+          kubectl cluster-info
+
+          # Install Helm
+          curl -LO https://get.helm.sh/helm-v2.14.3-linux-amd64.tar.gz
+          tar -zxvf helm-v2.14.3-linux-amd64.tar.gz
+          mv linux-amd64/helm /usr/local/bin/helm
+          
+          # Setup helm
+          kubectl --namespace kube-system create serviceaccount tiller
+          kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+          helm init --service-account tiller --wait
+
+          # Install Service Catalog extension
+          helm repo add svc-cat https://svc-catalog-charts.storage.googleapis.com
+          helm install svc-cat/catalog --name service-catalog --namespace catalog --wait
+
+          docker image tag ${docker_repo}/${docker_name} ${docker_repo}/${docker_name}:e2e-test
+          kind load docker-image ${docker_repo}/${docker_name}
+  "teardown_kubernetes":
+    - command: shell.exec
+      params:
+        script: kind delete cluster
+ 
+  "e2e_tests_kubernetes":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          export ATLAS_BASE_URL=${atlas_base_url}
+          export ATLAS_GROUP_ID=${atlas_group_id}
+          export ATLAS_PUBLIC_KEY=${atlas_public_key}
+          export ATLAS_PRIVATE_KEY=${atlas_private_key}
+          export KUBECONFIG="$(kind get kubeconfig-path)"
+          export DOCKER_IMAGE="${docker_repo}/${docker_name}:e2e-test"
+
+          go test -timeout 1h -v ./test/e2e | tee e2e_kubernetes_result.suite
+    - command: gotest.parse_files
+      params:
+        files: ["src/atlas-service-broker/e2e_kubernetes_result.suite"]
 
 tasks:
   - name: unit_tests
@@ -118,6 +182,9 @@ tasks:
       - func: "setup_docker"
       - func: "build_docker"
       - func: "publish_docker"
+  - name: e2e_tests_kubernetes
+    commands:
+      - func: "e2e_tests_kubernetes"
 
 task_groups:
   - name: unit_task_group
@@ -131,6 +198,17 @@ task_groups:
       - func: "fetch_source"
     tasks:
       - integration_tests
+  - name: e2e_task_group
+    setup_group:
+      - func: "fetch_source"
+      - func: "setup_docker"
+      - func: "build_docker"
+      - func: "setup_kubernetes"
+    tasks:
+      - e2e_tests_kubernetes
+    teardown_group:
+      - func: "teardown_kubernetes"
+      - func: "teardown_docker"
 
 buildvariants:
   - name: test
@@ -139,6 +217,7 @@ buildvariants:
     tasks:
       - unit_task_group
       - integration_task_group
+      - e2e_task_group
   - name: release
     display_name: release
     run_on: archlinux-test
