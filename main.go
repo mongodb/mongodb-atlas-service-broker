@@ -17,7 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 )
 
-// releaseVersion should be set by the linker at compile time
+// releaseVersion should be set by the linker at compile time.
 var releaseVersion = "development-build"
 
 // Default values for the configuration variables.
@@ -51,7 +51,7 @@ func main() {
 
 	// Output current version if version flag was specified.
 	if *versionFlag {
-		fmt.Println(version)
+		fmt.Println(releaseVersion)
 		return
 	}
 
