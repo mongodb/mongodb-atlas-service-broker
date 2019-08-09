@@ -10,7 +10,7 @@ The server is managed by a third-party library called [`brokerapi`](https://gith
 
 The project contains both unit tests and integration tests against Atlas. The unit tests can be found inside each package in `pkg/` and can be run with `go test ./pkg/...`.
 
-The integration tests are also implemented as Go tests and are found in `test/`. Credentials for connecting to the Atlas API should be passed as environment variables, these variables are the same as for the broker. These tests can be run with `go test -timeout 1h ./test`. Go test has a default timeout of 10 minutes which is normally too short for some of the tests, hence it's recommended to raise the timeout to 1 hour. As part of the integration tests a MongoDB connection is set up to test the generated credentials. For this test to not fail the testing host needs to be whitelisted in Atlas.
+The integration tests are also implemented as Go tests and are found in `test/`. Credentials for connecting to the Atlas API should be passed as environment variables `ATLAS_BASE_URL`, `ATLAS_GROUP_ID`, `ATLAS_PUBLIC_KEY`, and `ATLAS_PRIVATE_KEY`. These tests can be run with `go test -timeout 1h ./test`. Go test has a default timeout of 10 minutes which is normally too short for some of the tests, hence it's recommended to raise the timeout to 1 hour. As part of the integration tests a MongoDB connection is set up to test the generated credentials. For this test to not fail the testing host needs to be whitelisted in Atlas.
 
 Unit and integration tests can be run at once using `go test -timeout 1h ./...`. Remember to pass the necessary environment variables and raise the timeout limit.
 
