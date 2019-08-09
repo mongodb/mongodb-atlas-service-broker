@@ -32,12 +32,25 @@ const (
 func main() {
 	// Add --help and -h flag.
 	helpDescription := "Print information about the MongoDB Atlas Service Broker and helpful links."
-	help := flag.Bool("help", false, helpDescription)
-	flag.BoolVar(help, "h", false, helpDescription)
+	helpFlag := flag.Bool("help", false, helpDescription)
+	flag.BoolVar(helpFlag, "h", false, helpDescription)
+
+	// Add --version and -v flag.
+	versionDescription := "Print current version of MongoDB Atlas Service Broker."
+	versionFlag := flag.Bool("version", false, versionDescription)
+	flag.BoolVar(versionFlag, "v", false, versionDescription)
+
+	flag.Parse()
 
 	// Output help message if help flag was specified.
-	if flag.Parse(); *help {
+	if *helpFlag {
 		fmt.Println(getHelpMessage())
+		return
+	}
+
+	// Output current version if version flag was specified.
+	if *versionFlag {
+		fmt.Println(version)
 		return
 	}
 
