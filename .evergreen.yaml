@@ -100,36 +100,35 @@ functions:
     - command: shell.exec
       params:
         script: |
-          # Install kubectl
+          echo "Install kubectl"
           curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/
 
-          # Install kind
+          echo "Install kind"
           curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-linux-amd64
           chmod +x ./kind-linux-amd64
           sudo mv ./kind-linux-amd64 /usr/local/bin/kind
 
-          # Start cluster
+          echo "Start cluster"
           kind create cluster 
           export KUBECONFIG="$(kind get kubeconfig-path)"
-          echo "Cluster info:"
-          kubectl cluster-info
 
-          # Install Helm
+          echo "Install Helm"
           curl -LO https://get.helm.sh/helm-v2.14.3-linux-amd64.tar.gz
           tar -zxvf helm-v2.14.3-linux-amd64.tar.gz
           mv linux-amd64/helm /usr/local/bin/helm
           
-          # Setup helm
+          echo "Setup helm"
           kubectl --namespace kube-system create serviceaccount tiller
           kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
           helm init --service-account tiller --wait
 
-          # Install Service Catalog extension
+          echo "Install Service Catalog extension"
           helm repo add svc-cat https://svc-catalog-charts.storage.googleapis.com
           helm install svc-cat/catalog --name service-catalog --namespace catalog --wait
 
+          echo "Adding Docker image to cluster"
           docker image tag ${docker_repo}/${docker_name} ${docker_repo}/${docker_name}:e2e-test
           kind load docker-image ${docker_repo}/${docker_name}
   "teardown_kubernetes":
