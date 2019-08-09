@@ -65,7 +65,7 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          export GITHUB_TOKEN=${github}
+          export GITHUB_TOKEN=${github_token}
 
           # Get all artifacts and turn them into a list with --attach flags
           export ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
@@ -91,7 +91,7 @@ functions:
           docker login --username ${docker_username} --password ${docker_password} ${docker_repo}
 
           docker push ${docker_repo}/${docker_name}:${version}
-          if [[ ${version} =~ [0-9]+.[0-9]+$ ]]; then
+          if [[ ${version} =~ [0-9]+.[0-9]+.[0-9]+$ ]]; then
             docker image tag ${docker_repo}/${docker_name}:${version} ${docker_repo}/${docker_name}:latest
             docker push ${docker_repo}/${docker_name}:latest
           fi
