@@ -134,7 +134,8 @@ functions:
 
           echo "Install Service Catalog extension"
           helm repo add svc-cat https://svc-catalog-charts.storage.googleapis.com
-          helm install svc-cat/catalog --name service-catalog --namespace catalog --wait
+          helm install svc-cat/catalog --name service-catalog --namespace catalog
+          kubectl rollout status --watch deployment/service-catalog-catalog-apiserver --namespace=catalog
 
           echo "Adding Docker image to cluster"
           docker image tag ${docker_repo}/${docker_name} ${docker_repo}/${docker_name}:e2e-test
