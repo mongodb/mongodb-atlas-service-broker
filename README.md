@@ -46,4 +46,4 @@ See [LICENSE](LICENSE). Licenses for all third-party dependencies are included i
 
 ## Development
 
-Information regarding development, testing, and releasing can be found in the [development documentation](docs).
+Information regarding development, testing, and releasing can be found in the [development documentation](dev).
