@@ -49,10 +49,10 @@ Follow these steps to test the broker in a Kubernetes cluster. For local testing
 7. A new instance can be provisioned by running `kubectl create -f
    scripts/kubernetes/instance.yaml`. The instance will be given the name `atlas-cluster-instance`
    and its status can be checked using `svcat get instances`.
-8. Once the instance is up and running a binding can be created to gain access. A binding named
+8. Once the instance is up and running, a binding can be created to gain access. A binding named
    `atlas-cluster-binding` can be created by running `kubectl create -f
    script/kubernetes/binding.yaml`. The binding credentials will automatically be stored in a secret
    of the same name.
-9. After use all bindings can be removed by running `svcat unbind atlas-cluser-instance` and the
+9. After use, all bindings can be removed by running `svcat unbind atlas-cluser-instance` and the
    cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance`.
 10. Run `scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.
