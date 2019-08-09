@@ -10,4 +10,7 @@ fi
 
 set -xeuf
 
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o "$1"
+
+release_version=$(git describe --dirty)
+
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.releaseVersion=$release_version" -o "$1"
