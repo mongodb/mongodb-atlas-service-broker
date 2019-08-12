@@ -51,6 +51,7 @@ Now the setup should be all done and Kubernetes is ready to provision clusters.
 1. A new cluster can be deployed by running `kubectl create --filename scripts/kubernetes/instance.yaml -n atlas`.
 2. The progress can be checked inside of cloud-qa, where your cluster should be present and is being provisioned.
 3. Once the cluster has been provisioned a binding can be created using `kubectl create -f scripts/kubernetes/binding.yaml -n atlas`, and afterwards the user should be present under the Database Access menu.
-4. The provisioned cluster and binding can be removed again using `kubectl delete serviceinstance atlas-cluster-instance`.
+4. The provisioned cluster and binding can be removed again using `kubectl delete serviceinstance atlas-cluster-instance`. 
+5. If you get the following error `DeprovisionBlockedByExistingCredentials`. This probably means you would need to first delete the `servicebinding` first. You can do this by using `kubectl delete servicebinding atlas-cluster-binding -n atlas`
 
 More on Kubernetes commands can be found [here](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands).
