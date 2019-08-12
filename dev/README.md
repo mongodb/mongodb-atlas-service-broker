@@ -30,19 +30,19 @@ Please include their license in the notices/ directory.
 
 Follow these steps to test the broker in a Kubernetes cluster. For local testing we recommend using [minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/). We also recommend using the [service catalog CLI](https://github.com/kubernetes-sigs/service-catalog/blob/master/docs/cli.md) (`svcat`) to control the service catalog.
 
-1. Run `scripts/install-service-catalog.sh` to install the service catalog extension in Kubernetes.
+1. Run `dev/scripts/install-service-catalog.sh` to install the service catalog extension in Kubernetes.
    Make sure you have Helm installed and configured before running.
 2. Make sure the Service Catalog extension is installed in Kubernetes. Installation instructions can
    be found in the [Kubernetes docs](https://kubernetes.io/docs/tasks/service-catalog/install-service-catalog-using-helm/).
 3. Build the Dockerfile and make the resulting image available in your cluster. If you are using
-   Minikube `scripts/minikube-build.sh` can be used to build the image using Minikube's Docker
+   Minikube `dev/scripts/minikube-build.sh` can be used to build the image using Minikube's Docker
    daemon.
 4. Create a secret called `atlas-api` containing the following keys:
    - `base-url`for the Atlas API
    - `group-id` for the project under which clusters should be deployed
    - `public-key`for the API key
    - `private-key`for the API key
-5. Deploy the service broker by running `scripts/kubernetes-deploy.sh <namespace>`. This will create
+5. Deploy the service broker by running `dev/scripts/kubernetes-deploy.sh <namespace>`. This will create
    a new deployment and a service of the image from step 2. The script will also deploy the actual service broker resource with the
    name `atlas-service-broker`.
 6. Make sure the broker is ready by running `svcat get brokers`.
@@ -55,4 +55,4 @@ Follow these steps to test the broker in a Kubernetes cluster. For local testing
    of the same name.
 9. After use, all bindings can be removed by running `svcat unbind atlas-cluser-instance` and the
    cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance`.
-10. Run `scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.
+10. Run `dev/scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.

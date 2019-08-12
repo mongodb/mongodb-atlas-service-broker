@@ -53,7 +53,7 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          ./scripts/build-production-binary.sh artifacts/atlas-service-broker-linux-arm64-${version}
+          ./dev/scripts/build-production-binary.sh artifacts/atlas-service-broker-linux-arm64-${version}
   "setup_hub":
     - command: shell.exec
       params:
