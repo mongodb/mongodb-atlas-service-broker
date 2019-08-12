@@ -39,6 +39,20 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
+func TestCatalog(t *testing.T) {
+	t.Parallel()
+
+	services, err := broker.Services(context.Background())
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	assert.NotEmpty(t, services)
+	for _, service := range services {
+		assert.NotEmptyf(t, service.Plans, `Expected service "%s" to have plans`, service.Name)
+	}
+}
+
 func TestProvision(t *testing.T) {
 	t.Parallel()
 

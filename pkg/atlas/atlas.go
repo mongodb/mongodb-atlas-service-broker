@@ -21,6 +21,8 @@ type Client interface {
 	CreateUser(user User) (*User, error)
 	GetUser(name string) (*User, error)
 	DeleteUser(name string) error
+
+	GetProvider(name string) (*Provider, error)
 }
 
 // HTTPClient is the main implementation of the Client interface which
@@ -43,7 +45,10 @@ var (
 	ErrUserAlreadyExists = errors.New("User already exists")
 )
 
-const publicAPIPath = "/api/atlas/v1.0"
+const (
+	publicAPIPath  = "/api/atlas/v1.0"
+	privateAPIPath = "/api/private/unauth"
+)
 
 // NewClient will create a new HTTPClient with the specified connection details.
 func NewClient(baseURL string, groupID string, publicKey string, privateKey string) (*HTTPClient, error) {
@@ -65,6 +70,12 @@ func (c *HTTPClient) GetDashboardURL(clusterName string) string {
 // The URL will be constructed by prepending the group to the specified endpoint.
 func (c *HTTPClient) requestPublic(method string, endpoint string, body interface{}, response interface{}) error {
 	url := fmt.Sprintf("%s%s/groups/%s/%s", c.baseURL, publicAPIPath, c.groupID, endpoint)
+	return c.request(method, url, body, response)
+}
+
+// requestPrivate will make a request to an endpoint in the private API.
+func (c *HTTPClient) requestPrivate(method string, endpoint string, body interface{}, response interface{}) error {
+	url := fmt.Sprintf("%s%s/%s", c.baseURL, privateAPIPath, endpoint)
 	return c.request(method, url, body, response)
 }
 
