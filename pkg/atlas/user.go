@@ -29,7 +29,7 @@ func (c *HTTPClient) CreateUser(user User) (*User, error) {
 	user.Database = "admin"
 
 	var resultingUser User
-	err := c.request(http.MethodPost, "databaseUsers", user, &resultingUser)
+	err := c.requestPublic(http.MethodPost, "databaseUsers", user, &resultingUser)
 	return &resultingUser, err
 }
 
@@ -39,7 +39,7 @@ func (c *HTTPClient) GetUser(name string) (*User, error) {
 	path := fmt.Sprintf("databaseUsers/admin/%s", name)
 
 	var user User
-	err := c.request(http.MethodGet, path, nil, &user)
+	err := c.requestPublic(http.MethodGet, path, nil, &user)
 	return &user, err
 }
 
@@ -47,5 +47,5 @@ func (c *HTTPClient) GetUser(name string) (*User, error) {
 // Endpoint: DELETE /databaseUsers/{USERNAME}
 func (c *HTTPClient) DeleteUser(name string) error {
 	path := fmt.Sprintf("databaseUsers/admin/%s", name)
-	return c.request(http.MethodDelete, path, nil, nil)
+	return c.requestPublic(http.MethodDelete, path, nil, nil)
 }
