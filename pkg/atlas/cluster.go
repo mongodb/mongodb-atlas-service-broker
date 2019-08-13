@@ -88,7 +88,7 @@ type RegionsConfig struct {
 // POST /clusters
 func (c *HTTPClient) CreateCluster(cluster Cluster) (*Cluster, error) {
 	var resultingCluster Cluster
-	err := c.request(http.MethodPost, "clusters", cluster, &resultingCluster)
+	err := c.requestPublic(http.MethodPost, "clusters", cluster, &resultingCluster)
 	return &resultingCluster, err
 }
 
@@ -98,7 +98,7 @@ func (c *HTTPClient) UpdateCluster(cluster Cluster) (*Cluster, error) {
 	path := fmt.Sprintf("clusters/%s", cluster.Name)
 
 	var resultingCluster Cluster
-	err := c.request(http.MethodPatch, path, cluster, &resultingCluster)
+	err := c.requestPublic(http.MethodPatch, path, cluster, &resultingCluster)
 	return &resultingCluster, err
 }
 
@@ -106,7 +106,7 @@ func (c *HTTPClient) UpdateCluster(cluster Cluster) (*Cluster, error) {
 // DELETE /clusters/{CLUSTER-NAME}
 func (c *HTTPClient) DeleteCluster(name string) error {
 	path := fmt.Sprintf("clusters/%s", name)
-	return c.request(http.MethodDelete, path, nil, nil)
+	return c.requestPublic(http.MethodDelete, path, nil, nil)
 }
 
 // GetCluster will find a cluster by name.
@@ -115,6 +115,6 @@ func (c *HTTPClient) GetCluster(name string) (*Cluster, error) {
 	path := fmt.Sprintf("clusters/%s", name)
 
 	var cluster Cluster
-	err := c.request(http.MethodGet, path, nil, &cluster)
+	err := c.requestPublic(http.MethodGet, path, nil, &cluster)
 	return &cluster, err
 }

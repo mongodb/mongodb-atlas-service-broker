@@ -20,7 +20,7 @@ func setupTest(t *testing.T, expectedPath string, method string, status int, res
 	const publicKey = "pubkey"
 	const privateKey = "privkey"
 
-	fullPath := fmt.Sprintf("%s/groups/%s%s", apiPath, groupID, expectedPath)
+	fullPath := fmt.Sprintf("%s/groups/%s%s", publicAPIPath, groupID, expectedPath)
 
 	s := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, fullPath, req.URL.String())

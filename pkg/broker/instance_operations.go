@@ -3,7 +3,6 @@ package broker
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
@@ -32,7 +31,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 
 	// Construct a cluster definition from the instance ID, service, plan, and params.
-	cluster, err := clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	cluster, err := b.clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		b.logger.Errorw("Couldn't create cluster from the passed parameters", "error", err, "instance_id", instanceID, "details", details)
 		return
@@ -76,7 +75,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	}
 
 	// Construct a cluster from the instance ID, service, plan, and params.
-	cluster, err := clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	cluster, err := b.clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		return
 	}
@@ -211,7 +210,7 @@ func NormalizeClusterName(name string) string {
 // clusterFromParams will construct a cluster object from an instance ID,
 // service, plan, and raw parameters. This way users can pass all the
 // configuration available for clusters in the Atlas API as "cluster" in the params.
-func clusterFromParams(instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
+func (b Broker) clusterFromParams(instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
 	// Set up a params object which will be used for deserialiation.
 	params := struct {
 		Cluster *atlas.Cluster `json:"cluster"`
@@ -230,9 +229,14 @@ func clusterFromParams(instanceID string, serviceID string, planID string, rawPa
 	// If the plan ID is specified we construct the provider object from the service and plan.
 	// The plan ID is optional during updates but not during creation.
 	if planID != "" {
-		cloud, size := cloudFromPlan(serviceID, planID)
-		if cloud == nil || size == nil {
-			return nil, errors.New("Invalid service ID or plan ID")
+		provider, err := b.findProviderByServiceID(serviceID)
+		if err != nil {
+			return nil, err
+		}
+
+		instanceSize, err := findInstanceSizeByPlanID(provider, planID)
+		if err != nil {
+			return nil, err
 		}
 
 		if params.Cluster.ProviderSettings == nil {
@@ -240,8 +244,8 @@ func clusterFromParams(instanceID string, serviceID string, planID string, rawPa
 		}
 
 		// Configure provider based on service and plan.
-		params.Cluster.ProviderSettings.Name = cloud.Name
-		params.Cluster.ProviderSettings.Instance = size.Name
+		params.Cluster.ProviderSettings.Name = provider.Name
+		params.Cluster.ProviderSettings.Instance = instanceSize.Name
 	}
 
 	// Add the instance ID as the name of the cluster.

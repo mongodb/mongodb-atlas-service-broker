@@ -21,6 +21,8 @@ type Client interface {
 	CreateUser(user User) (*User, error)
 	GetUser(name string) (*User, error)
 	DeleteUser(name string) error
+
+	GetProvider(name string) (*Provider, error)
 }
 
 // HTTPClient is the main implementation of the Client interface which
@@ -43,7 +45,10 @@ var (
 	ErrUserAlreadyExists = errors.New("User already exists")
 )
 
-const apiPath = "/api/atlas/v1.0"
+const (
+	publicAPIPath  = "/api/atlas/v1.0"
+	privateAPIPath = "/api/private/unauth"
+)
 
 // NewClient will create a new HTTPClient with the specified connection details.
 func NewClient(baseURL string, groupID string, publicKey string, privateKey string) (*HTTPClient, error) {
@@ -56,20 +61,28 @@ func NewClient(baseURL string, groupID string, publicKey string, privateKey stri
 	}, nil
 }
 
-func (c *HTTPClient) getEndpointURL(endpoint string) string {
-	return fmt.Sprintf("%s%s/groups/%s/%s", c.baseURL, apiPath, c.groupID, endpoint)
-}
-
 // GetDashboardURL prepares the url where the specific cluster can be found in the Dashboard UI
 func (c *HTTPClient) GetDashboardURL(clusterName string) string {
 	return fmt.Sprintf("%s/v2/%s#clusters/detail/%s", c.baseURL, c.groupID, clusterName)
 }
 
+// requestPublic will make a request to an endpoint in the public API.
+// The URL will be constructed by prepending the group to the specified endpoint.
+func (c *HTTPClient) requestPublic(method string, endpoint string, body interface{}, response interface{}) error {
+	url := fmt.Sprintf("%s%s/groups/%s/%s", c.baseURL, publicAPIPath, c.groupID, endpoint)
+	return c.request(method, url, body, response)
+}
+
+// requestPrivate will make a request to an endpoint in the private API.
+func (c *HTTPClient) requestPrivate(method string, endpoint string, body interface{}, response interface{}) error {
+	url := fmt.Sprintf("%s%s/%s", c.baseURL, privateAPIPath, endpoint)
+	return c.request(method, url, body, response)
+}
+
 // request makes an HTTP request using the specified method.
-// The endpoint will be constructed by prepending the group to the specified path.
 // If body is passed it will be JSON encoded and included with the request.
 // If the request was successful the response will be decoded into response.
-func (c *HTTPClient) request(method string, path string, body interface{}, response interface{}) error {
+func (c *HTTPClient) request(method string, url string, body interface{}, response interface{}) error {
 	var data io.Reader
 
 	// Construct the JSON payload if a body has been passed
@@ -81,8 +94,6 @@ func (c *HTTPClient) request(method string, path string, body interface{}, respo
 
 		data = bytes.NewBuffer(json)
 	}
-
-	url := c.getEndpointURL(path)
 
 	// Prepare API request.
 	req, err := http.NewRequest(method, url, data)

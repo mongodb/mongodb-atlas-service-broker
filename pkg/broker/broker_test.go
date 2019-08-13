@@ -1,11 +1,7 @@
 package broker
 
 import (
-	"context"
-	"testing"
-
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
-	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
@@ -97,6 +93,20 @@ func (m MockAtlasClient) DeleteUser(name string) error {
 	return nil
 }
 
+func (m MockAtlasClient) GetProvider(name string) (*atlas.Provider, error) {
+	return &atlas.Provider{
+		Name: "AWS",
+		InstanceSizes: map[string]atlas.InstanceSize{
+			"M10": atlas.InstanceSize{
+				Name: "M10",
+			},
+			"M20": atlas.InstanceSize{
+				Name: "M20",
+			},
+		},
+	}, nil
+}
+
 func (m MockAtlasClient) GetDashboardURL(clusterName string) string {
 	return "http://dashboard"
 }
@@ -108,17 +118,4 @@ func setupTest() (*Broker, MockAtlasClient) {
 	}
 	broker := NewBroker(client, zap.NewNop().Sugar())
 	return broker, client
-}
-
-func TestCatalog(t *testing.T) {
-	broker, _ := setupTest()
-
-	services, err := broker.Services(context.Background())
-
-	assert.NoError(t, err)
-	assert.NotZero(t, len(services), "Expected a non-zero amount of services")
-
-	for _, service := range services {
-		assert.NotZerof(t, len(service.Plans), "Expected a non-zero amount of plans for service %s", service.Name)
-	}
 }
