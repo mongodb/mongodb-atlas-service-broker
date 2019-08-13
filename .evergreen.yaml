@@ -25,15 +25,16 @@ functions:
       type: system
       params:
         script: |
-          curl -L -o snyk https://github.com/snyk/snyk/releases/download/v1.216.0/snyk-linux
-          chmod +x snyk
-          mv snyk /usr/local/bin/
+          mkdir bin
+          curl -L -o bin/snyk https://github.com/snyk/snyk/releases/download/v1.216.0/snyk-linux
+          chmod +x bin/snyk
   "snyk_snapshot":
     - command: shell.exec
       type: system
       params:
         working_dir: src/atlas-service-broker
         script: |
+          export PATH="${workdir}/bin:$PATH"
           snyk auth ${snyk_token}
           snyk monitor
   "integration_tests":
