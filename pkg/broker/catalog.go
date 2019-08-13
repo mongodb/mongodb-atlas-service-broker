@@ -50,27 +50,6 @@ func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	return services, nil
 }
 
-// findProviderAndInstanceSizeByIDs will search all available providers and
-// instance sizes to find the ones matching the specified service and plan ID.
-func (b Broker) findProviderAndInstanceSizeByIDs(serviceID, planID string) (*atlas.Provider, *atlas.InstanceSize, error) {
-	for _, providerName := range providerNames {
-		provider, err := b.atlas.GetProvider(providerName)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if serviceIDForProvider(provider) == serviceID {
-			for _, instanceSize := range provider.InstanceSizes {
-				if planIDForInstanceSize(provider, instanceSize) == planID {
-					return provider, &instanceSize, nil
-				}
-			}
-		}
-	}
-
-	return nil, nil, errors.New("invalid service ID or plan ID")
-}
-
 func (b Broker) findProviderByServiceID(serviceID string) (*atlas.Provider, error) {
 	for _, providerName := range providerNames {
 		provider, err := b.atlas.GetProvider(providerName)
