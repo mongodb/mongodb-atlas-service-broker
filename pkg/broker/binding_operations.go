@@ -61,7 +61,7 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 		Credentials: ConnectionDetails{
 			Username: bindingID,
 			Password: password,
-			URI:      cluster.URI,
+			URI:      cluster.SrvAddress,
 		},
 	}
 	return
@@ -148,8 +148,8 @@ func userFromParams(bindingID string, password string, rawParams []byte) (*atlas
 	if len(params.User.Roles) == 0 {
 		params.User.Roles = []atlas.Role{
 			atlas.Role{
-				Name:     "readWriteAnyDatabase",
-				Database: "admin",
+				Name:         "readWriteAnyDatabase",
+				DatabaseName: "admin",
 			},
 		}
 	}

@@ -9,9 +9,9 @@ import (
 
 func TestCreateCluster(t *testing.T) {
 	expected := Cluster{
-		Name:  "Cluster",
-		State: ClusterStateIdle,
-		Type:  ClusterTypeReplicaSet,
+		Name:        "Cluster",
+		StateName:   ClusterStateIdle,
+		ClusterType: ClusterTypeReplicaSet,
 	}
 
 	atlas, server := setupTest(t, "/clusters", http.MethodPost, 200, expected)
@@ -25,9 +25,9 @@ func TestCreateCluster(t *testing.T) {
 
 func TestCreateClusterExistingName(t *testing.T) {
 	cluster := Cluster{
-		Name:  "Cluster",
-		State: ClusterStateIdle,
-		Type:  ClusterTypeReplicaSet,
+		Name:        "Cluster",
+		StateName:   ClusterStateIdle,
+		ClusterType: ClusterTypeReplicaSet,
 	}
 
 	atlas, server := setupTest(t, "/clusters", http.MethodPost, 400, errorResponse("DUPLICATE_CLUSTER_NAME"))
@@ -40,9 +40,9 @@ func TestCreateClusterExistingName(t *testing.T) {
 
 func TestUpdateCluster(t *testing.T) {
 	expected := Cluster{
-		Name:  "Cluster",
-		State: ClusterStateIdle,
-		Type:  ClusterTypeReplicaSet,
+		Name:        "Cluster",
+		StateName:   ClusterStateIdle,
+		ClusterType: ClusterTypeReplicaSet,
 	}
 
 	atlas, server := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 200, expected)
@@ -56,9 +56,9 @@ func TestUpdateCluster(t *testing.T) {
 
 func TestUpdateNonexistentCluster(t *testing.T) {
 	expected := Cluster{
-		Name:  "Cluster",
-		State: ClusterStateIdle,
-		Type:  ClusterTypeReplicaSet,
+		Name:        "Cluster",
+		StateName:   ClusterStateIdle,
+		ClusterType: ClusterTypeReplicaSet,
 	}
 
 	atlas, server := setupTest(t, "/clusters/"+expected.Name, http.MethodPatch, 400, errorResponse("CLUSTER_NOT_FOUND"))
@@ -71,9 +71,9 @@ func TestUpdateNonexistentCluster(t *testing.T) {
 
 func TestGetCluster(t *testing.T) {
 	expected := &Cluster{
-		Name:  "Cluster",
-		State: ClusterStateIdle,
-		Type:  ClusterTypeReplicaSet,
+		Name:        "Cluster",
+		StateName:   ClusterStateIdle,
+		ClusterType: ClusterTypeReplicaSet,
 	}
 
 	atlas, server := setupTest(t, "/clusters/"+expected.Name, http.MethodGet, 200, expected)

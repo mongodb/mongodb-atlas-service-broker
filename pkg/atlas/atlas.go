@@ -61,11 +61,6 @@ func NewClient(baseURL string, groupID string, publicKey string, privateKey stri
 	}, nil
 }
 
-// GetDashboardURL prepares the url where the specific cluster can be found in the Dashboard UI
-func (c *HTTPClient) GetDashboardURL(clusterName string) string {
-	return fmt.Sprintf("%s/v2/%s#clusters/detail/%s", c.baseURL, c.groupID, clusterName)
-}
-
 // requestPublic will make a request to an endpoint in the public API.
 // The URL will be constructed by prepending the group to the specified endpoint.
 func (c *HTTPClient) requestPublic(method string, endpoint string, body interface{}, response interface{}) error {

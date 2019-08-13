@@ -7,18 +7,18 @@ import (
 
 // User represents a single Atlas database user.
 type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Database string `json:"databaseName"`
-	LDAPType string `json:"ldapAuthType,omitempty"`
-	Roles    []Role `json:"roles,omitempty"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	DatabaseName string `json:"databaseName"`
+	LDAPAuthType string `json:"ldapAuthType,omitempty"`
+	Roles        []Role `json:"roles,omitempty"`
 }
 
 // Role represents the role of a database user.
 type Role struct {
-	Name       string `json:"roleName"`
-	Database   string `json:"databaseName,omitempty"`
-	Collection string `json:"collectionName,omitempty"`
+	Name           string `json:"roleName"`
+	DatabaseName   string `json:"databaseName,omitempty"`
+	CollectionName string `json:"collectionName,omitempty"`
 }
 
 // CreateUser will create a new database user with read/write access to all
@@ -26,7 +26,7 @@ type Role struct {
 // Endpoint: POST /databaseUsers
 func (c *HTTPClient) CreateUser(user User) (*User, error) {
 	// Atlas always uses "admin" for the authentication database.
-	user.Database = "admin"
+	user.DatabaseName = "admin"
 
 	var resultingUser User
 	err := c.requestPublic(http.MethodPost, "databaseUsers", user, &resultingUser)

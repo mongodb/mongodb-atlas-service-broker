@@ -64,8 +64,8 @@ func TestProvision(t *testing.T) {
 	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
 	assert.Equal(t, &atlas.ProviderSettings{
-		Name:     "AWS",
-		Instance: "M10",
+		ProviderName:     "AWS",
+		InstanceSizeName: "M10",
 	}, cluster.ProviderSettings)
 }
 
@@ -122,13 +122,13 @@ func TestProvisionParams(t *testing.T) {
 	assert.NoError(t, err)
 
 	expected := &atlas.Cluster{
-		State: "CREATING",
+		StateName: "CREATING",
 
 		Name:                     instanceID,
 		AutoScaling:              atlas.AutoScalingConfig{DiskGBEnabled: true},
 		BackupEnabled:            true,
 		BIConnector:              atlas.BIConnectorConfig{Enabled: true, ReadPreference: "primary"},
-		Type:                     "SHARDED",
+		ClusterType:              "SHARDED",
 		DiskSizeGB:               100.0,
 		EncryptionAtRestProvider: "NONE",
 		MongoDBMajorVersion:      "4.0",
@@ -150,11 +150,11 @@ func TestProvisionParams(t *testing.T) {
 			},
 		},
 		ProviderSettings: &atlas.ProviderSettings{
-			Name:             "AWS",
-			Instance:         "M10",
-			Region:           "EU_CENTRAL_1",
+			ProviderName:     "AWS",
+			InstanceSizeName: "M10",
+			RegionName:       "EU_CENTRAL_1",
 			DiskIOPS:         10,
-			DiskType:         "P4",
+			DiskTypeName:     "P4",
 			EncryptEBSVolume: true,
 			VolumeType:       "STANDARD",
 		},
@@ -207,8 +207,8 @@ func TestUpdate(t *testing.T) {
 
 	// Ensure the instance size was updated and the provider
 	// was not.
-	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
-	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
+	assert.Equal(t, "M20", cluster.ProviderSettings.InstanceSizeName)
+	assert.Equal(t, "AWS", cluster.ProviderSettings.ProviderName)
 }
 
 func TestUpdateWithoutPlan(t *testing.T) {
@@ -230,9 +230,9 @@ func TestUpdateWithoutPlan(t *testing.T) {
 	}, true)
 
 	cluster := client.Clusters[instanceID]
-	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
-	assert.Equal(t, "AWS", cluster.ProviderSettings.Name)
-	assert.Equal(t, "EU_WEST_1", cluster.ProviderSettings.Region)
+	assert.Equal(t, "M10", cluster.ProviderSettings.InstanceSizeName)
+	assert.Equal(t, "AWS", cluster.ProviderSettings.ProviderName)
+	assert.Equal(t, "EU_WEST_1", cluster.ProviderSettings.RegionName)
 
 	// Try updating the instance without specifying a plan ID. The expected
 	// behaviour is for the existing plan (instance size) to remain the same.
@@ -260,9 +260,9 @@ func TestUpdateWithoutPlan(t *testing.T) {
 
 	// Ensure the service and plan were not changed, whilst the region should
 	// have changed.
-	assert.Equal(t, "M10", updatedCluster.ProviderSettings.Instance)
-	assert.Equal(t, "AWS", updatedCluster.ProviderSettings.Name)
-	assert.Equal(t, "EU_CENTRAL_1", updatedCluster.ProviderSettings.Region)
+	assert.Equal(t, "M10", updatedCluster.ProviderSettings.InstanceSizeName)
+	assert.Equal(t, "AWS", updatedCluster.ProviderSettings.ProviderName)
+	assert.Equal(t, "EU_CENTRAL_1", updatedCluster.ProviderSettings.RegionName)
 }
 
 func TestUpdateNonexistent(t *testing.T) {
