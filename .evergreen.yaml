@@ -35,7 +35,7 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           snyk auth ${snyk_token}
-          snyk test
+          snyk monitor
   "integration_tests":
     - command: shell.exec
       params:
