@@ -71,6 +71,31 @@ func (b Broker) findProviderAndInstanceSizeByIDs(serviceID, planID string) (*atl
 	return nil, nil, errors.New("invalid service ID or plan ID")
 }
 
+func (b Broker) findProviderByServiceID(serviceID string) (*atlas.Provider, error) {
+	for _, providerName := range providerNames {
+		provider, err := b.atlas.GetProvider(providerName)
+		if err != nil {
+			return nil, err
+		}
+
+		if serviceIDForProvider(provider) == serviceID {
+			return provider, nil
+		}
+	}
+
+	return nil, errors.New("invalid service ID")
+}
+
+func findInstanceSizeByPlanID(provider *atlas.Provider, planID string) (*atlas.InstanceSize, error) {
+	for _, instanceSize := range provider.InstanceSizes {
+		if planIDForInstanceSize(provider, instanceSize) == planID {
+			return &instanceSize, nil
+		}
+	}
+
+	return nil, errors.New("invalid plan ID")
+}
+
 // plansForProvider will convert the available instance sizes for a provider
 // to service plans for the broker.
 func plansForProvider(provider *atlas.Provider) []brokerapi.ServicePlan {

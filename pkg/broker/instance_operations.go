@@ -229,7 +229,12 @@ func (b Broker) clusterFromParams(instanceID string, serviceID string, planID st
 	// If the plan ID is specified we construct the provider object from the service and plan.
 	// The plan ID is optional during updates but not during creation.
 	if planID != "" {
-		provider, instanceSize, err := b.findProviderAndInstanceSizeByIDs(serviceID, planID)
+		provider, err := b.findProviderByServiceID(serviceID)
+		if err != nil {
+			return nil, err
+		}
+
+		instanceSize, err := findInstanceSizeByPlanID(provider, planID)
 		if err != nil {
 			return nil, err
 		}
