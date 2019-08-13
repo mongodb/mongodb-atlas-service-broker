@@ -28,7 +28,7 @@ functions:
           curl -L -o snyk https://github.com/snyk/snyk/releases/download/v1.216.0/snyk-linux
           chmod +x snyk
           mv snyk /usr/local/bin/
-  "snyk_test":
+  "snyk_check":
     - command: shell.exec
       type: system
       params:
@@ -119,10 +119,10 @@ tasks:
   - name: vet
     commands:
       - func: "go_vet"
-  - name: snyk_test
+  - name: snyk_check
     commands:
       - func: "setup_snyk"
-      - func: "snyk_test"
+      - func: "snyk_check"
   - name: integration_tests
     commands:
       - func: "integration_tests"
@@ -151,7 +151,7 @@ task_groups:
       - func: "fetch_source"
     tasks:
       - vet
-      - snyk_test
+      - snyk_check
   - name: test_task_group
     setup_group:
       - func: "fetch_source"
