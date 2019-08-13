@@ -126,16 +126,16 @@ tasks:
       - func: "publish_docker"
 
 task_groups:
-  - name: unit_task_group
+  - name: code_health_task_group
+    setup_group:
+      - func: "fetch_source"
+    tasks:
+      - vet
+  - name: test_task_group
     setup_group:
       - func: "fetch_source"
     tasks:
       - unit_tests
-      - vet
-  - name: integration_task_group
-    setup_group:
-      - func: "fetch_source"
-    tasks:
       - integration_tests
 
 buildvariants:
@@ -143,8 +143,12 @@ buildvariants:
     display_name: test
     run_on: archlinux-test
     tasks:
-      - unit_task_group
-      - integration_task_group
+      - test_task_group
+  - name: code_health
+    display_name: code_health
+    run_on: archlinux-test
+    tasks:
+      - code_health_task_group
   - name: release
     display_name: release
     run_on: archlinux-test
