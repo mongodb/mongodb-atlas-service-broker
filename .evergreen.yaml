@@ -20,6 +20,22 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           go vet ./...
+  "setup_snyk":
+    - command: shell.exec
+      type: system
+      params:
+        script: |
+          curl -L -o snyk https://github.com/snyk/snyk/releases/download/v1.216.0/snyk-linux
+          chmod +x snyk
+          mv snyk /usr/local/bin/
+  "snyk_test":
+    - command: shell.exec
+      type: system
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          snyk auth ${snyk_token}
+          snyk test
   "integration_tests":
     - command: shell.exec
       params:
@@ -103,6 +119,10 @@ tasks:
   - name: vet
     commands:
       - func: "go_vet"
+  - name: snyk_test
+    commands:
+      - func: "setup_snyk"
+      - func: "snyk_test"
   - name: integration_tests
     commands:
       - func: "integration_tests"
@@ -131,6 +151,7 @@ task_groups:
       - func: "fetch_source"
     tasks:
       - vet
+      - snyk_test
   - name: test_task_group
     setup_group:
       - func: "fetch_source"
