@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 )
 
 // idPrefix will be prepended to service and plan IDs to ensure their uniqueness.
@@ -62,7 +64,7 @@ func (b Broker) findProviderByServiceID(serviceID string) (*atlas.Provider, erro
 		}
 	}
 
-	return nil, errors.New("invalid service ID")
+	return nil, apiresponses.NewFailureResponse(errors.New("Invalid service ID"), http.StatusBadRequest, "invalid-service-id")
 }
 
 func findInstanceSizeByPlanID(provider *atlas.Provider, planID string) (*atlas.InstanceSize, error) {
@@ -72,7 +74,7 @@ func findInstanceSizeByPlanID(provider *atlas.Provider, planID string) (*atlas.I
 		}
 	}
 
-	return nil, errors.New("invalid plan ID")
+	return nil, apiresponses.NewFailureResponse(errors.New("Invalid plan ID"), http.StatusBadRequest, "invalid-plan-id")
 }
 
 // plansForProvider will convert the available instance sizes for a provider
