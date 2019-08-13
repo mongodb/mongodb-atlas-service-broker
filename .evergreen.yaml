@@ -3,6 +3,9 @@ functions:
     - command: git.get_project
       params:
         directory: src/atlas-service-broker
+    - command: shell.exec
+      params:
+        script: mkdir bin
   "go_unit_tests":
     - command: shell.exec
       type: system
@@ -58,7 +61,9 @@ functions:
     - command: shell.exec
       params:
         script: |
-          sudo pacman  --refresh --noconfirm -S hub
+          curl -LO https://github.com/github/hub/releases/download/v2.12.3/hub-linux-amd64-2.12.3.tgz
+          tar -zxvf hub-linux-amd64-2.12.3.tgz
+          mv hub-linux-amd64-2.12.3/bin/hub bin/
           echo "Installed Hub CLI"
   "publish_github_release":
     - command: shell.exec
@@ -70,7 +75,7 @@ functions:
           # Get all artifacts and turn them into a list with --attach flags
           export ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
 
-          hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
+          ${workingdir}/bin/hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
   "setup_docker":
     - command: shell.exec
       params:
@@ -108,15 +113,15 @@ functions:
     - command: shell.exec
       params:
         script: |
+          export PATH="${workdir}/bin:$PATH"
+
           echo "Install kubectl"
-          curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-          chmod +x ./kubectl
-          sudo mv ./kubectl /usr/local/bin/
+          curl -L -o bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x bin/kubectl
 
           echo "Install kind"
-          curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-linux-amd64
-          chmod +x ./kind-linux-amd64
-          sudo mv ./kind-linux-amd64 /usr/local/bin/kind
+          curl -L -o bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-linux-amd64
+          chmod +x bin/kind
 
           echo "Start cluster"
           kind create cluster 
@@ -125,7 +130,7 @@ functions:
           echo "Install Helm"
           curl -LO https://get.helm.sh/helm-v2.14.3-linux-amd64.tar.gz
           tar -zxvf helm-v2.14.3-linux-amd64.tar.gz
-          mv linux-amd64/helm /usr/local/bin/helm
+          mv linux-amd64/helm bin/helm
           
           echo "Setup helm"
           kubectl --namespace kube-system create serviceaccount tiller
@@ -143,13 +148,16 @@ functions:
   "teardown_kubernetes":
     - command: shell.exec
       params:
-        script: kind delete cluster
- 
+        script: |
+          export PATH="${workdir}/bin:$PATH"
+          kind delete cluster
   "e2e_tests_kubernetes":
     - command: shell.exec
       params:
         working_dir: src/atlas-service-broker
         script: |
+          export PATH="${workdir}/bin:$PATH"
+
           export ATLAS_BASE_URL=${atlas_base_url}
           export ATLAS_GROUP_ID=${atlas_group_id}
           export ATLAS_PUBLIC_KEY=${atlas_public_key}
