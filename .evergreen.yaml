@@ -20,6 +20,23 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           go vet ./...
+  "setup_snyk":
+    - command: shell.exec
+      type: system
+      params:
+        script: |
+          mkdir bin
+          curl -L -o bin/snyk https://github.com/snyk/snyk/releases/download/v1.216.0/snyk-linux
+          chmod +x bin/snyk
+  "snyk_snapshot":
+    - command: shell.exec
+      type: system
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          export PATH="${workdir}/bin:$PATH"
+          snyk auth ${snyk-evergreen-upload-atlas-service-broker}
+          snyk monitor
   "integration_tests":
     - command: shell.exec
       params:
@@ -103,6 +120,10 @@ tasks:
   - name: vet
     commands:
       - func: "go_vet"
+  - name: snyk_snapshot
+    commands:
+      - func: "setup_snyk"
+      - func: "snyk_snapshot"
   - name: integration_tests
     commands:
       - func: "integration_tests"
@@ -126,16 +147,17 @@ tasks:
       - func: "publish_docker"
 
 task_groups:
-  - name: unit_task_group
+  - name: code_health_task_group
+    setup_group:
+      - func: "fetch_source"
+    tasks:
+      - vet
+      - snyk_snapshot
+  - name: test_task_group
     setup_group:
       - func: "fetch_source"
     tasks:
       - unit_tests
-      - vet
-  - name: integration_task_group
-    setup_group:
-      - func: "fetch_source"
-    tasks:
       - integration_tests
 
 buildvariants:
@@ -143,8 +165,12 @@ buildvariants:
     display_name: test
     run_on: archlinux-test
     tasks:
-      - unit_task_group
-      - integration_task_group
+      - test_task_group
+  - name: code_health
+    display_name: code_health
+    run_on: archlinux-test
+    tasks:
+      - code_health_task_group
   - name: release
     display_name: release
     run_on: archlinux-test
