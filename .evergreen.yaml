@@ -35,7 +35,7 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           export PATH="${workdir}/bin:$PATH"
-          snyk auth ${snyk_token}
+          snyk auth ${snyk-evergreen-upload-atlas-service-broker}
           snyk monitor
   "integration_tests":
     - command: shell.exec
