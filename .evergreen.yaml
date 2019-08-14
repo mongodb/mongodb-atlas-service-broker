@@ -90,7 +90,8 @@ functions:
           export GITHUB_TOKEN=${github_token}
 
           # Get all artifacts and turn them into a list with --attach flags
-          export ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
+          ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
+          export ARTIFACTS_ATTACH
 
           ${workingdir}/bin/hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
   "setup_docker":
@@ -142,7 +143,8 @@ functions:
 
           echo "Start cluster"
           kind create cluster
-          export KUBECONFIG="$(kind get kubeconfig-path)"
+          KUBECONFIG=$(kind get kubeconfig-path)
+          export KUBECONFIG
 
           echo "Install Helm"
           curl -LO https://get.helm.sh/helm-v2.14.3-linux-amd64.tar.gz
@@ -179,8 +181,9 @@ functions:
           export ATLAS_GROUP_ID=${atlas_group_id}
           export ATLAS_PUBLIC_KEY=${atlas_public_key}
           export ATLAS_PRIVATE_KEY=${atlas_private_key}
-          export KUBECONFIG="$(kind get kubeconfig-path)"
           export DOCKER_IMAGE="${docker_repo}/${docker_name}:e2e-test"
+          KUBECONFIG=$(kind get kubeconfig-path)
+          export KUBECONFIG
 
           go test -timeout 1h -v ./test/e2e | tee e2e_kubernetes_result.suite
     - command: gotest.parse_files
