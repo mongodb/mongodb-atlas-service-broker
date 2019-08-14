@@ -28,7 +28,7 @@ type Cluster struct {
 	AutoScaling              AutoScalingConfig `json:"autoScaling,omitempty"`
 	BackupEnabled            bool              `json:"backupEnabled,omitempty"`
 	BIConnector              BIConnectorConfig `json:"biConnector,omitempty"`
-	Type                     string            `json:"clusterType,omitempty"`
+	ClusterType              string            `json:"clusterType,omitempty"`
 	DiskSizeGB               float64           `json:"diskSizeGB,omitempty"`
 	EncryptionAtRestProvider string            `json:"encryptionAtRestProvider,omitempty"`
 	MongoDBMajorVersion      string            `json:"mongoDBMajorVersion,omitempty"`
@@ -38,8 +38,8 @@ type Cluster struct {
 	ProviderSettings         *ProviderSettings `json:"providerSettings"`
 
 	// Read-only attributes
-	State string `json:"stateName,omitempty"`
-	URI   string `json:"srvAddress,omitempty"`
+	StateName  string `json:"stateName,omitempty"`
+	SrvAddress string `json:"srvAddress,omitempty"`
 }
 
 // AutoScalingConfig represents the autoscaling settings for a cluster.
@@ -55,13 +55,13 @@ type BIConnectorConfig struct {
 
 // ProviderSettings represents the provider setting for a cluster.
 type ProviderSettings struct {
-	Name            string `json:"providerName"`
-	Instance        string `json:"instanceSizeName"`
-	Region          string `json:"regionName,omitempty"`
-	BackingProvider string `json:"backingProviderName,omitempty"`
+	ProviderName        string `json:"providerName"`
+	InstanceSizeName    string `json:"instanceSizeName"`
+	RegionName          string `json:"regionName,omitempty"`
+	BackingProviderName string `json:"backingProviderName,omitempty"`
 
 	DiskIOPS         uint   `json:"diskIOPS,omitempty"`
-	DiskType         string `json:"diskTypeName,omitempty"`
+	DiskTypeName     string `json:"diskTypeName,omitempty"`
 	EncryptEBSVolume bool   `json:"encryptEBSVolume,omitempty"`
 	VolumeType       string `json:"volumeType,omitempty"`
 }
@@ -117,4 +117,9 @@ func (c *HTTPClient) GetCluster(name string) (*Cluster, error) {
 	var cluster Cluster
 	err := c.requestPublic(http.MethodGet, path, nil, &cluster)
 	return &cluster, err
+}
+
+// GetDashboardURL prepares the url where the specific cluster can be found in the Dashboard UI
+func (c *HTTPClient) GetDashboardURL(clusterName string) string {
+	return fmt.Sprintf("%s/v2/%s#clusters/detail/%s", c.baseURL, c.groupID, clusterName)
 }

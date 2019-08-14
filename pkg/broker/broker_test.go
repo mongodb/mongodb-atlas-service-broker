@@ -20,7 +20,7 @@ func (m MockAtlasClient) CreateCluster(cluster atlas.Cluster) (*atlas.Cluster, e
 		return nil, atlas.ErrClusterAlreadyExists
 	}
 
-	cluster.State = atlas.ClusterStateCreating
+	cluster.StateName = atlas.ClusterStateCreating
 
 	m.Clusters[cluster.Name] = &cluster
 
@@ -62,7 +62,7 @@ func (m MockAtlasClient) SetClusterState(name string, state string) {
 		return
 	}
 
-	cluster.State = state
+	cluster.StateName = state
 }
 
 func (m MockAtlasClient) CreateUser(user atlas.User) (*atlas.User, error) {
