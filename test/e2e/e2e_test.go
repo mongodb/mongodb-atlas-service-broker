@@ -231,7 +231,7 @@ func deployBroker(namespace string) error {
 	return err
 }
 
-// registerBroker will register a previously deployed broker with the
+// registerBroker will register the broker deployed in deployBroker with the
 // service catalog.
 func registerBroker(namespace string) error {
 	authSecretName := name + "-auth"
