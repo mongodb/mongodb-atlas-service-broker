@@ -141,14 +141,14 @@ functions:
           chmod +x bin/kind
 
           echo "Start cluster"
-          kind create cluster 
+          kind create cluster
           export KUBECONFIG="$(kind get kubeconfig-path)"
 
           echo "Install Helm"
           curl -LO https://get.helm.sh/helm-v2.14.3-linux-amd64.tar.gz
           tar -zxvf helm-v2.14.3-linux-amd64.tar.gz
           mv linux-amd64/helm bin/helm
-          
+
           echo "Setup helm"
           kubectl --namespace kube-system create serviceaccount tiller
           kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
