@@ -1,3 +1,5 @@
+Testing pull request coming from outside the 10gen team. Every change should be reviewed before scheduling the Evergreen patch.
+
 # MongoDB Atlas Service Broker
 
 Use the Atlas Service Broker to connect to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) from any platform which supports the [Open Service Broker API](https://www.openservicebrokerapi.org/), such as [Kubernetes](https://kubernetes.io/) and [Pivotal Cloud Foundry](https://pivotal.io/open-service-broker).
