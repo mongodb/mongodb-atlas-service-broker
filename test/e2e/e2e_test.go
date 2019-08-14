@@ -28,20 +28,14 @@ var (
 	kubeClient  *kubernetes.Clientset
 	svcatClient *servicecatalog.Clientset
 
-	atlasBaseURL    string
-	atlasGroupID    string
-	atlasPublicKey  string
-	atlasPrivateKey string
-	image           string
+	atlasBaseURL    = testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
+	atlasGroupID    = testutil.GetEnvOrPanic("ATLAS_BASE_URL")
+	atlasPublicKey  = testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
+	atlasPrivateKey = testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
+	image           = testutil.GetEnvOrPanic("DOCKER_IMAGE")
 )
 
 func TestMain(m *testing.M) {
-	atlasGroupID = testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
-	atlasBaseURL = testutil.GetEnvOrPanic("ATLAS_BASE_URL")
-	atlasPublicKey = testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
-	atlasPrivateKey = testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
-	image = testutil.GetEnvOrPanic("DOCKER_IMAGE")
-
 	// Load Kubernetes client config.
 	kubeConfigPath := testutil.GetEnvOrPanic("KUBECONFIG")
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
