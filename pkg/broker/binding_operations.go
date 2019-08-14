@@ -24,6 +24,18 @@ type ConnectionDetails struct {
 func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (spec brokerapi.Binding, err error) {
 	b.logger.Infow("Creating binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
 
+	// The service_id and plan_id are required to be valid per the specification, despite
+	// not being used for bindings. We look them up to ensure they can be found in the catalog.
+	provider, err := b.findProviderByServiceID(details.ServiceID)
+	if err != nil {
+		return
+	}
+
+	_, err = findInstanceSizeByPlanID(provider, details.PlanID)
+	if err != nil {
+		return
+	}
+
 	// Fetch the cluster from Atlas to ensure it exists.
 	cluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
@@ -41,7 +53,7 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	}
 
 	// Construct a cluster definition from the instance ID, service, plan, and params.
-	user, err := b.userFromParams(bindingID, password, details.ServiceID, details.PlanID, details.RawParameters)
+	user, err := b.userFromParams(bindingID, password, details.RawParameters)
 	if err != nil {
 		b.logger.Errorw("Couldn't create user from the passed parameters", "error", err, "instance_id", instanceID, "binding_id", bindingID, "details", details)
 		return
@@ -123,7 +135,7 @@ func generatePassword() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func (b Broker) userFromParams(bindingID string, password string, serviceID string, planID string, rawParams []byte) (*atlas.User, error) {
+func (b Broker) userFromParams(bindingID string, password string, rawParams []byte) (*atlas.User, error) {
 	// Set up a params object which will be used for deserialiation.
 	params := struct {
 		User *atlas.User `json:"user"`
@@ -137,18 +149,6 @@ func (b Broker) userFromParams(bindingID string, password string, serviceID stri
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	// The service_id and plan_id are required to be valid per the specification, despite
-	// not being used for bindings. We look them up to ensure they can be found in the catalog.
-	provider, err := b.findProviderByServiceID(serviceID)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = findInstanceSizeByPlanID(provider, planID)
-	if err != nil {
-		return nil, err
 	}
 
 	// Set binding ID as username and add password.
