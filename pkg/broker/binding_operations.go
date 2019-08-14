@@ -139,7 +139,8 @@ func (b Broker) userFromParams(bindingID string, password string, serviceID stri
 		}
 	}
 
-	// The service_id and plan_id are required to not be empty and have an invalid format.
+	// The service_id and plan_id are required to be valid per the specification, despite
+	// not being used for bindings. We look them up to ensure they can be found in the catalog.
 	provider, err := b.findProviderByServiceID(serviceID)
 	if err != nil {
 		return nil, err
