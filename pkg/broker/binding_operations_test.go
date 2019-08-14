@@ -114,7 +114,10 @@ func TestBindMissingInstance(t *testing.T) {
 
 	instanceID := "instance"
 	bindingID := "binding"
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
 
 	assert.EqualError(t, err, apiresponses.ErrInstanceDoesNotExist.Error())
 }
@@ -163,7 +166,10 @@ func TestUnbindMissingInstance(t *testing.T) {
 
 	instanceID := "instance"
 	bindingID := "binding"
-	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
 
 	assert.EqualError(t, err, apiresponses.ErrInstanceDoesNotExist.Error())
 }

@@ -53,7 +53,7 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	}
 
 	// Construct a cluster definition from the instance ID, service, plan, and params.
-	user, err := b.userFromParams(bindingID, password, details.RawParameters)
+	user, err := userFromParams(bindingID, password, details.RawParameters)
 	if err != nil {
 		b.logger.Errorw("Couldn't create user from the passed parameters", "error", err, "instance_id", instanceID, "binding_id", bindingID, "details", details)
 		return
@@ -135,7 +135,7 @@ func generatePassword() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func (b Broker) userFromParams(bindingID string, password string, rawParams []byte) (*atlas.User, error) {
+func userFromParams(bindingID string, password string, rawParams []byte) (*atlas.User, error) {
 	// Set up a params object which will be used for deserialiation.
 	params := struct {
 		User *atlas.User `json:"user"`
