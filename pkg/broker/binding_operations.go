@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 )
 
 // ConnectionDetails will be returned when a new binding is created.
@@ -41,7 +43,7 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	}
 
 	// Construct a cluster definition from the instance ID, service, plan, and params.
-	user, err := userFromParams(bindingID, password, details.RawParameters)
+	user, err := b.userFromParams(bindingID, password, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		b.logger.Errorw("Couldn't create user from the passed parameters", "error", err, "instance_id", instanceID, "binding_id", bindingID, "details", details)
 		return
@@ -123,7 +125,7 @@ func generatePassword() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func userFromParams(bindingID string, password string, rawParams []byte) (*atlas.User, error) {
+func (b Broker) userFromParams(bindingID string, password string, serviceID string, planID string, rawParams []byte) (*atlas.User, error) {
 	// Set up a params object which will be used for deserialiation.
 	params := struct {
 		User *atlas.User `json:"user"`
@@ -139,20 +141,36 @@ func userFromParams(bindingID string, password string, rawParams []byte) (*atlas
 		}
 	}
 
-	// Set binding ID as username and add password.
-	params.User.Username = bindingID
-	params.User.Password = password
-
-	// If no role is specified we default to read/write on any database.
-	// This is the default role when creating a user through the Atlas UI.
-	if len(params.User.Roles) == 0 {
-		params.User.Roles = []atlas.Role{
-			atlas.Role{
-				Name:         "readWriteAnyDatabase",
-				DatabaseName: "admin",
-			},
+	// If the plan ID is specified we construct the provider object from the service and plan.
+	// The plan ID is required for binding
+	if planID != "" {
+		provider, err := b.findProviderByServiceID(serviceID)
+		if err != nil {
+			return nil, err
 		}
+
+		_, err = findInstanceSizeByPlanID(provider, planID)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set binding ID as username and add password.
+		params.User.Username = bindingID
+		params.User.Password = password
+
+		// If no role is specified we default to read/write on any database.
+		// This is the default role when creating a user through the Atlas UI.
+		if len(params.User.Roles) == 0 {
+			params.User.Roles = []atlas.Role{
+				atlas.Role{
+					Name:         "readWriteAnyDatabase",
+					DatabaseName: "admin",
+				},
+			}
+		}
+
+		return params.User, nil
 	}
 
-	return params.User, nil
+	return nil, apiresponses.NewFailureResponse(errors.New("Invalid plan ID"), http.StatusBadRequest, "invalid-plan-id")
 }
