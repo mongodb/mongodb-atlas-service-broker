@@ -31,8 +31,8 @@ func TestBind(t *testing.T) {
 
 	expectedRoles := []atlas.Role{
 		atlas.Role{
-			Name:     "readWriteAnyDatabase",
-			Database: "admin",
+			Name:         "readWriteAnyDatabase",
+			DatabaseName: "admin",
 		},
 	}
 	assert.Equal(t, expectedRoles, user.Roles, "Expected default role to have been assigned")
@@ -67,13 +67,13 @@ func TestBindParams(t *testing.T) {
 
 	assert.Equal(t, bindingID, user.Username)
 	assert.NotEmpty(t, user.Password, "Expected password to have been genereated")
-	assert.Equal(t, "NONE", user.LDAPType)
+	assert.Equal(t, "NONE", user.LDAPAuthType)
 
 	expectedRoles := []atlas.Role{
 		atlas.Role{
-			Name:       "role",
-			Database:   "database",
-			Collection: "collection",
+			Name:           "role",
+			DatabaseName:   "database",
+			CollectionName: "collection",
 		},
 	}
 	assert.Equal(t, expectedRoles, user.Roles)

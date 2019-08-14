@@ -4,7 +4,7 @@
 # Must be called from repository root
 
 if [ -z "$1" ]; then
-  echo 'Usage: ./scripts/build-production-binary.sh OUTPUT_LOCATION' > /dev/stderr
+  echo 'Usage: ./dev/scripts/build-production-binary.sh OUTPUT_LOCATION' > /dev/stderr
   exit 1
 fi
 

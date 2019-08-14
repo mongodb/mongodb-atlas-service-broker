@@ -16,13 +16,10 @@ spec:
     spec:
       containers:
         - name: atlas-service-broker
-          image: atlas-service-broker:latest
-          imagePullPolicy: Never
+          image: quay.io/mongodb/mongodb-atlas-service-broker:latest
           ports:
-          - containerPort: 8080
+          - containerPort: 4000
           env:
-          - name: BROKER_PORT
-            value: "8080"
           - name: BROKER_HOST
             value: "0.0.0.0"
           - name: BROKER_USERNAME

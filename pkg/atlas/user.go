@@ -7,18 +7,18 @@ import (
 
 // User represents a single Atlas database user.
 type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Database string `json:"databaseName"`
-	LDAPType string `json:"ldapAuthType,omitempty"`
-	Roles    []Role `json:"roles,omitempty"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	DatabaseName string `json:"databaseName"`
+	LDAPAuthType string `json:"ldapAuthType,omitempty"`
+	Roles        []Role `json:"roles,omitempty"`
 }
 
 // Role represents the role of a database user.
 type Role struct {
-	Name       string `json:"roleName"`
-	Database   string `json:"databaseName,omitempty"`
-	Collection string `json:"collectionName,omitempty"`
+	Name           string `json:"roleName"`
+	DatabaseName   string `json:"databaseName,omitempty"`
+	CollectionName string `json:"collectionName,omitempty"`
 }
 
 // CreateUser will create a new database user with read/write access to all
@@ -26,10 +26,10 @@ type Role struct {
 // Endpoint: POST /databaseUsers
 func (c *HTTPClient) CreateUser(user User) (*User, error) {
 	// Atlas always uses "admin" for the authentication database.
-	user.Database = "admin"
+	user.DatabaseName = "admin"
 
 	var resultingUser User
-	err := c.request(http.MethodPost, "databaseUsers", user, &resultingUser)
+	err := c.requestPublic(http.MethodPost, "databaseUsers", user, &resultingUser)
 	return &resultingUser, err
 }
 
@@ -39,7 +39,7 @@ func (c *HTTPClient) GetUser(name string) (*User, error) {
 	path := fmt.Sprintf("databaseUsers/admin/%s", name)
 
 	var user User
-	err := c.request(http.MethodGet, path, nil, &user)
+	err := c.requestPublic(http.MethodGet, path, nil, &user)
 	return &user, err
 }
 
@@ -47,5 +47,5 @@ func (c *HTTPClient) GetUser(name string) (*User, error) {
 // Endpoint: DELETE /databaseUsers/{USERNAME}
 func (c *HTTPClient) DeleteUser(name string) error {
 	path := fmt.Sprintf("databaseUsers/admin/%s", name)
-	return c.request(http.MethodDelete, path, nil, nil)
+	return c.requestPublic(http.MethodDelete, path, nil, nil)
 }

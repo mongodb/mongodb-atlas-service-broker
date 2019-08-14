@@ -38,6 +38,20 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
+func TestCatalog(t *testing.T) {
+	t.Parallel()
+
+	services, err := broker.Services(context.Background())
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	assert.NotEmpty(t, services)
+	for _, service := range services {
+		assert.NotEmptyf(t, service.Plans, `Expected service "%s" to have plans`, service.Name)
+	}
+}
+
 func TestProvision(t *testing.T) {
 	t.Parallel()
 
@@ -52,10 +66,9 @@ func TestProvision(t *testing.T) {
 		Name:          clusterName,
 		BackupEnabled: true,
 		BIConnector: atlas.BIConnectorConfig{
-			Enabled:        true,
-			ReadPreference: "primary",
+			Enabled: false,
 		},
-		Type:                     "REPLICASET",
+		ClusterType:              "REPLICASET",
 		DiskSizeGB:               10,
 		EncryptionAtRestProvider: "NONE",
 		MongoDBMajorVersion:      "4.0",
@@ -63,9 +76,9 @@ func TestProvision(t *testing.T) {
 		ProviderBackupEnabled:    false,
 		ProviderSettings: &atlas.ProviderSettings{
 			EncryptEBSVolume: true,
-			Instance:         "M10",
-			Name:             "AWS",
-			Region:           "EU_WEST_1",
+			InstanceSizeName: "M10",
+			ProviderName:     "AWS",
+			RegionName:       "EU_WEST_1",
 			VolumeType:       "STANDARD",
 			DiskIOPS:         100,
 		},
@@ -107,7 +120,7 @@ func TestProvision(t *testing.T) {
 	// Ensure the cluster is being created.
 	cluster, err := client.GetCluster(clusterName)
 	assert.NoError(t, err)
-	assert.Equal(t, atlas.ClusterStateCreating, cluster.State)
+	assert.Equal(t, atlas.ClusterStateCreating, cluster.StateName)
 
 	// Wait a maximum of 20 minutes for cluster to reach state idle.
 	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
@@ -118,9 +131,10 @@ func TestProvision(t *testing.T) {
 	cluster, err = client.GetCluster(clusterName)
 	assert.NoError(t, err)
 
-	// Altering these parameters due to the fact that, they can't be configured from upfront
-	cluster.URI = ""
-	expectedCluster.State = "IDLE"
+	// Altering these parameters due to the fact that, they can't be configured from up front
+	cluster.SrvAddress = ""
+	expectedCluster.StateName = "IDLE"
+	expectedCluster.BIConnector.ReadPreference = "secondary"
 
 	// Ensure response is equal to request cluster
 	assert.Equal(t, expectedCluster, cluster)
@@ -144,7 +158,7 @@ func TestUpdate(t *testing.T) {
 
 	// Ensure cluster is in the correct starting state.
 	// The instance size should be M10 and backups should be disabled.
-	assert.Equal(t, "M10", cluster.ProviderSettings.Instance)
+	assert.Equal(t, "M10", cluster.ProviderSettings.InstanceSizeName)
 	assert.False(t, cluster.BackupEnabled)
 
 	// Update the cluster plan (instance size) and enable backups.
@@ -176,8 +190,8 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// Ensure instance size is now "M20" and backups are enabled.
-	assert.Equal(t, atlas.ClusterStateIdle, cluster.State)
-	assert.Equal(t, "M20", cluster.ProviderSettings.Instance)
+	assert.Equal(t, atlas.ClusterStateIdle, cluster.StateName)
+	assert.Equal(t, "M20", cluster.ProviderSettings.InstanceSizeName)
 	assert.True(t, cluster.BackupEnabled)
 }
 
@@ -218,13 +232,13 @@ func TestBind(t *testing.T) {
 	}
 
 	assert.Equal(t, bindingID, user.Username)
-	assert.Equal(t, "NONE", user.LDAPType)
+	assert.Equal(t, "NONE", user.LDAPAuthType)
 
 	expectedRoles := []atlas.Role{
 		atlas.Role{
-			Name:       "read",
-			Database:   "database",
-			Collection: "collection",
+			Name:           "read",
+			DatabaseName:   "database",
+			CollectionName: "collection",
 		},
 	}
 	assert.Equal(t, expectedRoles, user.Roles)
@@ -244,7 +258,7 @@ func TestBind(t *testing.T) {
 	// empty and that the connection URI matches the cluster's.
 	assert.Equal(t, bindingID, credentials.Username)
 	assert.NotEmpty(t, credentials.Password, "Expected non-empty password")
-	assert.Equal(t, cluster.URI, credentials.URI)
+	assert.Equal(t, cluster.SrvAddress, credentials.URI)
 
 	// Ensure the cluster can be connected to with the generated credentials.
 	// We need to reset the auth source using a parameter otherwise the Go
@@ -362,9 +376,9 @@ func setupInstance(instanceID string) (string, error) {
 		Name:          clusterName,
 		BackupEnabled: false,
 		ProviderSettings: &atlas.ProviderSettings{
-			Name:     "AWS",
-			Instance: "M10",
-			Region:   "EU_WEST_1",
+			ProviderName:     "AWS",
+			InstanceSizeName: "M10",
+			RegionName:       "EU_WEST_1",
 		},
 	})
 	if err != nil {
@@ -378,7 +392,7 @@ func setupInstance(instanceID string) (string, error) {
 			return false, err
 		}
 
-		if cluster.State == atlas.ClusterStateIdle {
+		if cluster.StateName == atlas.ClusterStateIdle {
 			return true, nil
 		}
 
@@ -396,8 +410,8 @@ func setupBinding(bindingID string) (*atlas.User, error) {
 		Password: uuid.New().String(),
 		Roles: []atlas.Role{
 			atlas.Role{
-				Name:     "readWriteAnyDatabase",
-				Database: "admin",
+				Name:         "readWriteAnyDatabase",
+				DatabaseName: "admin",
 			},
 		},
 	})

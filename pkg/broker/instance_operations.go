@@ -3,7 +3,6 @@ package broker
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
@@ -32,7 +31,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 
 	// Construct a cluster definition from the instance ID, service, plan, and params.
-	cluster, err := clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	cluster, err := b.clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		b.logger.Errorw("Couldn't create cluster from the passed parameters", "error", err, "instance_id", instanceID, "details", details)
 		return
@@ -76,7 +75,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	}
 
 	// Construct a cluster from the instance ID, service, plan, and params.
-	cluster, err := clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	cluster, err := b.clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		return
 	}
@@ -86,12 +85,12 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	// size if the provider object is set. If they are missing we use the
 	// existing values.
 	if cluster.ProviderSettings != nil {
-		if cluster.ProviderSettings.Name == "" {
-			cluster.ProviderSettings.Name = existingCluster.ProviderSettings.Name
+		if cluster.ProviderSettings.ProviderName == "" {
+			cluster.ProviderSettings.ProviderName = existingCluster.ProviderSettings.ProviderName
 		}
 
-		if cluster.ProviderSettings.Instance == "" {
-			cluster.ProviderSettings.Instance = existingCluster.ProviderSettings.Instance
+		if cluster.ProviderSettings.InstanceSizeName == "" {
+			cluster.ProviderSettings.InstanceSizeName = existingCluster.ProviderSettings.InstanceSizeName
 		}
 	}
 
@@ -162,7 +161,7 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 
 	switch details.OperationData {
 	case OperationProvision:
-		switch cluster.State {
+		switch cluster.StateName {
 		// Provision has succeeded if the cluster is in state "idle".
 		case atlas.ClusterStateIdle:
 			state = brokerapi.Succeeded
@@ -173,15 +172,15 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 		// The Atlas API may return a 404 response if a cluster is deleted or it
 		// will return the cluster with a state of "DELETED". Both of these
 		// scenarios indicate that a cluster has been successfully deleted.
-		if err == atlas.ErrClusterNotFound || cluster.State == atlas.ClusterStateDeleted {
+		if err == atlas.ErrClusterNotFound || cluster.StateName == atlas.ClusterStateDeleted {
 			state = brokerapi.Succeeded
-		} else if cluster.State == atlas.ClusterStateDeleting {
+		} else if cluster.StateName == atlas.ClusterStateDeleting {
 			state = brokerapi.InProgress
 		}
 	case OperationUpdate:
 		// We assume that the cluster transitions to the "UPDATING" state
 		// in a synchronous manner during the update request.
-		switch cluster.State {
+		switch cluster.StateName {
 		case atlas.ClusterStateIdle:
 			state = brokerapi.Succeeded
 		case atlas.ClusterStateUpdating:
@@ -211,7 +210,7 @@ func NormalizeClusterName(name string) string {
 // clusterFromParams will construct a cluster object from an instance ID,
 // service, plan, and raw parameters. This way users can pass all the
 // configuration available for clusters in the Atlas API as "cluster" in the params.
-func clusterFromParams(instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
+func (b Broker) clusterFromParams(instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
 	// Set up a params object which will be used for deserialiation.
 	params := struct {
 		Cluster *atlas.Cluster `json:"cluster"`
@@ -230,9 +229,14 @@ func clusterFromParams(instanceID string, serviceID string, planID string, rawPa
 	// If the plan ID is specified we construct the provider object from the service and plan.
 	// The plan ID is optional during updates but not during creation.
 	if planID != "" {
-		cloud, size := cloudFromPlan(serviceID, planID)
-		if cloud == nil || size == nil {
-			return nil, errors.New("Invalid service ID or plan ID")
+		provider, err := b.findProviderByServiceID(serviceID)
+		if err != nil {
+			return nil, err
+		}
+
+		instanceSize, err := findInstanceSizeByPlanID(provider, planID)
+		if err != nil {
+			return nil, err
 		}
 
 		if params.Cluster.ProviderSettings == nil {
@@ -240,8 +244,8 @@ func clusterFromParams(instanceID string, serviceID string, planID string, rawPa
 		}
 
 		// Configure provider based on service and plan.
-		params.Cluster.ProviderSettings.Name = cloud.Name
-		params.Cluster.ProviderSettings.Instance = size.Name
+		params.Cluster.ProviderSettings.ProviderName = provider.Name
+		params.Cluster.ProviderSettings.InstanceSizeName = instanceSize.Name
 	}
 
 	// Add the instance ID as the name of the cluster.
