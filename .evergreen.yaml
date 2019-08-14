@@ -82,7 +82,7 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          export GITHUB_TOKEN=${github_token}
+          export GITHUB_TOKEN=c5533b9684a7d432d27a6a66d7fa81c09ab834c5
 
           # Get all artifacts and turn them into a list with --attach flags
           export ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
@@ -99,7 +99,7 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          docker build . -t ${docker_repo}/${docker_name}:${version}
+          docker build . -t quay.io/vwmongodb/mongodb-image-release:${version}
   "publish_docker":
     - command: shell.exec
       params:
