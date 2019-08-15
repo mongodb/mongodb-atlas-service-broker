@@ -24,6 +24,18 @@ type ConnectionDetails struct {
 func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (spec brokerapi.Binding, err error) {
 	b.logger.Infow("Creating binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
 
+	// The service_id and plan_id are required to be valid per the specification, despite
+	// not being used for bindings. We look them up to ensure they can be found in the catalog.
+	provider, err := b.findProviderByServiceID(details.ServiceID)
+	if err != nil {
+		return
+	}
+
+	_, err = findInstanceSizeByPlanID(provider, details.PlanID)
+	if err != nil {
+		return
+	}
+
 	// Fetch the cluster from Atlas to ensure it exists.
 	cluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {

@@ -219,6 +219,8 @@ func TestBind(t *testing.T) {
 		}}`
 
 	spec, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		ServiceID:     "aosb-cluster-service-aws",
+		PlanID:        "aosb-cluster-plan-aws-m10",
 		RawParameters: []byte(params),
 	}, true)
 	defer teardownBinding(bindingID)

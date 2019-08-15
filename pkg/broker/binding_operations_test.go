@@ -20,7 +20,11 @@ func TestBind(t *testing.T) {
 	}, true)
 
 	bindingID := "binding"
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+
+	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
 
 	assert.NoError(t, err)
 
@@ -58,7 +62,11 @@ func TestBindParams(t *testing.T) {
 		}}`
 
 	bindingID := "binding"
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{RawParameters: []byte(params)}, true)
+	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		PlanID:        testPlanID,
+		ServiceID:     testServiceID,
+		RawParameters: []byte(params),
+	}, true)
 
 	assert.NoError(t, err)
 
@@ -89,8 +97,14 @@ func TestBindAlreadyExisting(t *testing.T) {
 	}, true)
 
 	bindingID := "binding"
-	broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+	broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
+	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
 
 	assert.EqualError(t, err, apiresponses.ErrBindingAlreadyExists.Error())
 }
@@ -100,7 +114,10 @@ func TestBindMissingInstance(t *testing.T) {
 
 	instanceID := "instance"
 	bindingID := "binding"
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
 
 	assert.EqualError(t, err, apiresponses.ErrInstanceDoesNotExist.Error())
 }
@@ -115,9 +132,15 @@ func TestUnbind(t *testing.T) {
 	}, true)
 
 	bindingID := "binding"
-	broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{}, true)
+	broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
 
-	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
 
 	assert.NoError(t, err)
 	assert.Empty(t, client.Users[bindingID], "Expected to be removed")
@@ -143,7 +166,10 @@ func TestUnbindMissingInstance(t *testing.T) {
 
 	instanceID := "instance"
 	bindingID := "binding"
-	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
 
 	assert.EqualError(t, err, apiresponses.ErrInstanceDoesNotExist.Error())
 }
