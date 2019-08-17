@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
@@ -37,21 +38,72 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		return
 	}
 
-	// Create a new Atlas cluster from the generated definition
-	resultingCluster, err := b.atlas.CreateCluster(*cluster)
+	// If cluster doesn't exist create it, otherwise compare them
+	resultingCluster, err := b.atlas.GetCluster(cluster.Name)
 	if err != nil {
-		b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
-		err = atlasToAPIError(err)
-		return
+		// Create a new Atlas cluster from the generated definition
+		resultingCluster, err = b.atlas.CreateCluster(*cluster)
+		if err != nil {
+			b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
+			err = atlasToAPIError(err)
+			return
+		}
+
+		b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
+
+		return brokerapi.ProvisionedServiceSpec{
+			IsAsync:       true,
+			OperationData: OperationProvision,
+			DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
+		}, nil
 	}
 
-	b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
+	str := compareClustersAndReturnAppropiateResponseCode(resultingCluster, cluster)
+	fmt.Println(str)
+	return
+}
 
-	return brokerapi.ProvisionedServiceSpec{
-		IsAsync:       true,
-		OperationData: OperationProvision,
-		DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
-	}, nil
+func compareClustersAndReturnAppropiateResponseCode(resultingCluster *atlas.Cluster, cluster *atlas.Cluster) string {
+	//Convert structs to maps
+	var remoteClusterInterface map[string]interface{}
+	var localClusterInterface map[string]interface{}
+	inrec, _ := json.Marshal(resultingCluster)
+	json.Unmarshal(inrec, &remoteClusterInterface)
+
+	inrec, _ = json.Marshal(cluster)
+	json.Unmarshal(inrec, &localClusterInterface)
+
+	if compareHelper(remoteClusterInterface, localClusterInterface) {
+		//return apiresponses.NewFailureResponse(errors.New("identical"), http.StatusConflict, "")
+		return "\nEQUAL"
+	}
+	//return apiresponses.NewFailureResponse(errors.New("not identical"), http.StatusConflict, "")
+	return "\nNOT EQUAL"
+}
+
+func compareHelper(remoteClusterInterface map[string]interface{}, localClusterInterface map[string]interface{}) bool {
+	if reflect.ValueOf(localClusterInterface).Kind() == reflect.Map {
+		for k, v := range localClusterInterface {
+			if reflect.ValueOf(v).Kind() == reflect.Map && len(v.(map[string]interface{})) != 0 {
+				equal := compareHelper(remoteClusterInterface[k].(map[string]interface{}), v.(map[string]interface{}))
+				if !equal {
+					return false
+				}
+				continue
+			} else if reflect.ValueOf(v).Kind() != reflect.Map { //others are not maps, but rather strings, float, unit, int etc
+				if val, ok := remoteClusterInterface[k]; ok {
+					if v != val {
+						return false
+					}
+					continue
+				}
+				return false // not present in the remote cluster, so they differ in attributes
+			} else { //empty map found
+				continue
+			}
+		}
+	}
+	return true
 }
 
 // Update will change the configuration of an existing Atlas cluster asynchronously.
