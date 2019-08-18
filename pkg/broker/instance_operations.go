@@ -90,7 +90,14 @@ func compareHelper(remoteClusterInterface map[string]interface{}, localClusterIn
 					return false
 				}
 				continue
-			} else if reflect.ValueOf(v).Kind() != reflect.Map { //others are not maps, but rather strings, float, unit, int etc
+			} else if reflect.ValueOf(v).Kind() == reflect.Slice && len(v.([]interface{})) != 0 {
+				for index, document := range v.([]interface{}) { //assuming every item in slice is a document
+					equal := compareHelper(remoteClusterInterface[k].([]interface{})[index].(map[string]interface{}), document.(map[string]interface{}))
+					if !equal {
+						return false
+					}
+				}
+			} else if reflect.ValueOf(v).Kind() != reflect.Map && reflect.ValueOf(v).Kind() != reflect.Slice { //others are not maps nor slices, but rather other types
 				if val, ok := remoteClusterInterface[k]; ok {
 					if v != val {
 						return false
@@ -98,11 +105,12 @@ func compareHelper(remoteClusterInterface map[string]interface{}, localClusterIn
 					continue
 				}
 				return false // not present in the remote cluster, so they differ in attributes
-			} else { //empty map found
+			} else { //empty map or slice found
 				continue
 			}
 		}
 	}
+
 	return true
 }
 
