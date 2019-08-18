@@ -26,14 +26,14 @@ type Cluster struct {
 	Name string `json:"name"`
 
 	AutoScaling              AutoScalingConfig `json:"autoScaling,omitempty"`
-	BackupEnabled            bool              `json:"backupEnabled,omitempty"`
+	BackupEnabled            *bool             `json:"backupEnabled,omitempty"`
 	BIConnector              BIConnectorConfig `json:"biConnector,omitempty"`
 	ClusterType              string            `json:"clusterType,omitempty"`
 	DiskSizeGB               float64           `json:"diskSizeGB,omitempty"`
 	EncryptionAtRestProvider string            `json:"encryptionAtRestProvider,omitempty"`
 	MongoDBMajorVersion      string            `json:"mongoDBMajorVersion,omitempty"`
 	NumShards                uint              `json:"numShards,omitempty"`
-	ProviderBackupEnabled    bool              `json:"providerBackupEnabled,omitempty"`
+	ProviderBackupEnabled    *bool             `json:"providerBackupEnabled,omitempty"`
 	ReplicationSpecs         []ReplicationSpec `json:"replicationSpecs,omitempty"`
 	ProviderSettings         *ProviderSettings `json:"providerSettings"`
 
@@ -44,12 +44,12 @@ type Cluster struct {
 
 // AutoScalingConfig represents the autoscaling settings for a cluster.
 type AutoScalingConfig struct {
-	DiskGBEnabled bool `json:"diskGBEnabled,omitempty"`
+	DiskGBEnabled *bool `json:"diskGBEnabled,omitempty"`
 }
 
 // BIConnectorConfig represents the BI connector settings for a cluster.
 type BIConnectorConfig struct {
-	Enabled        bool   `json:"enabled,omitempty"`
+	Enabled        *bool  `json:"enabled,omitempty"`
 	ReadPreference string `json:"readPreference,omitempty"`
 }
 
@@ -62,7 +62,7 @@ type ProviderSettings struct {
 
 	DiskIOPS         uint   `json:"diskIOPS,omitempty"`
 	DiskTypeName     string `json:"diskTypeName,omitempty"`
-	EncryptEBSVolume bool   `json:"encryptEBSVolume,omitempty"`
+	EncryptEBSVolume *bool  `json:"encryptEBSVolume,omitempty"`
 	VolumeType       string `json:"volumeType,omitempty"`
 }
 

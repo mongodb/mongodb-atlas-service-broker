@@ -121,19 +121,25 @@ func TestProvisionParams(t *testing.T) {
 
 	assert.NoError(t, err)
 
+	_true := new(bool)
+	_false := new(bool)
+
+	*_true = true
+	*_false = false
+
 	expected := &atlas.Cluster{
 		StateName: "CREATING",
 
 		Name:                     instanceID,
-		AutoScaling:              atlas.AutoScalingConfig{DiskGBEnabled: true},
-		BackupEnabled:            true,
-		BIConnector:              atlas.BIConnectorConfig{Enabled: true, ReadPreference: "primary"},
+		AutoScaling:              atlas.AutoScalingConfig{DiskGBEnabled: _true},
+		BackupEnabled:            _true,
+		BIConnector:              atlas.BIConnectorConfig{Enabled: _true, ReadPreference: "primary"},
 		ClusterType:              "SHARDED",
 		DiskSizeGB:               100.0,
 		EncryptionAtRestProvider: "NONE",
 		MongoDBMajorVersion:      "4.0",
 		NumShards:                2,
-		ProviderBackupEnabled:    true,
+		ProviderBackupEnabled:    _true,
 		ReplicationSpecs: []atlas.ReplicationSpec{
 			atlas.ReplicationSpec{
 				ID:        "ID",
@@ -155,7 +161,7 @@ func TestProvisionParams(t *testing.T) {
 			RegionName:       "EU_CENTRAL_1",
 			DiskIOPS:         10,
 			DiskTypeName:     "P4",
-			EncryptEBSVolume: true,
+			EncryptEBSVolume: _true,
 			VolumeType:       "STANDARD",
 		},
 	}
@@ -181,7 +187,7 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 		ServiceID: testServiceID,
 	}, true)
 
-	assert.EqualError(t, err, apiresponses.ErrInstanceAlreadyExists.Error())
+	assert.Nil(t, err)
 }
 
 func TestUpdate(t *testing.T) {

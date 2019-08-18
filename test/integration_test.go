@@ -59,24 +59,30 @@ func TestProvision(t *testing.T) {
 	instanceID := uuid.New().String()
 	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
+	_true := new(bool)
+	_false := new(bool)
+
+	*_true = true
+	*_false = false
+
 	// Setting up our Expected cluster
 	var expectedCluster = &atlas.Cluster{
 		AutoScaling: atlas.AutoScalingConfig{
-			DiskGBEnabled: true,
+			DiskGBEnabled: _true,
 		},
 		Name:          clusterName,
-		BackupEnabled: true,
+		BackupEnabled: _true,
 		BIConnector: atlas.BIConnectorConfig{
-			Enabled: false,
+			Enabled: _false,
 		},
 		ClusterType:              "REPLICASET",
 		DiskSizeGB:               10,
 		EncryptionAtRestProvider: "NONE",
 		MongoDBMajorVersion:      "4.0",
 		NumShards:                1,
-		ProviderBackupEnabled:    false,
+		ProviderBackupEnabled:    _false,
 		ProviderSettings: &atlas.ProviderSettings{
-			EncryptEBSVolume: true,
+			EncryptEBSVolume: _true,
 			InstanceSizeName: "M10",
 			ProviderName:     "AWS",
 			RegionName:       "EU_WEST_1",
@@ -160,7 +166,7 @@ func TestUpdate(t *testing.T) {
 	// Ensure cluster is in the correct starting state.
 	// The instance size should be M10 and backups should be disabled.
 	assert.Equal(t, "M10", cluster.ProviderSettings.InstanceSizeName)
-	assert.False(t, cluster.BackupEnabled)
+	assert.False(t, *cluster.BackupEnabled)
 
 	// Update the cluster plan (instance size) and enable backups.
 	params := `{
@@ -193,7 +199,7 @@ func TestUpdate(t *testing.T) {
 	// Ensure instance size is now "M20" and backups are enabled.
 	assert.Equal(t, atlas.ClusterStateIdle, cluster.StateName)
 	assert.Equal(t, "M20", cluster.ProviderSettings.InstanceSizeName)
-	assert.True(t, cluster.BackupEnabled)
+	assert.True(t, *cluster.BackupEnabled)
 }
 
 func TestBind(t *testing.T) {
@@ -372,12 +378,14 @@ func waitForLastOperation(broker *brokerlib.Broker, instanceID string, operation
 // be created.
 func setupInstance(instanceID string) (string, error) {
 	clusterName := brokerlib.NormalizeClusterName(instanceID)
+	_false := new(bool)
+	*_false = false
 
 	// Create a cluster running on AWS in eu-west-1. THe instance size should be
 	// M10 and backup should be disabled.
 	_, err := client.CreateCluster(atlas.Cluster{
 		Name:          clusterName,
-		BackupEnabled: false,
+		BackupEnabled: _false,
 		ProviderSettings: &atlas.ProviderSettings{
 			ProviderName:     "AWS",
 			InstanceSizeName: "M10",
