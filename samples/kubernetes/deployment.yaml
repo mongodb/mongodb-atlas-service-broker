@@ -5,8 +5,8 @@ metadata:
   name: atlas-service-broker-auth
 type: Opaque
 stringData:
-  username: username
-  password: password
+  username: my-username
+  password: my-password
 
 ---
 # Deployment to run the service broker.
