@@ -33,9 +33,10 @@ type Cluster struct {
 	EncryptionAtRestProvider string            `json:"encryptionAtRestProvider,omitempty"`
 	MongoDBMajorVersion      string            `json:"mongoDBMajorVersion,omitempty"`
 	NumShards                uint              `json:"numShards,omitempty"`
-	ProviderBackupEnabled    *bool             `json:"providerBackupEnabled,omitempty"`
-	ReplicationSpecs         []ReplicationSpec `json:"replicationSpecs,omitempty"`
-	ProviderSettings         *ProviderSettings `json:"providerSettings"`
+	// Making a distinction between a non-existent boolean and false boolean
+	ProviderBackupEnabled *bool             `json:"providerBackupEnabled,omitempty"`
+	ReplicationSpecs      []ReplicationSpec `json:"replicationSpecs,omitempty"`
+	ProviderSettings      *ProviderSettings `json:"providerSettings"`
 
 	// Read-only attributes
 	StateName  string `json:"stateName,omitempty"`
