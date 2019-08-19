@@ -132,7 +132,7 @@ functions:
       params:
         script: |
           # Setup local Kubernetes cluster
-          ./src/atlas-service-broker/dev/scripts/evergreen-kubernetes-setup.sh ${workdir}/bin ${docker_repo} ${docker_name}
+          ./src/atlas-service-broker/dev/scripts/evergreen-kubernetes-setup.sh ${workdir}/bin ${docker_repo}/${docker_name}
   "teardown_kubernetes":
     - command: shell.exec
       params:

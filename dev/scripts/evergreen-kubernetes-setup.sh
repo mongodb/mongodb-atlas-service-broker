@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
-if [ -z "$3" ]; then
-  echo 'Usage: ./dev/scripts/evergreen-kubernetes-setup.sh BIN_PATH DOCKER_REPO DOCKER_NAME' > /dev/stderr
+if [ -z "$2" ]; then
+  echo 'Usage: ./dev/scripts/evergreen-kubernetes-setup.sh BIN_PATH DOCKER_IMAGE' > /dev/stderr
   exit 1
 fi
 
 bin=$1
-docker_repo=$2
-docker_name=$3
+docker_image=$2
 
 export PATH="$bin:$PATH"
 
@@ -43,4 +42,4 @@ kubectl rollout status --watch deployment/service-catalog-catalog-apiserver --na
 
 echo "Add Docker image to cluster"
 # docker image tag $docker_repo/$docker_name $docker_repo/$docker_name:e2e-test
-kind load docker-image $docker_repo/$docker_name
+kind load docker-image $docker_image
