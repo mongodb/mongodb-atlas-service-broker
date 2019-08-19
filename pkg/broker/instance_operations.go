@@ -60,11 +60,12 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		}, nil
 	}
 
-	err = compareClustersAndReturnAppropiateResponseCode(resultingCluster, cluster)
+	err = CompareAndReturnAppropiateResponseCode(resultingCluster, cluster)
 	return
 }
 
-func compareClustersAndReturnAppropiateResponseCode(resultingCluster *atlas.Cluster, cluster *atlas.Cluster) error {
+// CompareAndReturnAppropiateResponseCode converts structs to maps and afterwards returns the appropiate response code
+func CompareAndReturnAppropiateResponseCode(resultingCluster *atlas.Cluster, cluster *atlas.Cluster) error {
 	//Convert structs to maps
 	var remoteClusterInterface map[string]interface{}
 	var localClusterInterface map[string]interface{}
@@ -77,7 +78,7 @@ func compareClustersAndReturnAppropiateResponseCode(resultingCluster *atlas.Clus
 	if compareHelper(remoteClusterInterface, localClusterInterface) {
 		return nil
 	}
-	return apiresponses.NewFailureResponse(errors.New("Instance ID's are equal but differ in their attributes"), http.StatusConflict, "")
+	return apiresponses.NewFailureResponse(errors.New("There IDs are equal but differ in their attributes"), http.StatusConflict, "")
 }
 
 func compareHelper(remoteClusterInterface map[string]interface{}, localClusterInterface map[string]interface{}) bool {
