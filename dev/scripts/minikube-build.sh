@@ -1,4 +1,4 @@
 #!/bin/bash
 
 eval $(minikube docker-env)
-docker build . -t atlas-service-broker
+docker build . -t quay.io/mongodb/mongodb-atlas-service-broker
