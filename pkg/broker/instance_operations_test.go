@@ -181,7 +181,7 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 		ServiceID: testServiceID,
 	}, true)
 
-	assert.EqualError(t, err, apiresponses.ErrInstanceAlreadyExists.Error())
+	assert.Nil(t, err)
 }
 
 func TestUpdate(t *testing.T) {

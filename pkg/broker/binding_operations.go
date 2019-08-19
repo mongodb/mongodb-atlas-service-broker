@@ -59,23 +59,29 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 		return
 	}
 
-	// Create a new Atlas database user from the generated definition.
-	_, err = b.atlas.CreateUser(*user)
+	// If cluster doesn't exist create it, otherwise compare them
+	resultingUser, err := b.atlas.GetUser(bindingID)
 	if err != nil {
-		b.logger.Errorw("Failed to create Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
-		err = atlasToAPIError(err)
-		return
+		// Create a new Atlas database user from the generated definition.
+		_, err = b.atlas.CreateUser(*user)
+		if err != nil {
+			b.logger.Errorw("Failed to create Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
+			err = atlasToAPIError(err)
+			return
+		}
+
+		b.logger.Infow("Successfully created Atlas database user", "instance_id", instanceID, "binding_id", bindingID)
+
+		return brokerapi.Binding{
+			Credentials: ConnectionDetails{
+				Username: bindingID,
+				Password: password,
+				URI:      cluster.SrvAddress,
+			},
+		}, nil
 	}
 
-	b.logger.Infow("Successfully created Atlas database user", "instance_id", instanceID, "binding_id", bindingID)
-
-	spec = brokerapi.Binding{
-		Credentials: ConnectionDetails{
-			Username: bindingID,
-			Password: password,
-			URI:      cluster.SrvAddress,
-		},
-	}
+	err = CompareAndReturnAppropiateResponseCode(resultingUser, user)
 	return
 }
 

@@ -106,7 +106,7 @@ func TestBindAlreadyExisting(t *testing.T) {
 		ServiceID: testServiceID,
 	}, true)
 
-	assert.EqualError(t, err, apiresponses.ErrBindingAlreadyExists.Error())
+	assert.Nil(t, err)
 }
 
 func TestBindMissingInstance(t *testing.T) {
