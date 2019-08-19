@@ -1,3 +1,4 @@
+---
 # Secret used to set up HTTP basic auth between the service broker and the service catalog.
 apiVersion: v1
 kind: Secret
