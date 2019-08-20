@@ -2,8 +2,12 @@ package broker
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
@@ -122,4 +126,56 @@ func setupTest() (*Broker, MockAtlasClient, context.Context) {
 
 	broker := NewBroker(zap.NewNop().Sugar())
 	return broker, client, ctx
+}
+
+func TestAuthMiddleware(t *testing.T) {
+	baseURL := "http://baseURL"
+	groupID := "group-id"
+	publicKey := "public-key"
+	privateKey := "private-key"
+
+	middleware := AuthMiddleware(baseURL)
+
+	// On successful auth the middleware will run testHandler which ensures
+	// the context was set up correctly.
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		client, ok := r.Context().Value(ContextKeyAtlasClient).(*atlas.HTTPClient)
+		if !assert.True(t, ok, "expected context to have client") {
+			return
+		}
+
+		assert.Equal(t, baseURL, client.BaseURL)
+		assert.Equal(t, groupID, client.GroupID)
+		assert.Equal(t, publicKey, client.PublicKey)
+		assert.Equal(t, privateKey, client.PrivateKey)
+	})
+
+	// Fake HTTP request which will be sent to middleware. Response is captured
+	// by a recorder.
+	req, err := http.NewRequest("GET", "http://test", nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+	w := httptest.NewRecorder()
+
+	// Missing basic auth credentials.
+	middleware(testHandler).ServeHTTP(w, req)
+	resp := w.Result()
+	assert.Equal(t, resp.StatusCode, http.StatusUnauthorized)
+
+	// Empty basic auth credentials.
+	req.SetBasicAuth("", "")
+	middleware(testHandler).ServeHTTP(w, req)
+	resp = w.Result()
+	assert.Equal(t, resp.StatusCode, http.StatusUnauthorized)
+
+	// Incorrect username format.
+	req.SetBasicAuth("incorrect-username", "password")
+	middleware(testHandler).ServeHTTP(w, req)
+	resp = w.Result()
+	assert.Equal(t, resp.StatusCode, http.StatusUnauthorized)
+
+	// Valid credentials. testHandler will run and validate the context.
+	req.SetBasicAuth(publicKey+"@"+groupID, privateKey)
+	middleware(testHandler).ServeHTTP(w, req)
 }

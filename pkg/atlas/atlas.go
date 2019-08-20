@@ -28,10 +28,10 @@ type Client interface {
 // HTTPClient is the main implementation of the Client interface which
 // communicates with the Atlas API.
 type HTTPClient struct {
-	baseURL    string
-	groupID    string
-	publicKey  string
-	privateKey string
+	BaseURL    string
+	GroupID    string
+	PublicKey  string
+	PrivateKey string
 
 	HTTP *http.Client
 }
@@ -55,10 +55,10 @@ const (
 // NewClient will create a new HTTPClient with the specified connection details.
 func NewClient(baseURL string, groupID string, publicKey string, privateKey string) *HTTPClient {
 	return &HTTPClient{
-		baseURL:    baseURL,
-		groupID:    groupID,
-		publicKey:  publicKey,
-		privateKey: privateKey,
+		BaseURL:    baseURL,
+		GroupID:    groupID,
+		PublicKey:  publicKey,
+		PrivateKey: privateKey,
 		HTTP:       &http.Client{},
 	}
 }
@@ -66,13 +66,13 @@ func NewClient(baseURL string, groupID string, publicKey string, privateKey stri
 // requestPublic will make a request to an endpoint in the public API.
 // The URL will be constructed by prepending the group to the specified endpoint.
 func (c *HTTPClient) requestPublic(method string, endpoint string, body interface{}, response interface{}) error {
-	url := fmt.Sprintf("%s%s/groups/%s/%s", c.baseURL, publicAPIPath, c.groupID, endpoint)
+	url := fmt.Sprintf("%s%s/groups/%s/%s", c.BaseURL, publicAPIPath, c.GroupID, endpoint)
 	return c.request(method, url, body, response)
 }
 
 // requestPrivate will make a request to an endpoint in the private API.
 func (c *HTTPClient) requestPrivate(method string, endpoint string, body interface{}, response interface{}) error {
-	url := fmt.Sprintf("%s%s/%s", c.baseURL, privateAPIPath, endpoint)
+	url := fmt.Sprintf("%s%s/%s", c.BaseURL, privateAPIPath, endpoint)
 	return c.request(method, url, body, response)
 }
 
@@ -171,8 +171,8 @@ func (c *HTTPClient) digestAuth(method string, endpoint string) (string, error) 
 	parts["uri"] = endpointURL.RequestURI()
 
 	// User public and private key as username and password
-	parts["username"] = c.publicKey
-	parts["password"] = c.privateKey
+	parts["username"] = c.PublicKey
+	parts["password"] = c.PrivateKey
 
 	return getDigestAuthrization(parts), nil
 }

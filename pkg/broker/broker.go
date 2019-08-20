@@ -50,8 +50,6 @@ func AuthMiddleware(baseURL string) mux.MiddlewareFunc {
 			// The username contains both the group ID and public key
 			// formatted as "<PUBLIC_KEY>@<GROUP_ID>".
 			splitUsername := strings.Split(username, "@")
-			groupID := splitUsername[1]
-			publicKey := splitUsername[0]
 
 			// If the credentials are invalid we respond with 401 Unauthorized.
 			// The username needs have the correct format and the password must
@@ -65,7 +63,7 @@ func AuthMiddleware(baseURL string) mux.MiddlewareFunc {
 
 			// Create a new client with the extracted API credentials and
 			// attach it to the request context.
-			client := atlas.NewClient(baseURL, groupID, publicKey, password)
+			client := atlas.NewClient(baseURL, splitUsername[1], splitUsername[0], password)
 			ctx := context.WithValue(r.Context(), ContextKeyAtlasClient, client)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
