@@ -92,17 +92,27 @@ func startBrokerServer() {
 	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
 	router.Use(atlasbroker.AuthMiddleware(baseURL))
 
-	// Mount broker server at the root.
-	http.Handle("/", router)
+	// Configure TLS from environment variables.
+	tlsCertFile := getEnvOrDefault("BROKER_TLS_CERT_FILE", "")
+	tlsKeyFile := getEnvOrDefault("BROKER_TLS_KEY_FILE", "")
+	tlsEnabled := tlsCertFile != "" && tlsKeyFile != ""
 
-	// Try parsing server config and set up broker API server.
 	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL)
+
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL)
 
 	// Start broker HTTP server.
-	endpoint := host + ":" + strconv.Itoa(port)
-	if err = http.ListenAndServe(endpoint, nil); err != nil {
+	address := host + ":" + strconv.Itoa(port)
+
+	var serverErr error
+	if tlsEnabled {
+		serverErr = http.ListenAndServeTLS(address, tlsCertFile, tlsKeyFile, router)
+	} else {
+		serverErr = http.ListenAndServe(address, router)
+	}
+
+	if serverErr != nil {
 		logger.Fatal(err)
 	}
 }
