@@ -21,6 +21,8 @@ Configuration is handled with environment variables. Logs are written to
 | BROKER_HOST | `127.0.0.1` | Address which the broker server listens on |
 | BROKER_PORT | `4000` | Port which the broker server listens on |
 | BROKER_LOG_LEVEL | `INFO` | Accepted values: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+| BROKER_TLS_CERT_FILE | | Path to a certificate file to use for TLS. Leave empty to disable TLS. |
+| BROKER_TLS_KEY_FILE | | Path to private key file to use for TLS. Leave empty to disable TLS. |
 
 ## License
 
