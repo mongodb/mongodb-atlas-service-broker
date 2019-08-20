@@ -36,7 +36,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 
 	// Construct a cluster definition from the instance ID, service, plan, and params.
-	cluster, err := b.clusterFromParams(client, instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	cluster, err := clusterFromParams(client, instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		b.logger.Errorw("Couldn't create cluster from the passed parameters", "error", err, "instance_id", instanceID, "details", details)
 		return
@@ -85,7 +85,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	}
 
 	// Construct a cluster from the instance ID, service, plan, and params.
-	cluster, err := b.clusterFromParams(client, instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	cluster, err := clusterFromParams(client, instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		return
 	}
@@ -230,7 +230,7 @@ func NormalizeClusterName(name string) string {
 // clusterFromParams will construct a cluster object from an instance ID,
 // service, plan, and raw parameters. This way users can pass all the
 // configuration available for clusters in the Atlas API as "cluster" in the params.
-func (b Broker) clusterFromParams(client atlas.Client, instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
+func clusterFromParams(client atlas.Client, instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
 	// Set up a params object which will be used for deserialiation.
 	params := struct {
 		Cluster *atlas.Cluster `json:"cluster"`
