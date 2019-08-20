@@ -21,6 +21,7 @@ import (
 var (
 	broker *brokerlib.Broker
 	client atlas.Client
+	ctx    context.Context
 )
 
 func TestMain(m *testing.M) {
@@ -28,10 +29,11 @@ func TestMain(m *testing.M) {
 	groupID := testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
 	publicKey := testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
 	privateKey := testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
-	client, _ = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
+	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
+	ctx = context.WithValue(ctx, brokerlib.ContextKeyAtlasClient, client)
 
 	// Setup the broker which will be used
-	broker = brokerlib.NewBroker(client, zap.NewNop().Sugar())
+	broker = brokerlib.NewBroker(zap.NewNop().Sugar())
 
 	result := m.Run()
 
@@ -41,7 +43,7 @@ func TestMain(m *testing.M) {
 func TestCatalog(t *testing.T) {
 	t.Parallel()
 
-	services, err := broker.Services(context.Background())
+	services, err := broker.Services(ctx)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -105,7 +107,7 @@ func TestProvision(t *testing.T) {
 
 	params := `{"cluster":` + string(paramsByte) + `}`
 
-	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+	_, err := broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
 		ServiceID:     "aosb-cluster-service-aws",
 		PlanID:        "aosb-cluster-plan-aws-m10",
 		RawParameters: []byte(params),
@@ -168,7 +170,7 @@ func TestUpdate(t *testing.T) {
 		}
 	}`
 
-	_, err = broker.Update(context.Background(), instanceID, brokerapi.UpdateDetails{
+	_, err = broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
 		ServiceID:     "aosb-cluster-service-aws",
 		PlanID:        "aosb-cluster-plan-aws-m20",
 		RawParameters: []byte(params),
@@ -217,7 +219,7 @@ func TestBind(t *testing.T) {
 			}]
 		}}`
 
-	spec, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+	spec, err := broker.Bind(ctx, instanceID, bindingID, brokerapi.BindDetails{
 		ServiceID:     "aosb-cluster-service-aws",
 		PlanID:        "aosb-cluster-plan-aws-m10",
 		RawParameters: []byte(params),
@@ -316,7 +318,7 @@ func TestUnbind(t *testing.T) {
 		return
 	}
 
-	_, err = broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+	_, err = broker.Unbind(ctx, instanceID, bindingID, brokerapi.UnbindDetails{}, true)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -338,7 +340,7 @@ func TestDeprovision(t *testing.T) {
 	}
 
 	// Deprovision the cluster.
-	_, err = broker.Deprovision(context.Background(), instanceID, brokerapi.DeprovisionDetails{}, true)
+	_, err = broker.Deprovision(ctx, instanceID, brokerapi.DeprovisionDetails{}, true)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -355,7 +357,7 @@ func TestDeprovision(t *testing.T) {
 // timeout has been reached.
 func waitForLastOperation(broker *brokerlib.Broker, instanceID string, operation string, timeoutMinutes int) error {
 	return testutil.Poll(timeoutMinutes, func() (bool, error) {
-		res, err := broker.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+		res, err := broker.LastOperation(ctx, instanceID, brokerapi.PollDetails{
 			OperationData: operation,
 		})
 
