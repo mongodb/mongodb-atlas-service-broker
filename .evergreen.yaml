@@ -49,7 +49,7 @@ functions:
           export ATLAS_GROUP_ID=${atlas_group_id}
           export ATLAS_PUBLIC_KEY=${atlas_public_key}
           export ATLAS_PRIVATE_KEY=${atlas_private_key}
-          go test -timeout 1h -v ./test | tee int_result.suite
+          go test -timeout 1h -v ./test/integration | tee int_result.suite
     - command: gotest.parse_files
       params:
         files: ["src/atlas-service-broker/int_result.suite"]
@@ -74,6 +74,22 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           ./dev/scripts/build-production-binary.sh artifacts/atlas-service-broker-linux-arm64-${version}
+  "upload_test_binary":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          go test -v -timeout 1h -c -o artifacts/atlas-service-broker-int-tests ./test/integration
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: artifacts/atlas-service-broker-int-tests
+        remote_file: artifacts/atlas-service-broker-int-tests
+        bucket: atlas-service-broker
+        permissions: public-read
+        content_type: application/octet-stream
+
   "setup_hub":
     - command: shell.exec
       params:
@@ -173,6 +189,10 @@ tasks:
   - name: integration_tests
     commands:
       - func: "integration_tests"
+  - name: upload_test_binary
+    commands:
+      - func: "fetch_source"
+      - func: "upload_test_binary"
   - name: release_github
     patch_only: true
     commands:
@@ -236,5 +256,6 @@ buildvariants:
     display_name: release
     run_on: archlinux-test
     tasks:
+      - upload_test_binary
       - release_github
       - release_docker
