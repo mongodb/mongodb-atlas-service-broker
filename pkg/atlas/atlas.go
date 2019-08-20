@@ -38,6 +38,8 @@ type HTTPClient struct {
 
 // Different errors the api may return.
 var (
+	ErrUnauthorized = errors.New("Invalid API key")
+
 	ErrClusterNotFound      = errors.New("Cluster not found")
 	ErrClusterAlreadyExists = errors.New("Cluster already exists")
 
@@ -125,6 +127,11 @@ func (c *HTTPClient) request(method string, url string, body interface{}, respon
 		}
 
 		return nil
+	}
+
+	// Invalid credentials will cause a 401 Unauthorized response
+	if resp.StatusCode == http.StatusUnauthorized {
+		return ErrUnauthorized
 	}
 
 	// Decode error if request was unsuccessful.

@@ -74,6 +74,8 @@ func atlasToAPIError(err error) error {
 		return apiresponses.ErrBindingAlreadyExists
 	case atlas.ErrUserNotFound:
 		return apiresponses.ErrBindingDoesNotExist
+	case atlas.ErrUnauthorized:
+		return apiresponses.NewFailureResponse(err, http.StatusUnauthorized, "")
 	}
 
 	// Fall back on returning the error again if no others match.
