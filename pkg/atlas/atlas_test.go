@@ -42,10 +42,8 @@ func setupTest(t *testing.T, expectedPath string, method string, status int, res
 		}
 	}))
 
-	atlas, err := NewClient(s.URL, groupID, publicKey, privateKey)
+	atlas := NewClient(s.URL, groupID, publicKey, privateKey)
 	atlas.HTTP = s.Client()
-
-	assert.NoError(t, err)
 
 	return atlas, s
 }

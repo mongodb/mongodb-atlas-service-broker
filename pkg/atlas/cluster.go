@@ -121,5 +121,5 @@ func (c *HTTPClient) GetCluster(name string) (*Cluster, error) {
 
 // GetDashboardURL prepares the url where the specific cluster can be found in the Dashboard UI
 func (c *HTTPClient) GetDashboardURL(clusterName string) string {
-	return fmt.Sprintf("%s/v2/%s#clusters/detail/%s", c.baseURL, c.groupID, clusterName)
+	return fmt.Sprintf("%s/v2/%s#clusters/detail/%s", c.BaseURL, c.GroupID, clusterName)
 }

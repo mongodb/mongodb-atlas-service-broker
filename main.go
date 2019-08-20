@@ -12,7 +12,7 @@ import (
 
 	"os"
 
-	atlasclient "github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
+	"github.com/gorilla/mux"
 	atlasbroker "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
 	"github.com/pivotal-cf/brokerapi"
 )
@@ -82,39 +82,26 @@ func startBrokerServer() {
 	}
 	defer logger.Sync() // Flushes buffer, if any
 
-	// Try parsing Atlas client config.
+	broker := atlasbroker.NewBroker(logger)
+
+	router := mux.NewRouter()
+	brokerapi.AttachRoutes(router, broker, NewLagerZapLogger(logger))
+
+	// The auth middleware will convert basic auth credentials into an Atlas
+	// client.
 	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
-	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
-	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
-	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
-
-	client, err := atlasclient.NewClient(baseURL, groupID, publicKey, privateKey)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	// Create broker with the previously created Atlas client.
-	broker := atlasbroker.NewBroker(client, logger)
-
-	// Try parsing server config and set up broker API server.
-	username := getEnvOrPanic("BROKER_USERNAME")
-	password := getEnvOrPanic("BROKER_PASSWORD")
-	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
-	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
-
-	credentials := brokerapi.BrokerCredentials{
-		Username: username,
-		Password: password,
-	}
-
-	endpoint := host + ":" + strconv.Itoa(port)
+	router.Use(atlasbroker.AuthMiddleware(baseURL))
 
 	// Mount broker server at the root.
-	http.Handle("/", brokerapi.New(broker, NewLagerZapLogger(logger), credentials))
+	http.Handle("/", router)
 
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL, "group_id", groupID)
+	// Try parsing server config and set up broker API server.
+	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
+	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL)
 
 	// Start broker HTTP server.
+	endpoint := host + ":" + strconv.Itoa(port)
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
 		logger.Fatal(err)
 	}
