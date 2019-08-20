@@ -30,6 +30,10 @@ func NewBroker(logger *zap.SugaredLogger) *Broker {
 	}
 }
 
+type ContextKey string
+
+var ContextKeyAtlasClient = ContextKey("atlas-client")
+
 func AuthMiddleware(baseURL string) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -48,14 +52,14 @@ func AuthMiddleware(baseURL string) mux.MiddlewareFunc {
 
 			client := atlas.NewClient(baseURL, groupID, publicKey, password)
 
-			ctx := context.WithValue(r.Context(), "atlas-client", client)
+			ctx := context.WithValue(r.Context(), ContextKeyAtlasClient, client)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
 func atlasClientFromContext(ctx context.Context) (atlas.Client, error) {
-	client, ok := ctx.Value("atlas-client").(atlas.Client)
+	client, ok := ctx.Value(ContextKeyAtlasClient).(atlas.Client)
 	if !ok {
 		return nil, errors.New("no Atlas client in context")
 	}
