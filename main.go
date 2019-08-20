@@ -82,34 +82,26 @@ func startBrokerServer() {
 	}
 	defer logger.Sync() // Flushes buffer, if any
 
-	// Try parsing Atlas client config.
-	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
-
-	// Create broker with the previously created Atlas client.
 	broker := atlasbroker.NewBroker(logger)
 
-	// Try parsing server config and set up broker API server.
-	// username := getEnvOrPanic("BROKER_USERNAME")
-	// password := getEnvOrPanic("BROKER_PASSWORD")
-	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
-	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
-
-	// credentials := brokerapi.BrokerCredentials{
-	// 	Username: username,
-	// 	Password: password,
-	// }
 	router := mux.NewRouter()
-	router.Use(atlasbroker.AuthMiddleware(baseURL))
 	brokerapi.AttachRoutes(router, broker, NewLagerZapLogger(logger))
 
-	endpoint := host + ":" + strconv.Itoa(port)
+	// The auth middleware will convert basic auth credentials into an Atlas
+	// client.
+	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
+	router.Use(atlasbroker.AuthMiddleware(baseURL))
 
 	// Mount broker server at the root.
 	http.Handle("/", router)
 
+	// Try parsing server config and set up broker API server.
+	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
+	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
 	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL)
 
 	// Start broker HTTP server.
+	endpoint := host + ":" + strconv.Itoa(port)
 	if err = http.ListenAndServe(endpoint, nil); err != nil {
 		logger.Fatal(err)
 	}
