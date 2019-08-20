@@ -1,16 +1,15 @@
 package broker
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCatalog(t *testing.T) {
-	broker, _ := setupTest()
+	broker, _, ctx := setupTest()
 
-	services, err := broker.Services(context.Background())
+	services, err := broker.Services(ctx)
 
 	assert.NoError(t, err)
 	assert.NotZero(t, len(services), "Expected a non-zero amount of services")

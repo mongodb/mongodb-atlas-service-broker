@@ -1,7 +1,6 @@
 package broker
 
 import (
-	"context"
 	"testing"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
@@ -11,17 +10,17 @@ import (
 )
 
 func TestBind(t *testing.T) {
-	broker, client := setupTest()
+	broker, client, ctx := setupTest()
 
 	instanceID := "instance"
-	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
 
 	bindingID := "binding"
 
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+	_, err := broker.Bind(ctx, instanceID, bindingID, brokerapi.BindDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
@@ -43,10 +42,10 @@ func TestBind(t *testing.T) {
 }
 
 func TestBindParams(t *testing.T) {
-	broker, client := setupTest()
+	broker, client, ctx := setupTest()
 
 	instanceID := "instance"
-	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
@@ -62,7 +61,7 @@ func TestBindParams(t *testing.T) {
 		}}`
 
 	bindingID := "binding"
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+	_, err := broker.Bind(ctx, instanceID, bindingID, brokerapi.BindDetails{
 		PlanID:        testPlanID,
 		ServiceID:     testServiceID,
 		RawParameters: []byte(params),
@@ -88,20 +87,20 @@ func TestBindParams(t *testing.T) {
 }
 
 func TestBindAlreadyExisting(t *testing.T) {
-	broker, _ := setupTest()
+	broker, _, ctx := setupTest()
 
 	instanceID := "instance"
-	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
 
 	bindingID := "binding"
-	broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+	broker.Bind(ctx, instanceID, bindingID, brokerapi.BindDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+	_, err := broker.Bind(ctx, instanceID, bindingID, brokerapi.BindDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
@@ -110,11 +109,11 @@ func TestBindAlreadyExisting(t *testing.T) {
 }
 
 func TestBindMissingInstance(t *testing.T) {
-	broker, _ := setupTest()
+	broker, _, ctx := setupTest()
 
 	instanceID := "instance"
 	bindingID := "binding"
-	_, err := broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+	_, err := broker.Bind(ctx, instanceID, bindingID, brokerapi.BindDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
@@ -123,21 +122,21 @@ func TestBindMissingInstance(t *testing.T) {
 }
 
 func TestUnbind(t *testing.T) {
-	broker, client := setupTest()
+	broker, client, ctx := setupTest()
 
 	instanceID := "instance"
-	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
 
 	bindingID := "binding"
-	broker.Bind(context.Background(), instanceID, bindingID, brokerapi.BindDetails{
+	broker.Bind(ctx, instanceID, bindingID, brokerapi.BindDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
 
-	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{
+	_, err := broker.Unbind(ctx, instanceID, bindingID, brokerapi.UnbindDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
@@ -147,26 +146,26 @@ func TestUnbind(t *testing.T) {
 }
 
 func TestUnbindMissing(t *testing.T) {
-	broker, _ := setupTest()
+	broker, _, ctx := setupTest()
 
 	instanceID := "instance"
-	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)
 
 	bindingID := "binding"
-	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{}, true)
+	_, err := broker.Unbind(ctx, instanceID, bindingID, brokerapi.UnbindDetails{}, true)
 
 	assert.EqualError(t, err, apiresponses.ErrBindingDoesNotExist.Error())
 }
 
 func TestUnbindMissingInstance(t *testing.T) {
-	broker, _ := setupTest()
+	broker, _, ctx := setupTest()
 
 	instanceID := "instance"
 	bindingID := "binding"
-	_, err := broker.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{
+	_, err := broker.Unbind(ctx, instanceID, bindingID, brokerapi.UnbindDetails{
 		PlanID:    testPlanID,
 		ServiceID: testServiceID,
 	}, true)

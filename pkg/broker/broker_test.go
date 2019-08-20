@@ -1,6 +1,8 @@
 package broker
 
 import (
+	"context"
+
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"go.uber.org/zap"
 )
@@ -111,11 +113,13 @@ func (m MockAtlasClient) GetDashboardURL(clusterName string) string {
 	return "http://dashboard"
 }
 
-func setupTest() (*Broker, MockAtlasClient) {
+func setupTest() (*Broker, MockAtlasClient, context.Context) {
 	client := MockAtlasClient{
 		Clusters: make(map[string]*atlas.Cluster),
 		Users:    make(map[string]*atlas.User),
 	}
-	broker := NewBroker(client, zap.NewNop().Sugar())
-	return broker, client
+	ctx := context.WithValue(context.Background(), ContextKeyAtlasClient, client)
+
+	broker := NewBroker(zap.NewNop().Sugar())
+	return broker, client, ctx
 }
