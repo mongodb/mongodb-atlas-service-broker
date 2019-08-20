@@ -1,4 +1,4 @@
-package util 
+package util
 
 import (
 	"fmt"
@@ -28,6 +28,8 @@ func Poll(timeoutMinutes int, f func() (bool, error)) error {
 	return fmt.Errorf("timeout while polling (waited %d minutes)", timeoutMinutes)
 }
 
+// GetEnvOrPanic will get an environment variable, panicking if it does not
+// exist.
 func GetEnvOrPanic(name string) string {
 	value, exists := os.LookupEnv(name)
 	if !exists {
