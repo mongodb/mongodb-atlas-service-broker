@@ -1,15 +1,4 @@
 ---
-# Secret used to set up HTTP basic auth between the service broker and the service catalog.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: atlas-service-broker-auth
-type: Opaque
-stringData:
-  username: my-username
-  password: my-password
-
----
 # Deployment to run the service broker.
 apiVersion: apps/v1
 kind: Deployment
@@ -30,41 +19,14 @@ spec:
       containers:
         - name: atlas-service-broker
           image: quay.io/mongodb/mongodb-atlas-service-broker:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 4000
           env:
             - name: BROKER_HOST
               value: "0.0.0.0"
-            - name: BROKER_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: atlas-service-broker-auth
-                  key: username
-            - name: BROKER_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: atlas-service-broker-auth
-                  key: password
             - name: ATLAS_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: atlas-api
-                  key: base-url
-            - name: ATLAS_GROUP_ID
-              valueFrom:
-                secretKeyRef:
-                  name: atlas-api
-                  key: group-id
-            - name: ATLAS_PUBLIC_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: atlas-api
-                  key: public-key
-            - name: ATLAS_PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: atlas-api
-                  key: private-key
+              value: https://cloud-qa.mongodb.com
 
 ---
 # Service to expose the service broker inside the cluster.
