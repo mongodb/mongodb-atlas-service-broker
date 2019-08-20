@@ -23,41 +23,58 @@ type Broker struct {
 	logger *zap.SugaredLogger
 }
 
-// NewBroker creates a new Broker with the specified Atlas client and logger.
+// NewBroker creates a new Broker with a logger.
 func NewBroker(logger *zap.SugaredLogger) *Broker {
 	return &Broker{
 		logger: logger,
 	}
 }
 
+// ContextKey represents the key for a value saved in a context. Linter
+// requires keys to have their own type.
 type ContextKey string
 
+// ContextKeyAtlasClient is the key used to store the Atlas client in the
+// request context.
 var ContextKeyAtlasClient = ContextKey("atlas-client")
 
+// AuthMiddleware is used to validate and parse Atlas API credentials passed
+// using basic auth. The credentials parsed into an Atlas client which is
+// attached to the request context. This client can later be retrieved by the
+// broker from the context.
 func AuthMiddleware(baseURL string) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			username, password, ok := r.BasicAuth()
 
+			// The username contains both the group ID and public key
+			// formatted as "<PUBLIC_KEY>@<GROUP_ID>".
 			splitUsername := strings.Split(username, "@")
 			groupID := splitUsername[1]
 			publicKey := splitUsername[0]
 
+			// If the credentials are invalid we respond with 401 Unauthorized.
+			// The username needs have the correct format and the password must
+			// not be empty.
 			validUsername := len(splitUsername) == 2
-			validCredentials := validUsername && username != "" && password != ""
-			if !ok || !validCredentials {
+			validPassword := password != ""
+			if !(ok && validUsername && validPassword) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
+			// Create a new client with the extracted API credentials and
+			// attach it to the request context.
 			client := atlas.NewClient(baseURL, groupID, publicKey, password)
-
 			ctx := context.WithValue(r.Context(), ContextKeyAtlasClient, client)
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
+// atlasClientFromContext will retrieve an Atlas client stored inside the
+// provided context.
 func atlasClientFromContext(ctx context.Context) (atlas.Client, error) {
 	client, ok := ctx.Value(ContextKeyAtlasClient).(atlas.Client)
 	if !ok {

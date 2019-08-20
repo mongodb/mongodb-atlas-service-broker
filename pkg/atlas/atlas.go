@@ -129,7 +129,7 @@ func (c *HTTPClient) request(method string, url string, body interface{}, respon
 		return nil
 	}
 
-	// Invalid credentials will cause a 401 Unauthorized response
+	// Invalid credentials will cause a 401 Unauthorized response.
 	if resp.StatusCode == http.StatusUnauthorized {
 		return ErrUnauthorized
 	}
