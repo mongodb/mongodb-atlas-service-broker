@@ -24,6 +24,11 @@ const (
 func (b Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (spec brokerapi.ProvisionedServiceSpec, err error) {
 	b.logger.Infow("Provisioning instance", "instance_id", instanceID, "details", details)
 
+	client, err := atlasClientFromContext(ctx)
+	if err != nil {
+		return
+	}
+
 	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
 		err = apiresponses.ErrAsyncRequired
@@ -31,14 +36,14 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 
 	// Construct a cluster definition from the instance ID, service, plan, and params.
-	cluster, err := b.clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	cluster, err := b.clusterFromParams(client, instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		b.logger.Errorw("Couldn't create cluster from the passed parameters", "error", err, "instance_id", instanceID, "details", details)
 		return
 	}
 
 	// Create a new Atlas cluster from the generated definition
-	resultingCluster, err := b.atlas.CreateCluster(*cluster)
+	resultingCluster, err := client.CreateCluster(*cluster)
 	if err != nil {
 		b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
 		err = atlasToAPIError(err)
@@ -50,13 +55,18 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	return brokerapi.ProvisionedServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationProvision,
-		DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
+		DashboardURL:  client.GetDashboardURL(resultingCluster.Name),
 	}, nil
 }
 
 // Update will change the configuration of an existing Atlas cluster asynchronously.
 func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (spec brokerapi.UpdateServiceSpec, err error) {
 	b.logger.Infow("Updating instance", "instance_id", instanceID, "details", details)
+
+	client, err := atlasClientFromContext(ctx)
+	if err != nil {
+		return
+	}
 
 	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
@@ -68,14 +78,14 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	// be passed during updates (if there are other update to the provider, such
 	// as region). The plan is not included in the OSB call unless it has changed
 	// hence we need to fetch the current value from Atlas.
-	existingCluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
+	existingCluster, err := client.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
 		err = atlasToAPIError(err)
 		return
 	}
 
 	// Construct a cluster from the instance ID, service, plan, and params.
-	cluster, err := b.clusterFromParams(instanceID, details.ServiceID, details.PlanID, details.RawParameters)
+	cluster, err := b.clusterFromParams(client, instanceID, details.ServiceID, details.PlanID, details.RawParameters)
 	if err != nil {
 		return
 	}
@@ -94,7 +104,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 		}
 	}
 
-	resultingCluster, err := b.atlas.UpdateCluster(*cluster)
+	resultingCluster, err := client.UpdateCluster(*cluster)
 	if err != nil {
 		b.logger.Errorw("Failed to update Atlas cluster", "error", err, "cluster", cluster)
 		err = atlasToAPIError(err)
@@ -106,7 +116,7 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	return brokerapi.UpdateServiceSpec{
 		IsAsync:       true,
 		OperationData: OperationUpdate,
-		DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
+		DashboardURL:  client.GetDashboardURL(resultingCluster.Name),
 	}, nil
 }
 
@@ -114,13 +124,18 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 func (b Broker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (spec brokerapi.DeprovisionServiceSpec, err error) {
 	b.logger.Infow("Deprovisioning instance", "instance_id", instanceID, "details", details)
 
+	client, err := atlasClientFromContext(ctx)
+	if err != nil {
+		return
+	}
+
 	// Async needs to be supported for provisioning to work.
 	if !asyncAllowed {
 		err = apiresponses.ErrAsyncRequired
 		return
 	}
 
-	err = b.atlas.DeleteCluster(NormalizeClusterName(instanceID))
+	err = client.DeleteCluster(NormalizeClusterName(instanceID))
 	if err != nil {
 		b.logger.Errorw("Failed to delete Atlas cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
@@ -148,7 +163,12 @@ func (b Broker) GetInstance(ctx context.Context, instanceID string) (spec broker
 func (b Broker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (resp brokerapi.LastOperation, err error) {
 	b.logger.Infow("Fetching state of last operation", "instance_id", instanceID, "details", details)
 
-	cluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
+	client, err := atlasClientFromContext(ctx)
+	if err != nil {
+		return
+	}
+
+	cluster, err := client.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil && err != atlas.ErrClusterNotFound {
 		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
@@ -210,7 +230,7 @@ func NormalizeClusterName(name string) string {
 // clusterFromParams will construct a cluster object from an instance ID,
 // service, plan, and raw parameters. This way users can pass all the
 // configuration available for clusters in the Atlas API as "cluster" in the params.
-func (b Broker) clusterFromParams(instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
+func (b Broker) clusterFromParams(client atlas.Client, instanceID string, serviceID string, planID string, rawParams []byte) (*atlas.Cluster, error) {
 	// Set up a params object which will be used for deserialiation.
 	params := struct {
 		Cluster *atlas.Cluster `json:"cluster"`
@@ -229,7 +249,7 @@ func (b Broker) clusterFromParams(instanceID string, serviceID string, planID st
 	// If the plan ID is specified we construct the provider object from the service and plan.
 	// The plan ID is optional during updates but not during creation.
 	if planID != "" {
-		provider, err := b.findProviderByServiceID(serviceID)
+		provider, err := findProviderByServiceID(client, serviceID)
 		if err != nil {
 			return nil, err
 		}

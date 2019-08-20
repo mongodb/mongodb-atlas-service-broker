@@ -1,6 +1,12 @@
 package broker
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"strings"
+
+	"github.com/gorilla/mux"
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
@@ -15,15 +21,46 @@ var _ brokerapi.ServiceBroker = Broker{}
 // an API server.
 type Broker struct {
 	logger *zap.SugaredLogger
-	atlas  atlas.Client
 }
 
 // NewBroker creates a new Broker with the specified Atlas client and logger.
-func NewBroker(client atlas.Client, logger *zap.SugaredLogger) *Broker {
+func NewBroker(logger *zap.SugaredLogger) *Broker {
 	return &Broker{
 		logger: logger,
-		atlas:  client,
 	}
+}
+
+func AuthMiddleware(baseURL string) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			username, password, ok := r.BasicAuth()
+
+			splitUsername := strings.Split(username, "@")
+			groupID := splitUsername[1]
+			publicKey := splitUsername[0]
+
+			validUsername := len(splitUsername) == 2
+			validCredentials := validUsername && username != "" && password != ""
+			if !ok || !validCredentials {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			client := atlas.NewClient(baseURL, groupID, publicKey, password)
+
+			ctx := context.WithValue(r.Context(), "atlas-client", client)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func atlasClientFromContext(ctx context.Context) (atlas.Client, error) {
+	client, ok := ctx.Value("atlas-client").(atlas.Client)
+	if !ok {
+		return nil, errors.New("no Atlas client in context")
+	}
+
+	return client, nil
 }
 
 // atlasToAPIError converts an Atlas error to a OSB response error.

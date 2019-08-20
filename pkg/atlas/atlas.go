@@ -51,14 +51,14 @@ const (
 )
 
 // NewClient will create a new HTTPClient with the specified connection details.
-func NewClient(baseURL string, groupID string, publicKey string, privateKey string) (*HTTPClient, error) {
+func NewClient(baseURL string, groupID string, publicKey string, privateKey string) *HTTPClient {
 	return &HTTPClient{
 		baseURL:    baseURL,
 		groupID:    groupID,
 		publicKey:  publicKey,
 		privateKey: privateKey,
 		HTTP:       &http.Client{},
-	}, nil
+	}
 }
 
 // requestPublic will make a request to an endpoint in the public API.

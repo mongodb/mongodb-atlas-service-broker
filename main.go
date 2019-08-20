@@ -12,7 +12,7 @@ import (
 
 	"os"
 
-	atlasclient "github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
+	"github.com/gorilla/mux"
 	atlasbroker "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
 	"github.com/pivotal-cf/brokerapi"
 )
@@ -84,35 +84,30 @@ func startBrokerServer() {
 
 	// Try parsing Atlas client config.
 	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
-	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
-	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
-	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
-
-	client, err := atlasclient.NewClient(baseURL, groupID, publicKey, privateKey)
-	if err != nil {
-		logger.Fatal(err)
-	}
 
 	// Create broker with the previously created Atlas client.
-	broker := atlasbroker.NewBroker(client, logger)
+	broker := atlasbroker.NewBroker(logger)
 
 	// Try parsing server config and set up broker API server.
-	username := getEnvOrPanic("BROKER_USERNAME")
-	password := getEnvOrPanic("BROKER_PASSWORD")
+	// username := getEnvOrPanic("BROKER_USERNAME")
+	// password := getEnvOrPanic("BROKER_PASSWORD")
 	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
 
-	credentials := brokerapi.BrokerCredentials{
-		Username: username,
-		Password: password,
-	}
+	// credentials := brokerapi.BrokerCredentials{
+	// 	Username: username,
+	// 	Password: password,
+	// }
+	router := mux.NewRouter()
+	router.Use(atlasbroker.AuthMiddleware(baseURL))
+	brokerapi.AttachRoutes(router, broker, NewLagerZapLogger(logger))
 
 	endpoint := host + ":" + strconv.Itoa(port)
 
 	// Mount broker server at the root.
-	http.Handle("/", brokerapi.New(broker, NewLagerZapLogger(logger), credentials))
+	http.Handle("/", router)
 
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL, "group_id", groupID)
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL)
 
 	// Start broker HTTP server.
 	if err = http.ListenAndServe(endpoint, nil); err != nil {

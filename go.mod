@@ -8,7 +8,7 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/uuid v1.1.1
-	github.com/gorilla/mux v1.7.3 // indirect
+	github.com/gorilla/mux v1.7.3
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/kubernetes-incubator/service-catalog v0.2.1
 	github.com/kubernetes-sigs/service-catalog v0.2.1
