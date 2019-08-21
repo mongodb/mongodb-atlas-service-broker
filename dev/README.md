@@ -20,7 +20,7 @@ The release process consists of publishing a new Github release with attached bi
 
 1. Add a new annotated tag using `git tag -a vX.X.X`. Git will prompt for a message which later will be used for the Github release message.
 2. Push the tag using `git push <remote> vX.X.X`.
-3. Run `evergreen patch -v release -t release_github -t release_docker -y -f` and Evergreen will automatically complete the release.
+3. Run `evergreen patch --variants release --tasks all -y -f` and Evergreen will automatically complete the release.
 
 ## Adding third-party dependencies
 
