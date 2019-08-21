@@ -88,16 +88,28 @@ functions:
       params:
         working_dir: src/atlas-service-broker
         script: |
-          go test -v -timeout 1h -c -o artifacts/int-tests ./test/integration
+          # Output build info to metadata file
+          echo '{ "master": { "int_test": "artifacts/${revision}/int-test", "git_hash": "${revision}" } }' > builds.json
+
+          go test -v -timeout 1h -c -o artifacts/${revision}/int-test ./test/integration
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/atlas-service-broker/artifacts/int-tests
-        remote_file: atlas-service-broker/artifacts/int-tests
+        local_file: src/atlas-service-broker/builds.json
+        remote_file: atlas-service-broker/builds.json
         bucket: mciuploads
+        content_type: application/json
         permissions: public-read
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/atlas-service-broker/artifacts/${revision}/int-test
+        remote_file: atlas-service-broker/artifacts/${revision}/int-test
+        bucket: mciuploads
         content_type: application/octet-stream
+        permissions: public-read
 
   "setup_hub":
     - command: shell.exec
