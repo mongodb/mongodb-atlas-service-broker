@@ -93,7 +93,7 @@ func startBrokerServer() {
 	router.Use(atlasbroker.AuthMiddleware(baseURL))
 
 	// Configure TLS from environment variables.
-	tlsEnabled, tlsCertFile, tlsKeyFile := getTLSConfig(logger)
+	tlsEnabled, tlsCertPath, tlsKeyPath := getTLSConfig(logger)
 
 	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
@@ -105,7 +105,7 @@ func startBrokerServer() {
 
 	var serverErr error
 	if tlsEnabled {
-		serverErr = http.ListenAndServeTLS(address, tlsCertFile, tlsKeyFile, router)
+		serverErr = http.ListenAndServeTLS(address, tlsCertPath, tlsKeyPath, router)
 	} else {
 		logger.Warn("TLS is disabled")
 		serverErr = http.ListenAndServe(address, router)
@@ -117,19 +117,18 @@ func startBrokerServer() {
 }
 
 func getTLSConfig(logger *zap.SugaredLogger) (bool, string, string) {
-	certFile := getEnvOrDefault("BROKER_TLS_CERT_FILE", "")
-	keyFile := getEnvOrDefault("BROKER_TLS_KEY_FILE", "")
+	certPath := getEnvOrDefault("BROKER_TLS_CERT_FILE", "")
+	keyPath := getEnvOrDefault("BROKER_TLS_KEY_FILE", "")
 
-	hasCertFile := certFile != ""
-	hasKeyFile := keyFile != ""
+	hasCertPath := certPath != ""
+	hasKeyPath := keyPath != ""
 
 	// Bail if only one of the cert and key has been provided.
-	if (hasCertFile && !hasKeyFile) || (!hasCertFile && hasKeyFile) {
+	if (hasCertPath && !hasKeyPath) || (!hasCertPath && hasKeyPath) {
 		logger.Fatal("Both a certificate and private key are necessary to enable TLS")
 	}
 
-	enabled := hasCertFile && hasKeyFile
-	return enabled, certFile, keyFile
+	return hasCertPath && hasKeyPath, certPath, keyPath
 }
 
 // getEnvOrPanic will try getting an environment variable and fail with a
