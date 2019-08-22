@@ -146,7 +146,12 @@ func (b Broker) Deprovision(ctx context.Context, instanceID string, details brok
 		return
 	}
 
-	err = client.DeleteCluster(NormalizeClusterName(instanceID))
+	cluster, err := findClusterByInstanceID(client, instanceID)
+	if err != nil {
+		return
+	}
+
+	err = client.DeleteCluster(cluster.Name)
 	if err != nil {
 		b.logger.Errorw("Failed to delete Atlas cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
