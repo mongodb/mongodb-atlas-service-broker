@@ -92,19 +92,43 @@ func startBrokerServer() {
 	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
 	router.Use(atlasbroker.AuthMiddleware(baseURL))
 
-	// Mount broker server at the root.
-	http.Handle("/", router)
+	// Configure TLS from environment variables.
+	tlsEnabled, tlsCertPath, tlsKeyPath := getTLSConfig(logger)
 
-	// Try parsing server config and set up broker API server.
 	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL)
+
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL)
 
 	// Start broker HTTP server.
-	endpoint := host + ":" + strconv.Itoa(port)
-	if err = http.ListenAndServe(endpoint, nil); err != nil {
-		logger.Fatal(err)
+	address := host + ":" + strconv.Itoa(port)
+
+	var serverErr error
+	if tlsEnabled {
+		serverErr = http.ListenAndServeTLS(address, tlsCertPath, tlsKeyPath, router)
+	} else {
+		logger.Warn("TLS is disabled")
+		serverErr = http.ListenAndServe(address, router)
 	}
+
+	if serverErr != nil {
+		logger.Fatal(serverErr)
+	}
+}
+
+func getTLSConfig(logger *zap.SugaredLogger) (bool, string, string) {
+	certPath := getEnvOrDefault("BROKER_TLS_CERT_FILE", "")
+	keyPath := getEnvOrDefault("BROKER_TLS_KEY_FILE", "")
+
+	hasCertPath := certPath != ""
+	hasKeyPath := keyPath != ""
+
+	// Bail if only one of the cert and key has been provided.
+	if (hasCertPath && !hasKeyPath) || (!hasCertPath && hasKeyPath) {
+		logger.Fatal("Both a certificate and private key are necessary to enable TLS")
+	}
+
+	return hasCertPath && hasKeyPath, certPath, keyPath
 }
 
 // getEnvOrPanic will try getting an environment variable and fail with a

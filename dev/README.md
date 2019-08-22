@@ -26,6 +26,19 @@ The release process consists of publishing a new Github release with attached bi
 
 Please include their license in the notices/ directory.
 
+## Setting up TLS in Kubernetes
+
+To enable TLS, perform these steps before continuing with "Testing in Kubernetes".
+
+1. Generate a self-signed certificate and private key by running `openssl req -newkey rsa:2048 -nodes -keyout key-x509 -days 365 -out cert`.
+   When prompted for "Common Name", enter `atlas-service-broker.atlas`. All other fields can be left empty.
+2. Create a new secret containing the key and cert by running `kubectl create secret generic aosb-tls --from-file=./key --from-file=./cert -n atlas`.
+3. Update `samples/kubernetes/deployment.yaml` to mount the secret inside your pod in accordance with this guide: https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod.
+   Also add the `BROKER_TLS_KEY_FILE` and `BROKER_TLS_CERT_FILE` environment variables to point to the mounted secret. If mounted to `/etc/tls_secret`
+   the environment variables would be `/etc/tls_secret/key` and `/etc/tls_secret/cert`. Also change the service port from `80` to `443`.
+4. Update `samples/kubernetes/service-broker.yaml` and add a `caBundle` field containing the base64 encoded contents of `cert`.
+   Run `base64 < cert` to get the base64 string. Also update the `url` field to use `https`.
+
 ## Testing in Kubernetes
 
 Follow these steps to test the broker in a Kubernetes cluster. For local testing we recommend using [minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/). We also recommend using the [service catalog CLI](https://github.com/kubernetes-sigs/service-catalog/blob/master/docs/cli.md) (`svcat`) to control the service catalog.

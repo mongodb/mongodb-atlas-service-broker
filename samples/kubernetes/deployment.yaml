@@ -19,14 +19,11 @@ spec:
       containers:
         - name: atlas-service-broker
           image: quay.io/mongodb/mongodb-atlas-service-broker:latest
-          imagePullPolicy: Never
           ports:
             - containerPort: 4000
           env:
             - name: BROKER_HOST
               value: "0.0.0.0"
-            - name: ATLAS_BASE_URL
-              value: https://cloud-qa.mongodb.com
 
 ---
 # Service to expose the service broker inside the cluster.
