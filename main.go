@@ -109,6 +109,7 @@ func startBrokerServer() {
 	if tlsEnabled {
 		serverErr = http.ListenAndServeTLS(address, tlsCertFile, tlsKeyFile, router)
 	} else {
+		logger.Warn("TLS is disabled")
 		serverErr = http.ListenAndServe(address, router)
 	}
 
