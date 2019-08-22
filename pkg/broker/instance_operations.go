@@ -60,67 +60,58 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		}, nil
 	}
 
-	err = CompareAndReturnAppropiateResponseCode(resultingCluster, cluster)
-	return
+	if CompareAndReturnAppropiateResponseCode(cluster, resultingCluster) {
+		return
+	}
+
+	return brokerapi.ProvisionedServiceSpec{}, apiresponses.NewFailureResponse(errors.New("Instances differ in their attributes"), http.StatusConflict, "")
 }
 
 // CompareAndReturnAppropiateResponseCode converts structs to maps and afterwards returns the appropiate response code
-func CompareAndReturnAppropiateResponseCode(resultingCluster *atlas.Cluster, cluster *atlas.Cluster) error {
+func CompareAndReturnAppropiateResponseCode(localCluster *atlas.Cluster, remoteCluster *atlas.Cluster) bool {
 	//Convert structs to maps
-	var remoteClusterInterface map[string]interface{}
-	var localClusterInterface map[string]interface{}
-	inrec, _ := json.Marshal(resultingCluster)
-	json.Unmarshal(inrec, &remoteClusterInterface)
+	var remoteClusterMap map[string]interface{}
+	var localClusterMap map[string]interface{}
+	inrec, _ := json.Marshal(remoteCluster)
+	json.Unmarshal(inrec, &remoteClusterMap)
 
-	inrec, _ = json.Marshal(cluster)
-	json.Unmarshal(inrec, &localClusterInterface)
+	inrec, _ = json.Marshal(localCluster)
+	json.Unmarshal(inrec, &localClusterMap)
 
-	if compareHelper(remoteClusterInterface, localClusterInterface) {
-		return nil
+	// CODE FOR DEBUGGING PURPOSES
+	remoteJSON, err := json.Marshal(remoteCluster)
+	if err != nil {
+		panic(err)
 	}
-	return apiresponses.NewFailureResponse(errors.New("There IDs are equal but differ in their attributes"), http.StatusConflict, "")
-}
+	fmt.Println("\nREMOTE CLUSTER: ", string(remoteJSON))
 
-func compareHelper(remoteClusterInterface map[string]interface{}, localClusterInterface map[string]interface{}) bool {
-	for k, v := range localClusterInterface {
-		if reflect.ValueOf(v).Kind() == reflect.Map && len(v.(map[string]interface{})) != 0 {
-			if val, ok := remoteClusterInterface[k]; ok { // Check to see if key is present
-				if reflect.ValueOf(val).Kind() == reflect.Map && len(val.(map[string]interface{})) != 0 { // Must be of type map too
-					equal := compareHelper(val.(map[string]interface{}), v.(map[string]interface{}))
-					if equal {
-						continue
-					}
-				}
-			}
-			return false
-		} else if reflect.ValueOf(v).Kind() == reflect.Slice && len(v.([]interface{})) != 0 {
-			for index, document := range v.([]interface{}) {
-				if val, ok := remoteClusterInterface[k]; ok {
-					if reflect.ValueOf(val).Kind() == reflect.Slice && len(val.([]interface{})) != 0 {
-						if reflect.ValueOf(val.([]interface{})[index]).Kind() == reflect.Map && len(val.([]interface{})[index].(map[string]interface{})) != 0 {
-							equal := compareHelper(val.([]interface{})[index].(map[string]interface{}), document.(map[string]interface{}))
-							if equal {
-								continue
-							}
-						}
-					}
-				}
-				return false
-			}
-		} else if reflect.ValueOf(v).Kind() != reflect.Map && reflect.ValueOf(v).Kind() != reflect.Slice { // Others are not maps nor slices, but rather other types
-			if val, ok := remoteClusterInterface[k]; ok {
-				if reflect.TypeOf(v) != reflect.TypeOf(val) { // Must be of same type
-					return false
-				}
-				if v != val {
-					return false
-				}
-				continue
-			}
-			return false // Not present in the remote cluster, so they differ in attributes
-		} else { // Empty map or slice found
-			continue
-		}
+	localJSON, err := json.Marshal(localCluster)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("\nLOCAL CLUSTER: ", string(localJSON))
+	// CODE FOR DEBUGGING PURPOSES
+
+	if localCluster.BackupEnabled == nil || localClusterMap["backupEnabled"] != remoteClusterMap["backupEnabled"] {
+		return false
+	} else if !reflect.DeepEqual(localClusterMap["autoScaling"], remoteClusterMap["autoScaling"]) {
+		return false
+	} else if !reflect.DeepEqual(localClusterMap["biConnector"], remoteClusterMap["biConnector"]) {
+		return false
+	} else if _, exist := localClusterMap["clusterType"]; !exist || localClusterMap["clusterType"] != localClusterMap["clusterType"] {
+		return false
+	} else if _, exist := localClusterMap["diskSizeGB"]; !exist || localClusterMap["diskSizeGB"] != remoteClusterMap["diskSizeGB"] {
+		return false
+	} else if _, exist := localClusterMap["encryptionAtRestProvider"]; !exist || localClusterMap["encryptionAtRestProvider"] != remoteClusterMap["encryptionAtRestProvider"] {
+		return false
+	} else if _, exist := localClusterMap["mongoDBMajorVersion"]; !exist || localClusterMap["mongoDBMajorVersion"] != remoteClusterMap["mongoDBMajorVersion"] {
+		return false
+	} else if _, exist := localClusterMap["numShards"]; !exist || localClusterMap["numShards"] != remoteClusterMap["numShards"] {
+		return false
+	} else if !reflect.DeepEqual(localClusterMap["replicationSpecs"], remoteClusterMap["replicationSpecs"]) {
+		return false
+	} else if !reflect.DeepEqual(localClusterMap["providerSettings"], remoteClusterMap["providerSettings"]) {
+		return false
 	}
 
 	return true
