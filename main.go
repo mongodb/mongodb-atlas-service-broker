@@ -93,9 +93,7 @@ func startBrokerServer() {
 	router.Use(atlasbroker.AuthMiddleware(baseURL))
 
 	// Configure TLS from environment variables.
-	tlsCertFile := getEnvOrDefault("BROKER_TLS_CERT_FILE", "")
-	tlsKeyFile := getEnvOrDefault("BROKER_TLS_KEY_FILE", "")
-	tlsEnabled := tlsCertFile != "" && tlsKeyFile != ""
+	tlsEnabled, tlsCertFile, tlsKeyFile := getTLSConfig(logger)
 
 	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
@@ -116,6 +114,22 @@ func startBrokerServer() {
 	if serverErr != nil {
 		logger.Fatal(serverErr)
 	}
+}
+
+func getTLSConfig(logger *zap.SugaredLogger) (bool, string, string) {
+	certFile := getEnvOrDefault("BROKER_TLS_CERT_FILE", "")
+	keyFile := getEnvOrDefault("BROKER_TLS_KEY_FILE", "")
+
+	hasCertFile := certFile != ""
+	hasKeyFile := keyFile != ""
+
+	// Bail if only one of the cert and key has been provided.
+	if (hasCertFile && !hasKeyFile) || (!hasCertFile && hasKeyFile) {
+		logger.Fatal("Both a certificate and private key are necessary to enable TLS")
+	}
+
+	enabled := hasCertFile && hasKeyFile
+	return enabled, certFile, keyFile
 }
 
 // getEnvOrPanic will try getting an environment variable and fail with a
