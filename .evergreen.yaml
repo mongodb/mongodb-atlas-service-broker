@@ -1,3 +1,4 @@
+---
 functions:
   "fetch_source":
     - command: git.get_project
@@ -131,8 +132,7 @@ functions:
           ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
           export ARTIFACTS_ATTACH
 
-          ${workingdir}/bin/hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
-
+          ${workdir}/bin/hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
   "setup_docker":
     - command: shell.exec
       params:
