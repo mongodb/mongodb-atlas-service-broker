@@ -113,7 +113,7 @@ func startBrokerServer() {
 	}
 
 	if serverErr != nil {
-		logger.Fatal(err)
+		logger.Fatal(serverErr)
 	}
 }
 
