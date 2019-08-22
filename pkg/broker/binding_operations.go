@@ -7,9 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"reflect"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 )
 
 // ConnectionDetails will be returned when a new binding is created.
@@ -81,8 +84,36 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 		}, nil
 	}
 
-	err = CompareAndReturnAppropiateResponseCode(resultingUser, user)
-	return
+	if compareBindings(user, resultingUser) {
+		return
+	}
+	return brokerapi.Binding{}, apiresponses.NewFailureResponse(errors.New("Bindings differ in their attributes"), http.StatusConflict, "")
+}
+
+func compareBindings(localUser *atlas.User, remoteUser *atlas.User) bool {
+	//Convert to maps
+	var remoteUserMap map[string]interface{}
+	var localUserMap map[string]interface{}
+
+	inrec, err := json.Marshal(remoteUser)
+	if err != nil {
+		return false
+	}
+	json.Unmarshal(inrec, &remoteUserMap)
+
+	inrec, err = json.Marshal(localUser)
+	if err != nil {
+		return false
+	}
+	json.Unmarshal(inrec, &localUserMap)
+
+	if _, exist := localUserMap["username"]; !exist || localUserMap["username"] != remoteUserMap["username"] {
+		return false
+	} else if !reflect.DeepEqual(localUserMap["roles"], remoteUserMap["roles"]) {
+		return false
+	}
+
+	return true
 }
 
 // Unbind will delete the database user for a specific binding. The database
