@@ -187,7 +187,8 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 		ServiceID: testServiceID,
 	}, true)
 
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
+	// assert.Equal(t, err.Error()., http.StatusConflict)
 }
 
 func TestUpdate(t *testing.T) {

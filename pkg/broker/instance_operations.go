@@ -60,7 +60,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		}, nil
 	}
 
-	if CompareAndReturnAppropiateResponseCode(cluster, resultingCluster) {
+	if compareInstances(cluster, resultingCluster) {
 		return
 	}
 
@@ -68,29 +68,22 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 }
 
 // CompareAndReturnAppropiateResponseCode converts structs to maps and afterwards returns the appropiate response code
-func CompareAndReturnAppropiateResponseCode(localCluster *atlas.Cluster, remoteCluster *atlas.Cluster) bool {
-	//Convert structs to maps
+func compareInstances(localCluster *atlas.Cluster, remoteCluster *atlas.Cluster) bool {
+	//Convert to maps
 	var remoteClusterMap map[string]interface{}
 	var localClusterMap map[string]interface{}
-	inrec, _ := json.Marshal(remoteCluster)
+
+	inrec, err := json.Marshal(remoteCluster)
+	if err != nil {
+		return false
+	}
 	json.Unmarshal(inrec, &remoteClusterMap)
 
-	inrec, _ = json.Marshal(localCluster)
+	inrec, err = json.Marshal(localCluster)
+	if err != nil {
+		return false
+	}
 	json.Unmarshal(inrec, &localClusterMap)
-
-	// CODE FOR DEBUGGING PURPOSES
-	remoteJSON, err := json.Marshal(remoteCluster)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("\nREMOTE CLUSTER: ", string(remoteJSON))
-
-	localJSON, err := json.Marshal(localCluster)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("\nLOCAL CLUSTER: ", string(localJSON))
-	// CODE FOR DEBUGGING PURPOSES
 
 	if localCluster.BackupEnabled == nil || localClusterMap["backupEnabled"] != remoteClusterMap["backupEnabled"] {
 		return false
