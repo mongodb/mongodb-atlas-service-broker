@@ -18,7 +18,33 @@ const idPrefix = "aosb-cluster"
 // providerNames contains all the available cloud providers on which clusters
 // may be provisioned. The available instance sizes for each provider are
 // fetched dynamically from the Atlas API.
-var providerNames = []string{"AWS", "GCP", "AZURE"}
+var (
+	providerNames = []string{"AWS", "GCP", "AZURE", "SHARED"}
+
+	// Temporary harcoding the instance sizes for SHARED provider
+	sharedService = brokerapi.Service{
+		ID:                   "aosb-cluster-service-shared",
+		Name:                 "mongodb-atlas-shared",
+		Description:          "Atlas cluster hosted on \"SHARED\"",
+		Bindable:             true,
+		InstancesRetrievable: false,
+		BindingsRetrievable:  false,
+		Metadata:             nil,
+		PlanUpdatable:        true,
+		Plans: []brokerapi.ServicePlan{
+			brokerapi.ServicePlan{
+				ID:          "aosb-cluster-plan-shared-m2",
+				Name:        "M2",
+				Description: "Instance size \"M2\"",
+			},
+			brokerapi.ServicePlan{
+				ID:          "aosb-cluster-plan-shared-m5",
+				Name:        "M5",
+				Description: "Instance size \"M5\"",
+			},
+		},
+	}
+)
 
 // Services generates the service catalog which will be presented to consumers of the API.
 func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
@@ -32,6 +58,12 @@ func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	}
 
 	for i, providerName := range providerNames {
+		// Temporarily hardcoded
+		if providerName == "SHARED" {
+			services[3] = sharedService
+			return services, nil
+		}
+
 		provider, err := client.GetProvider(providerName)
 		if err != nil {
 			return services, err
