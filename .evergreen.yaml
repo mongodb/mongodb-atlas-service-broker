@@ -6,6 +6,7 @@ functions:
     - command: shell.exec
       params:
         script: mkdir bin
+
   "go_unit_tests":
     - command: shell.exec
       type: system
@@ -16,6 +17,7 @@ functions:
     - command: gotest.parse_files
       params:
         files: ["src/atlas-service-broker/unit_result.suite"]
+
   "go_vet":
     - command: shell.exec
       type: system
@@ -23,6 +25,7 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           go vet ./...
+
   "setup_snyk":
     - command: shell.exec
       type: system
@@ -31,6 +34,7 @@ functions:
           mkdir bin
           curl -L -o bin/snyk https://github.com/snyk/snyk/releases/download/v1.216.0/snyk-linux
           chmod +x bin/snyk
+
   "snyk_snapshot":
     - command: shell.exec
       type: system
@@ -40,6 +44,7 @@ functions:
           export PATH="${workdir}/bin:$PATH"
           snyk auth ${snyk-evergreen-upload-atlas-service-broker}
           snyk monitor
+
   "integration_tests":
     - command: shell.exec
       params:
@@ -53,6 +58,7 @@ functions:
     - command: gotest.parse_files
       params:
         files: ["src/atlas-service-broker/int_result.suite"]
+
   "get_tagged_version":
     - command: shell.exec
       params:
@@ -68,12 +74,43 @@ functions:
       params:
         ignore_missing_file: true
         file: src/atlas-service-broker/version_expansion.yaml
+
   "build_binaries":
     - command: shell.exec
       params:
         working_dir: src/atlas-service-broker
         script: |
           ./dev/scripts/build-production-binary.sh artifacts/atlas-service-broker-linux-arm64-${version}
+
+  # Upload integration test binary to S3. MMS will use this binary as part of the Atlas test suite.
+  "upload_test_binary":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          # Output build info to metadata file
+          echo '{ "master": { "int_test": "artifacts/${revision}/int-test", "git_hash": "${revision}" } }' > builds.json
+
+          go test -v -timeout 1h -c -o artifacts/${revision}/int-test ./test/integration
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/atlas-service-broker/artifacts/${revision}/int-test
+        remote_file: atlas-service-broker/artifacts/${revision}/int-test
+        bucket: mciuploads
+        content_type: application/octet-stream
+        permissions: public-read
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/atlas-service-broker/builds.json
+        remote_file: atlas-service-broker/builds.json
+        bucket: mciuploads
+        content_type: application/json
+        permissions: public-read
+
   "setup_hub":
     - command: shell.exec
       params:
@@ -82,6 +119,7 @@ functions:
           tar -zxvf hub-linux-amd64-2.12.3.tgz
           mv hub-linux-amd64-2.12.3/bin/hub bin/
           echo "Installed Hub CLI"
+
   "publish_github_release":
     - command: shell.exec
       params:
@@ -94,24 +132,28 @@ functions:
           export ARTIFACTS_ATTACH
 
           ${workingdir}/bin/hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
+
   "setup_docker":
     - command: shell.exec
       params:
         script: |
           sudo pacman --refresh --noconfirm -S community/docker
           systemctl start docker.service
+
   "teardown_docker":
     - command: shell.exec
       params:
         script: |
           # Remove all Docker images
           docker rmi -f $(docker images -a -q) &> /dev/null || true
+
   "build_docker":
     - command: shell.exec
       params:
         working_dir: src/atlas-service-broker
         script: |
           docker build . -t ${docker_repo}/${docker_name}
+
   "publish_docker":
     - command: shell.exec
       params:
@@ -127,18 +169,21 @@ functions:
             docker image tag ${docker_repo}/${docker_name}:${version} ${docker_repo}/${docker_name}:latest
             docker push ${docker_repo}/${docker_name}:latest
           fi
+
   "setup_kubernetes":
     - command: shell.exec
       params:
         script: |
           # Setup local Kubernetes cluster
           ./src/atlas-service-broker/dev/scripts/evergreen-kubernetes-setup.sh ${workdir}/bin ${docker_repo}/${docker_name}
+
   "teardown_kubernetes":
     - command: shell.exec
       params:
         script: |
           export PATH="${workdir}/bin:$PATH"
           kind delete cluster
+
   "e2e_tests_kubernetes":
     - command: shell.exec
       params:
@@ -173,6 +218,11 @@ tasks:
   - name: integration_tests
     commands:
       - func: "integration_tests"
+  - name: upload_test_binary
+    patch_only: true
+    commands:
+      - func: "fetch_source"
+      - func: "upload_test_binary"
   - name: release_github
     patch_only: true
     commands:
@@ -236,5 +286,6 @@ buildvariants:
     display_name: release
     run_on: archlinux-test
     tasks:
+      - upload_test_binary
       - release_github
       - release_docker

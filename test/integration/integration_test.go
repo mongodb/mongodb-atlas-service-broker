@@ -277,8 +277,8 @@ func TestBind(t *testing.T) {
 
 	// Try connecting to the cluster to ensure that the credentials are
 	// valid. There is sometimes a slight delay before the user is ready so this
-	// will try to connect for up to a minute.
-	err = testutil.Poll(1, func() (bool, error) {
+	// will try to connect for up to 5 minutes.
+	err = testutil.Poll(5, func() (bool, error) {
 		client, err := mongo.NewClient(conn)
 		if err != nil {
 			return false, nil
