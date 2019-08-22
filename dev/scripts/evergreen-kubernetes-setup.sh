@@ -41,5 +41,5 @@ helm install svc-cat/catalog --name service-catalog --namespace catalog
 kubectl rollout status --watch deployment/service-catalog-catalog-apiserver --namespace=catalog
 
 echo "Add Docker image to cluster"
-# docker image tag $docker_repo/$docker_name $docker_repo/$docker_name:e2e-test
-kind load docker-image $docker_image
+docker image tag $docker_image $docker_image:e2e-test
+kind load docker-image $docker_image:e2e-test
