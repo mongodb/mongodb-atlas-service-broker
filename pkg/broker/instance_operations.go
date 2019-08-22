@@ -42,6 +42,16 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		return
 	}
 
+	// Add the instance ID as the name of the cluster.
+	clusterName, err := clusterNameFromIDAndContext(instanceID, details.RawContext)
+	if err != nil {
+		b.logger.Errorw("Couldn't create cluster name", "error", err, "instance_id", instanceID, "details", details)
+		return
+	}
+	cluster.Name = clusterName
+
+	cluster.SetLabel("aosb-instance-id", instanceID)
+
 	// Create a new Atlas cluster from the generated definition
 	resultingCluster, err := client.CreateCluster(*cluster)
 	if err != nil {
@@ -78,9 +88,8 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	// be passed during updates (if there are other update to the provider, such
 	// as region). The plan is not included in the OSB call unless it has changed
 	// hence we need to fetch the current value from Atlas.
-	existingCluster, err := client.GetCluster(NormalizeClusterName(instanceID))
+	existingCluster, err := findClusterByInstanceID(client, instanceID)
 	if err != nil {
-		err = atlasToAPIError(err)
 		return
 	}
 
@@ -89,6 +98,8 @@ func (b Broker) Update(ctx context.Context, instanceID string, details brokerapi
 	if err != nil {
 		return
 	}
+
+	cluster.Name = existingCluster.Name
 
 	// Make sure the cluster provider has all the neccessary params for the
 	// Atlas API. The Atlas API requires both the provider name and instance
@@ -168,10 +179,9 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 		return
 	}
 
-	cluster, err := client.GetCluster(NormalizeClusterName(instanceID))
-	if err != nil && err != atlas.ErrClusterNotFound {
+	cluster, err := findClusterByInstanceID(client, instanceID)
+	if err != nil && err != brokerapi.ErrInstanceDoesNotExist {
 		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
-		err = atlasToAPIError(err)
 		return
 	}
 
@@ -192,7 +202,7 @@ func (b Broker) LastOperation(ctx context.Context, instanceID string, details br
 		// The Atlas API may return a 404 response if a cluster is deleted or it
 		// will return the cluster with a state of "DELETED". Both of these
 		// scenarios indicate that a cluster has been successfully deleted.
-		if err == atlas.ErrClusterNotFound || cluster.StateName == atlas.ClusterStateDeleted {
+		if err == brokerapi.ErrInstanceDoesNotExist || cluster.StateName == atlas.ClusterStateDeleted {
 			state = brokerapi.Succeeded
 		} else if cluster.StateName == atlas.ClusterStateDeleting {
 			state = brokerapi.InProgress
@@ -268,8 +278,42 @@ func clusterFromParams(client atlas.Client, instanceID string, serviceID string,
 		params.Cluster.ProviderSettings.InstanceSizeName = instanceSize.Name
 	}
 
-	// Add the instance ID as the name of the cluster.
-	params.Cluster.Name = NormalizeClusterName(instanceID)
-
 	return params.Cluster, nil
+}
+
+func clusterNameFromIDAndContext(instanceID string, rawContext []byte) (string, error) {
+	context := struct {
+		InstanceName string `json:"instance_name"`
+	}{}
+
+	if len(rawContext) > 0 {
+		err := json.Unmarshal(rawContext, &context)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if context.InstanceName != "" {
+		return context.InstanceName, nil
+	}
+
+	return NormalizeClusterName(instanceID), nil
+}
+
+func findClusterByInstanceID(client atlas.Client, instanceID string) (atlas.Cluster, error) {
+	clusters, err := client.GetClusters()
+	if err != nil {
+		return atlas.Cluster{}, err
+	}
+
+	for _, cluster := range clusters {
+		matchesName := cluster.Name == NormalizeClusterName(instanceID)
+		matchesLabel := cluster.GetLabel("aosb-instance-id") == instanceID
+
+		if matchesName || matchesLabel {
+			return cluster, nil
+		}
+	}
+
+	return atlas.Cluster{}, apiresponses.ErrInstanceDoesNotExist
 }

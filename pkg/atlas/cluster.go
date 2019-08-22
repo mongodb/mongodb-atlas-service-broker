@@ -23,6 +23,7 @@ var (
 
 // Cluster represents a single cluster in Atlas.
 type Cluster struct {
+	Labelled
 	Name string `json:"name"`
 
 	AutoScaling              AutoScalingConfig `json:"autoScaling,omitempty"`
@@ -117,6 +118,17 @@ func (c *HTTPClient) GetCluster(name string) (*Cluster, error) {
 	var cluster Cluster
 	err := c.requestPublic(http.MethodGet, path, nil, &cluster)
 	return &cluster, err
+}
+
+// GetClusters will get all clusters.
+// GET /clusters
+func (c *HTTPClient) GetClusters() ([]Cluster, error) {
+	var response struct {
+		Clusters []Cluster `json:"results"`
+	}
+
+	err := c.requestPublic(http.MethodGet, "clusters", nil, &response)
+	return response.Clusters, err
 }
 
 // GetDashboardURL prepares the url where the specific cluster can be found in the Dashboard UI

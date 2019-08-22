@@ -62,6 +62,17 @@ func (m MockAtlasClient) GetCluster(name string) (*atlas.Cluster, error) {
 	return cluster, nil
 }
 
+func (m MockAtlasClient) GetClusters() ([]atlas.Cluster, error) {
+	var clusters []atlas.Cluster
+	for _, cluster := range m.Clusters {
+		if cluster != nil {
+			clusters = append(clusters, *cluster)
+		}
+	}
+
+	return clusters, nil
+}
+
 func (m MockAtlasClient) SetClusterState(name string, state string) {
 	cluster := m.Clusters[name]
 	if cluster == nil {

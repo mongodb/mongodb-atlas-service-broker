@@ -159,6 +159,8 @@ func TestProvisionParams(t *testing.T) {
 		},
 	}
 
+	expected.SetLabel("aosb-instance-id", instanceID)
+
 	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
 	assert.Equal(t, expected, cluster)
