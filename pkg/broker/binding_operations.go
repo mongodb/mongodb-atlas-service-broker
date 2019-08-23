@@ -91,25 +91,13 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 }
 
 func compareBindings(localUser *atlas.User, remoteUser *atlas.User) bool {
-	//Convert to maps
-	var remoteUserMap map[string]interface{}
-	var localUserMap map[string]interface{}
-
-	inrec, err := json.Marshal(remoteUser)
-	if err != nil {
+	if localUser.Username != remoteUser.Username {
 		return false
-	}
-	json.Unmarshal(inrec, &remoteUserMap)
-
-	inrec, err = json.Marshal(localUser)
-	if err != nil {
+	} else if localUser.DatabaseName != remoteUser.DatabaseName {
 		return false
-	}
-	json.Unmarshal(inrec, &localUserMap)
-
-	if _, exist := localUserMap["username"]; !exist || localUserMap["username"] != remoteUserMap["username"] {
+	} else if localUser.LDAPAuthType != remoteUser.LDAPAuthType {
 		return false
-	} else if !reflect.DeepEqual(localUserMap["roles"], remoteUserMap["roles"]) {
+	} else if !reflect.DeepEqual(localUser.Roles, remoteUser.Roles) {
 		return false
 	}
 
@@ -188,7 +176,7 @@ func userFromParams(bindingID string, password string, rawParams []byte) (*atlas
 		}
 	}
 
-	// Set binding ID as username and add password.
+	// Set binding ID as username, add password, and databasename in Atlas is always admin.
 	params.User.Username = bindingID
 	params.User.Password = password
 
