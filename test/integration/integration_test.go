@@ -3,6 +3,8 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 
@@ -58,7 +60,7 @@ func TestProvision(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
-	clusterName := brokerlib.NormalizeClusterName(instanceID)
+	clusterName, nameContext := nameAndContextForTest(t)
 
 	// Setting up our Expected cluster
 	var expectedCluster = &atlas.Cluster{
@@ -101,6 +103,8 @@ func TestProvision(t *testing.T) {
 		},
 	}
 
+	expectedCluster.SetLabel(brokerlib.InstanceIDLabel, instanceID)
+
 	// Setting up the params for the body request
 	paramsByte, marshalErr := json.Marshal(expectedCluster)
 	assert.NoError(t, marshalErr)
@@ -111,9 +115,10 @@ func TestProvision(t *testing.T) {
 		ServiceID:     "aosb-cluster-service-aws",
 		PlanID:        "aosb-cluster-plan-aws-m10",
 		RawParameters: []byte(params),
+		RawContext:    nameContext,
 	}, true)
 
-	defer teardownInstance(instanceID)
+	defer teardownInstance(clusterName)
 
 	if !assert.NoError(t, err) {
 		return
@@ -147,8 +152,8 @@ func TestUpdate(t *testing.T) {
 
 	instanceID := uuid.New().String()
 
-	clusterName, err := setupInstance(instanceID)
-	defer teardownInstance(instanceID)
+	clusterName, err := setupInstance(t, instanceID)
+	defer teardownInstance(clusterName)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -203,8 +208,8 @@ func TestBind(t *testing.T) {
 	instanceID := uuid.New().String()
 	bindingID := uuid.New().String()
 
-	clusterName, err := setupInstance(instanceID)
-	defer teardownInstance(instanceID)
+	clusterName, err := setupInstance(t, instanceID)
+	defer teardownInstance(clusterName)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -306,8 +311,8 @@ func TestUnbind(t *testing.T) {
 	instanceID := uuid.New().String()
 	bindingID := uuid.New().String()
 
-	_, err := setupInstance(instanceID)
-	defer teardownInstance(instanceID)
+	clusterName, err := setupInstance(t, instanceID)
+	defer teardownInstance(clusterName)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -333,8 +338,8 @@ func TestDeprovision(t *testing.T) {
 
 	instanceID := uuid.New().String()
 
-	_, err := setupInstance(instanceID)
-	defer teardownInstance(instanceID)
+	clusterName, err := setupInstance(t, instanceID)
+	defer teardownInstance(clusterName)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -371,12 +376,12 @@ func waitForLastOperation(broker *brokerlib.Broker, instanceID string, operation
 
 // setupInstance will deploy a simple cluster to Atlas and wait for it to
 // be created.
-func setupInstance(instanceID string) (string, error) {
-	clusterName := brokerlib.NormalizeClusterName(instanceID)
+func setupInstance(t *testing.T, instanceID string) (string, error) {
+	clusterName, _ := nameAndContextForTest(t)
 
 	// Create a cluster running on AWS in eu-west-1. THe instance size should be
 	// M10 and backup should be disabled.
-	_, err := client.CreateCluster(atlas.Cluster{
+	cluster := atlas.Cluster{
 		Name:          clusterName,
 		BackupEnabled: false,
 		ProviderSettings: &atlas.ProviderSettings{
@@ -384,7 +389,11 @@ func setupInstance(instanceID string) (string, error) {
 			InstanceSizeName: "M10",
 			RegionName:       "EU_WEST_1",
 		},
-	})
+	}
+
+	cluster.SetLabel(brokerlib.InstanceIDLabel, instanceID)
+
+	_, err := client.CreateCluster(cluster)
 	if err != nil {
 		return "", err
 	}
@@ -421,8 +430,24 @@ func setupBinding(bindingID string) (*atlas.User, error) {
 	})
 }
 
-func teardownInstance(instanceID string) {
-	client.DeleteCluster(brokerlib.NormalizeClusterName(instanceID))
+// nameAndContextForTest will generate a cluster name that is unique and
+// contains the test name for easy debugging.
+func nameAndContextForTest(t *testing.T) (string, []byte) {
+	// Generate random 5-letter suffix to avoid collisions.
+	const letters = "abcdefghijklmnopqrstuvwxyz"
+	random := make([]byte, 5)
+	for i := range random {
+		random[i] = letters[rand.Intn(len(letters))]
+	}
+
+	name := fmt.Sprintf("Int-%s-%s", t.Name(), string(random))
+	nameContext := fmt.Sprintf(`{ "instance_name": "%s" }`, name)
+
+	return name, []byte(nameContext)
+}
+
+func teardownInstance(name string) {
+	client.DeleteCluster(name)
 }
 
 func teardownBinding(bindingID string) {

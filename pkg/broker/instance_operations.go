@@ -19,8 +19,8 @@ const (
 	OperationUpdate      = "update"
 )
 
-// instanceIDLabel is the label key under which the instance ID will be saved.
-const instanceIDLabel = "aosb-instance-id"
+// InstanceIDLabel is the label key under which the instance ID will be saved.
+const InstanceIDLabel = "aosb-instance-id"
 
 // Provision will create a new Atlas cluster with the instance ID as its name.
 // The process is always async.
@@ -53,7 +53,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 	cluster.Name = clusterName
 
-	cluster.SetLabel(instanceIDLabel, instanceID)
+	cluster.SetLabel(InstanceIDLabel, instanceID)
 
 	// Create a new Atlas cluster from the generated definition
 	resultingCluster, err := client.CreateCluster(*cluster)
@@ -323,7 +323,7 @@ func findClusterByInstanceID(client atlas.Client, instanceID string) (atlas.Clus
 
 	for _, cluster := range clusters {
 		matchesName := cluster.Name == NormalizeClusterName(instanceID)
-		matchesLabel := cluster.GetLabel(instanceIDLabel) == instanceID
+		matchesLabel := cluster.GetLabel(InstanceIDLabel) == instanceID
 
 		if matchesName || matchesLabel {
 			return cluster, nil

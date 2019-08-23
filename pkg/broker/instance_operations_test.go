@@ -87,7 +87,7 @@ func TestProvisionWithoutName(t *testing.T) {
 
 	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
-	assert.Equal(t, instanceID, cluster.GetLabel(instanceIDLabel), "Expected instance ID label to be set")
+	assert.Equal(t, instanceID, cluster.GetLabel(InstanceIDLabel), "Expected instance ID label to be set")
 }
 
 func TestProvisionParams(t *testing.T) {
@@ -181,7 +181,7 @@ func TestProvisionParams(t *testing.T) {
 		},
 	}
 
-	expected.SetLabel(instanceIDLabel, instanceID)
+	expected.SetLabel(InstanceIDLabel, instanceID)
 
 	cluster := client.Clusters[name]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", name)
