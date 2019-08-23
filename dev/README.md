@@ -20,11 +20,24 @@ The release process consists of publishing a new Github release with attached bi
 
 1. Add a new annotated tag using `git tag -a vX.X.X`. Git will prompt for a message which later will be used for the Github release message.
 2. Push the tag using `git push <remote> vX.X.X`.
-3. Run `evergreen patch -v release -t release_github -t release_docker -y -f` and Evergreen will automatically complete the release.
+3. Run `evergreen patch -p atlas-service-broker --variants release --tasks all -y -f` and Evergreen will automatically complete the release.
 
 ## Adding third-party dependencies
 
 Please include their license in the notices/ directory.
+
+## Setting up TLS in Kubernetes
+
+To enable TLS, perform these steps before continuing with "Testing in Kubernetes".
+
+1. Generate a self-signed certificate and private key by running `openssl req -newkey rsa:2048 -nodes -keyout key-x509 -days 365 -out cert`.
+   When prompted for "Common Name", enter `atlas-service-broker.atlas`. All other fields can be left empty.
+2. Create a new secret containing the key and cert by running `kubectl create secret generic aosb-tls --from-file=./key --from-file=./cert -n atlas`.
+3. Update `samples/kubernetes/deployment.yaml` to mount the secret inside your pod in accordance with this guide: https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod.
+   Also add the `BROKER_TLS_KEY_FILE` and `BROKER_TLS_CERT_FILE` environment variables to point to the mounted secret. If mounted to `/etc/tls_secret`
+   the environment variables would be `/etc/tls_secret/key` and `/etc/tls_secret/cert`. Also change the service port from `80` to `443`.
+4. Update `samples/kubernetes/service-broker.yaml` and add a `caBundle` field containing the base64 encoded contents of `cert`.
+   Run `base64 < cert` to get the base64 string. Also update the `url` field to use `https`.
 
 ## Testing in Kubernetes
 
@@ -36,23 +49,21 @@ Follow these steps to test the broker in a Kubernetes cluster. For local testing
    be found in the [Kubernetes docs](https://kubernetes.io/docs/tasks/service-catalog/install-service-catalog-using-helm/).
 3. Build the Dockerfile and make the resulting image available in your cluster. If you are using
    Minikube `dev/scripts/minikube-build.sh` can be used to build the image using Minikube's Docker
-   daemon.
-4. Create a secret called `atlas-api` containing the following keys:
-   - `base-url`for the Atlas API
-   - `group-id` for the project under which clusters should be deployed
-   - `public-key`for the API key
-   - `private-key`for the API key
-5. Deploy the service broker by running `dev/scripts/kubernetes-deploy.sh <namespace>`. This will create
-   a new deployment and a service of the image from step 2. The script will also deploy the actual service broker resource with the
-   name `atlas-service-broker`.
-6. Make sure the broker is ready by running `svcat get brokers`.
-7. A new instance can be provisioned by running `kubectl create -f
-   scripts/kubernetes/instance.yaml`. The instance will be given the name `atlas-cluster-instance`
-   and its status can be checked using `svcat get instances`.
-8. Once the instance is up and running, a binding can be created to gain access. A binding named
+   daemon. Update the deployment resource in `samples/kubernetes/deployment.yaml` to have
+   `imagePullPolicy: Never` and update the `ATLAS_BASE_URL` to whichever environment you're testing against.
+4. Create a new namespace `atlas` by running `kubectl create namespace atlas`.
+5. Create a secret called `atlas-service-broker-auth` containing the following keys:
+   - `username` should be the Atlas group ID and public key combined as `<PUBLIC_KEY>@<GROUP_ID>`.
+   - `password` should be the Atlas private key.
+6. Deploy the service broker by running `kubectl apply -f samples/kubernetes/deployment.yaml -n atlas`. This will create
+   a new deployment and a service of the image from step 2.
+7. Register the service broker with the service catalog by running `kubectl apply -f samples/kubernetes/service-broker.yaml -n atlas`.
+8. Make sure the broker is ready by running `svcat get brokers`.
+9. A new instance can be provisioned by running `kubectl create -f samples/kubernetes/instance.yaml -n atlas`.
+   The instance will be given the name `atlas-cluster-instance` and its status can be checked using `svcat get instances -n atlas`.
+10. Once the instance is up and running, a binding can be created to gain access. A binding named
    `atlas-cluster-binding` can be created by running `kubectl create -f
-   script/kubernetes/binding.yaml`. The binding credentials will automatically be stored in a secret
+   samples/kubernetes/binding.yaml -n atlas`. The binding credentials will automatically be stored in a secret
    of the same name.
-9. After use, all bindings can be removed by running `svcat unbind atlas-cluser-instance` and the
-   cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance`.
-10. Run `dev/scripts/kubernetes-teardown.sh <namespace>` to fully remove the service broker.
+11. After use, all bindings can be removed by running `svcat unbind atlas-cluser-instance -n atlas` and the
+   cluster can be deprovisioned using `svcat deprovision atlas-cluster-instance -n atlas`.

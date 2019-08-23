@@ -27,9 +27,14 @@ type ConnectionDetails struct {
 func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (spec brokerapi.Binding, err error) {
 	b.logger.Infow("Creating binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
 
+	client, err := atlasClientFromContext(ctx)
+	if err != nil {
+		return
+	}
+
 	// The service_id and plan_id are required to be valid per the specification, despite
 	// not being used for bindings. We look them up to ensure they can be found in the catalog.
-	provider, err := b.findProviderByServiceID(details.ServiceID)
+	provider, err := findProviderByServiceID(client, details.ServiceID)
 	if err != nil {
 		return
 	}
@@ -40,7 +45,7 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	}
 
 	// Fetch the cluster from Atlas to ensure it exists.
-	cluster, err := b.atlas.GetCluster(NormalizeClusterName(instanceID))
+	cluster, err := client.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
 		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
@@ -62,11 +67,11 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 		return
 	}
 
-	// If cluster doesn't exist create it, otherwise compare them
-	resultingUser, err := b.atlas.GetUser(bindingID)
+	// Create a new Atlas database user from the generated definition.
+	resultingUser, err := client.GetUser(bindingID)
 	if err != nil {
 		// Create a new Atlas database user from the generated definition.
-		_, err = b.atlas.CreateUser(*user)
+		_, err = client.CreateUser(*user)
 		if err != nil {
 			b.logger.Errorw("Failed to create Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
 			err = atlasToAPIError(err)
@@ -109,8 +114,13 @@ func compareBindings(localUser *atlas.User, remoteUser *atlas.User) bool {
 func (b Broker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (spec brokerapi.UnbindSpec, err error) {
 	b.logger.Infow("Releasing binding", "instance_id", instanceID, "binding_id", bindingID, "details", details)
 
+	client, err := atlasClientFromContext(ctx)
+	if err != nil {
+		return
+	}
+
 	// Fetch the cluster from Atlas to ensure it exists.
-	_, err = b.atlas.GetCluster(NormalizeClusterName(instanceID))
+	_, err = client.GetCluster(NormalizeClusterName(instanceID))
 	if err != nil {
 		b.logger.Errorw("Failed to get existing cluster", "error", err, "instance_id", instanceID)
 		err = atlasToAPIError(err)
@@ -118,7 +128,7 @@ func (b Broker) Unbind(ctx context.Context, instanceID string, bindingID string,
 	}
 
 	// Delete database user which has the binding ID as its username.
-	err = b.atlas.DeleteUser(bindingID)
+	err = client.DeleteUser(bindingID)
 	if err != nil {
 		b.logger.Errorw("Failed to delete Atlas database user", "error", err, "instance_id", instanceID, "binding_id", bindingID)
 		err = atlasToAPIError(err)

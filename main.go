@@ -12,7 +12,7 @@ import (
 
 	"os"
 
-	atlasclient "github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
+	"github.com/gorilla/mux"
 	atlasbroker "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
 	"github.com/pivotal-cf/brokerapi"
 )
@@ -82,42 +82,53 @@ func startBrokerServer() {
 	}
 	defer logger.Sync() // Flushes buffer, if any
 
-	// Try parsing Atlas client config.
+	broker := atlasbroker.NewBroker(logger)
+
+	router := mux.NewRouter()
+	brokerapi.AttachRoutes(router, broker, NewLagerZapLogger(logger))
+
+	// The auth middleware will convert basic auth credentials into an Atlas
+	// client.
 	baseURL := strings.TrimRight(getEnvOrDefault("ATLAS_BASE_URL", DefaultAtlasBaseURL), "/")
-	groupID := getEnvOrPanic("ATLAS_GROUP_ID")
-	publicKey := getEnvOrPanic("ATLAS_PUBLIC_KEY")
-	privateKey := getEnvOrPanic("ATLAS_PRIVATE_KEY")
+	router.Use(atlasbroker.AuthMiddleware(baseURL))
 
-	client, err := atlasclient.NewClient(baseURL, groupID, publicKey, privateKey)
-	if err != nil {
-		logger.Fatal(err)
-	}
+	// Configure TLS from environment variables.
+	tlsEnabled, tlsCertPath, tlsKeyPath := getTLSConfig(logger)
 
-	// Create broker with the previously created Atlas client.
-	broker := atlasbroker.NewBroker(client, logger)
-
-	// Try parsing server config and set up broker API server.
-	username := getEnvOrPanic("BROKER_USERNAME")
-	password := getEnvOrPanic("BROKER_PASSWORD")
 	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
 
-	credentials := brokerapi.BrokerCredentials{
-		Username: username,
-		Password: password,
-	}
-
-	endpoint := host + ":" + strconv.Itoa(port)
-
-	// Mount broker server at the root.
-	http.Handle("/", brokerapi.New(broker, NewLagerZapLogger(logger), credentials))
-
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "atlas_base_url", baseURL, "group_id", groupID)
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL)
 
 	// Start broker HTTP server.
-	if err = http.ListenAndServe(endpoint, nil); err != nil {
-		logger.Fatal(err)
+	address := host + ":" + strconv.Itoa(port)
+
+	var serverErr error
+	if tlsEnabled {
+		serverErr = http.ListenAndServeTLS(address, tlsCertPath, tlsKeyPath, router)
+	} else {
+		logger.Warn("TLS is disabled")
+		serverErr = http.ListenAndServe(address, router)
 	}
+
+	if serverErr != nil {
+		logger.Fatal(serverErr)
+	}
+}
+
+func getTLSConfig(logger *zap.SugaredLogger) (bool, string, string) {
+	certPath := getEnvOrDefault("BROKER_TLS_CERT_FILE", "")
+	keyPath := getEnvOrDefault("BROKER_TLS_KEY_FILE", "")
+
+	hasCertPath := certPath != ""
+	hasKeyPath := keyPath != ""
+
+	// Bail if only one of the cert and key has been provided.
+	if (hasCertPath && !hasKeyPath) || (!hasCertPath && hasKeyPath) {
+		logger.Fatal("Both a certificate and private key are necessary to enable TLS")
+	}
+
+	return hasCertPath && hasKeyPath, certPath, keyPath
 }
 
 // getEnvOrPanic will try getting an environment variable and fail with a
