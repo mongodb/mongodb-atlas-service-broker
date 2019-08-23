@@ -75,6 +75,21 @@ func TestProvision(t *testing.T) {
 	}, cluster.ProviderSettings)
 }
 
+func TestProvisionWithoutName(t *testing.T) {
+	broker, client, ctx := setupTest()
+
+	_, err := broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
+
+	assert.NoError(t, err)
+
+	cluster := client.Clusters[instanceID]
+	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", instanceID)
+	assert.Equal(t, instanceID, cluster.GetLabel(instanceIDLabel), "Expected instance ID label to be set")
+}
+
 func TestProvisionParams(t *testing.T) {
 	broker, client, ctx := setupTest()
 
@@ -166,7 +181,7 @@ func TestProvisionParams(t *testing.T) {
 		},
 	}
 
-	expected.SetLabel("aosb-instance-id", instanceID)
+	expected.SetLabel(instanceIDLabel, instanceID)
 
 	cluster := client.Clusters[name]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", name)
@@ -183,11 +198,29 @@ func TestProvisionAlreadyExisting(t *testing.T) {
 		RawContext: []byte(nameContext),
 	}, true)
 
-	// Try provisioning a second instance with the same ID
+	// Try provisioning a second instance with the same name
 	_, err := broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
 		PlanID:     testPlanID,
 		ServiceID:  testServiceID,
 		RawContext: []byte(nameContext),
+	}, true)
+
+	assert.EqualError(t, err, apiresponses.ErrInstanceAlreadyExists.Error())
+}
+
+func TestProvisionAlreadyExistingWithoutName(t *testing.T) {
+	broker, _, ctx := setupTest()
+
+	// Provision a first instance
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
+
+	// Try provisioning a second instance with the same ID
+	_, err := broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
 	}, true)
 
 	assert.EqualError(t, err, apiresponses.ErrInstanceAlreadyExists.Error())
@@ -212,6 +245,30 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, OperationUpdate, res.OperationData)
 
 	cluster := client.Clusters[name]
+	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", name)
+
+	// Ensure the instance size was updated and the provider
+	// was not.
+	assert.Equal(t, "M20", cluster.ProviderSettings.InstanceSizeName)
+	assert.Equal(t, "AWS", cluster.ProviderSettings.ProviderName)
+}
+
+func TestUpdateWithoutName(t *testing.T) {
+	broker, client, ctx := setupTest()
+
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID: testServiceID,
+		PlanID:    testPlanID,
+	}, true)
+
+	_, err := broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
+		PlanID:    "aosb-cluster-plan-aws-m20",
+		ServiceID: testServiceID,
+	}, true)
+
+	assert.NoError(t, err)
+
+	cluster := client.Clusters[instanceID]
 	assert.NotEmptyf(t, cluster, "Expected cluster with name \"%s\" to exist", name)
 
 	// Ensure the instance size was updated and the provider
@@ -302,6 +359,20 @@ func TestDeprovision(t *testing.T) {
 	assert.Nil(t, client.Clusters[name], "Expected cluster to have been removed")
 }
 
+func TestDeprovisionWithoutName(t *testing.T) {
+	broker, client, ctx := setupTest()
+
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
+
+	_, err := broker.Deprovision(ctx, instanceID, brokerapi.DeprovisionDetails{}, true)
+
+	assert.NoError(t, err)
+	assert.Nil(t, client.Clusters[instanceID], "Expected cluster to have been removed")
+}
+
 func TestDeprovisionWithoutAsync(t *testing.T) {
 	broker, client, ctx := setupTest()
 
@@ -347,6 +418,35 @@ func TestLastOperationProvision(t *testing.T) {
 
 	// Set the cluster state to creating
 	client.SetClusterState(name, atlas.ClusterStateCreating)
+	resp, err = broker.LastOperation(ctx, instanceID, brokerapi.PollDetails{
+		OperationData: OperationProvision,
+	})
+
+	// State of cluster should be "in progress"
+	assert.NoError(t, err)
+	assert.Equal(t, brokerapi.InProgress, resp.State)
+}
+
+func TestLastOperationWithoutName(t *testing.T) {
+	broker, client, ctx := setupTest()
+
+	broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		PlanID:    testPlanID,
+		ServiceID: testServiceID,
+	}, true)
+
+	// Set the cluster state to idle
+	client.SetClusterState(instanceID, atlas.ClusterStateIdle)
+	resp, err := broker.LastOperation(ctx, instanceID, brokerapi.PollDetails{
+		OperationData: OperationProvision,
+	})
+
+	// State of cluster should be "succeeded"
+	assert.NoError(t, err)
+	assert.Equal(t, brokerapi.Succeeded, resp.State)
+
+	// Set the cluster state to creating
+	client.SetClusterState(instanceID, atlas.ClusterStateCreating)
 	resp, err = broker.LastOperation(ctx, instanceID, brokerapi.PollDetails{
 		OperationData: OperationProvision,
 	})
