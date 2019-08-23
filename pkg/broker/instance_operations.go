@@ -19,6 +19,9 @@ const (
 	OperationUpdate      = "update"
 )
 
+// instanceIDLabel is the label key under which the instance ID will be saved.
+const instanceIDLabel = "aosb-instance-id"
+
 // Provision will create a new Atlas cluster with the instance ID as its name.
 // The process is always async.
 func (b Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (spec brokerapi.ProvisionedServiceSpec, err error) {
@@ -50,7 +53,7 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 	}
 	cluster.Name = clusterName
 
-	cluster.SetLabel("aosb-instance-id", instanceID)
+	cluster.SetLabel(instanceIDLabel, instanceID)
 
 	// Create a new Atlas cluster from the generated definition
 	resultingCluster, err := client.CreateCluster(*cluster)
@@ -286,6 +289,10 @@ func clusterFromParams(client atlas.Client, instanceID string, serviceID string,
 	return params.Cluster, nil
 }
 
+// clusterNameFromIDAndContext will return the display name if "instance_name"
+// is set in the context, otherwise it will return a normalized instance ID.
+// instance_name is not part of the specification but still used by Kubernetes
+// and Cloud Foundry.
 func clusterNameFromIDAndContext(instanceID string, rawContext []byte) (string, error) {
 	context := struct {
 		InstanceName string `json:"instance_name"`
@@ -298,6 +305,7 @@ func clusterNameFromIDAndContext(instanceID string, rawContext []byte) (string, 
 		}
 	}
 
+	// Use instance name if available.
 	if context.InstanceName != "" {
 		return context.InstanceName, nil
 	}
@@ -305,6 +313,8 @@ func clusterNameFromIDAndContext(instanceID string, rawContext []byte) (string, 
 	return NormalizeClusterName(instanceID), nil
 }
 
+// findClusterByInstanceID will find a cluster matching the instance ID either
+// by label or name.
 func findClusterByInstanceID(client atlas.Client, instanceID string) (atlas.Cluster, error) {
 	clusters, err := client.GetClusters()
 	if err != nil {
@@ -313,7 +323,7 @@ func findClusterByInstanceID(client atlas.Client, instanceID string) (atlas.Clus
 
 	for _, cluster := range clusters {
 		matchesName := cluster.Name == NormalizeClusterName(instanceID)
-		matchesLabel := cluster.GetLabel("aosb-instance-id") == instanceID
+		matchesLabel := cluster.GetLabel(instanceIDLabel) == instanceID
 
 		if matchesName || matchesLabel {
 			return cluster, nil
