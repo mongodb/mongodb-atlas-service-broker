@@ -28,8 +28,8 @@ var (
 	kubeClient  *kubernetes.Clientset
 	svcatClient *servicecatalog.Clientset
 
-	atlasBaseURL    = testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
-	atlasGroupID    = testutil.GetEnvOrPanic("ATLAS_BASE_URL")
+	atlasBaseURL    = testutil.GetEnvOrPanic("ATLAS_BASE_URL")
+	atlasGroupID    = testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
 	atlasPublicKey  = testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
 	atlasPrivateKey = testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
 	image           = testutil.GetEnvOrPanic("DOCKER_IMAGE")
@@ -65,7 +65,7 @@ func TestCatalog(t *testing.T) {
 
 	// Ensure the service marketplace is empty.
 	classes, _ := svcatClient.ServicecatalogV1beta1().ServiceClasses(namespace).List(metav1.ListOptions{})
-	if assert.Emptyf(t, classes.Items, "Expected no service classes to exist") {
+	if !assert.Emptyf(t, classes.Items, "Expected no service classes to exist") {
 		return
 	}
 
@@ -111,7 +111,6 @@ func setupTest(t *testing.T) string {
 
 	err = registerBroker(namespace)
 	if err != nil {
-		fmt.Println(err)
 		t.Fatal(err)
 	}
 
@@ -168,28 +167,8 @@ func deployBroker(namespace string) error {
 							},
 							Env: []v1.EnvVar{
 								v1.EnvVar{
-									Name:  "ATLAS_GROUP_ID",
-									Value: atlasGroupID,
-								},
-								v1.EnvVar{
 									Name:  "ATLAS_BASE_URL",
 									Value: atlasBaseURL,
-								},
-								v1.EnvVar{
-									Name:  "ATLAS_PUBLIC_KEY",
-									Value: atlasPublicKey,
-								},
-								v1.EnvVar{
-									Name:  "ATLAS_PRIVATE_KEY",
-									Value: atlasPrivateKey,
-								},
-								v1.EnvVar{
-									Name:  "BROKER_USERNAME",
-									Value: basicAuthUsername,
-								},
-								v1.EnvVar{
-									Name:  "BROKER_PASSWORD",
-									Value: basicAuthPassword,
 								},
 								v1.EnvVar{
 									Name:  "BROKER_HOST",
@@ -236,15 +215,18 @@ func deployBroker(namespace string) error {
 func registerBroker(namespace string) error {
 	authSecretName := name + "-auth"
 
+	username := atlasPublicKey + "@" + atlasGroupID
+	password := atlasPrivateKey
+
 	// Create secret to hold the basic auth credentials for the broker.
-	// The service catalog needs these to come from a secret.
+	// The broker expects Atlas API credentials as part of the basic auth.
 	kubeClient.CoreV1().Secrets(namespace).Create(&v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: authSecretName,
 		},
 		Data: map[string][]byte{
-			"username": []byte(basicAuthUsername),
-			"password": []byte(basicAuthPassword),
+			"username": []byte(username),
+			"password": []byte(password),
 		},
 	})
 
