@@ -3,10 +3,7 @@ package broker
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
-	"reflect"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
@@ -40,78 +37,21 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 		return
 	}
 
-	// If cluster doesn't exist create it, otherwise compare them
-	resultingCluster, err := b.atlas.GetCluster(cluster.Name)
+	// Create a new Atlas cluster from the generated definition
+	resultingCluster, err := b.atlas.CreateCluster(*cluster)
 	if err != nil {
-		// Create a new Atlas cluster from the generated definition
-		resultingCluster, err = b.atlas.CreateCluster(*cluster)
-		if err != nil {
-			b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
-			err = atlasToAPIError(err)
-			return
-		}
-
-		b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
-
-		return brokerapi.ProvisionedServiceSpec{
-			IsAsync:       true,
-			OperationData: OperationProvision,
-			DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
-		}, nil
+		b.logger.Errorw("Failed to create Atlas cluster", "error", err, "cluster", cluster)
+		err = atlasToAPIError(err)
+		return
 	}
 
-	err = CompareAndReturnAppropiateResponseCode(resultingCluster, cluster)
-	return
-}
+	b.logger.Infow("Successfully started Atlas creation process", "instance_id", instanceID, "cluster", resultingCluster)
 
-// CompareAndReturnAppropiateResponseCode converts structs to maps and afterwards returns the appropiate response code
-func CompareAndReturnAppropiateResponseCode(remote interface{}, local interface{}) error {
-	//Convert structs to maps
-	var remoteMap map[string]interface{}
-	var localMap map[string]interface{}
-	inrec, _ := json.Marshal(remote)
-	json.Unmarshal(inrec, &remoteMap)
-
-	inrec, _ = json.Marshal(local)
-	json.Unmarshal(inrec, &localMap)
-
-	if compareHelper(remoteMap, localMap) {
-		return nil
-	}
-	return apiresponses.NewFailureResponse(errors.New("There IDs are equal but differ in their attributes"), http.StatusConflict, "")
-}
-
-func compareHelper(remote map[string]interface{}, local map[string]interface{}) bool {
-	if reflect.ValueOf(local).Kind() == reflect.Map {
-		for k, v := range local {
-			if reflect.ValueOf(v).Kind() == reflect.Map && len(v.(map[string]interface{})) != 0 {
-				equal := compareHelper(remote[k].(map[string]interface{}), v.(map[string]interface{}))
-				if !equal {
-					return false
-				}
-				continue
-			} else if reflect.ValueOf(v).Kind() == reflect.Slice && len(v.([]interface{})) != 0 {
-				for index, document := range v.([]interface{}) { // assuming every item in slice is a document
-					equal := compareHelper(remote[k].([]interface{})[index].(map[string]interface{}), document.(map[string]interface{}))
-					if !equal {
-						return false
-					}
-				}
-			} else if reflect.ValueOf(v).Kind() != reflect.Map && reflect.ValueOf(v).Kind() != reflect.Slice && k != "password" && v != "" { // others are not maps nor slices, but rather other types
-				if val, ok := remote[k]; ok {
-					if v != val {
-						return false
-					}
-					continue
-				}
-				return false // not present in the remote cluster, so they differ in attributes
-			} else { // empty map or slice found
-				continue
-			}
-		}
-	}
-
-	return true
+	return brokerapi.ProvisionedServiceSpec{
+		IsAsync:       true,
+		OperationData: OperationProvision,
+		DashboardURL:  b.atlas.GetDashboardURL(resultingCluster.Name),
+	}, nil
 }
 
 // Update will change the configuration of an existing Atlas cluster asynchronously.
