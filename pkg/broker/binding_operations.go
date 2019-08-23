@@ -176,7 +176,7 @@ func userFromParams(bindingID string, password string, rawParams []byte) (*atlas
 		}
 	}
 
-	// Set binding ID as username, add password, and databasename in Atlas is always admin.
+	// Set binding ID as username and add password
 	params.User.Username = bindingID
 	params.User.Password = password
 
