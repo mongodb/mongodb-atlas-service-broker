@@ -1,3 +1,5 @@
+---
+# Deployment to run the service broker.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,31 +20,24 @@ spec:
         - name: atlas-service-broker
           image: quay.io/mongodb/mongodb-atlas-service-broker:latest
           ports:
-          - containerPort: 4000
+            - containerPort: 4000
           env:
-          - name: BROKER_HOST
-            value: "0.0.0.0"
-          - name: BROKER_USERNAME
-            value: username
-          - name: BROKER_PASSWORD
-            value: password
-          - name: ATLAS_BASE_URL
-            valueFrom:
-              secretKeyRef:
-                name: atlas-api
-                key: base-url
-          - name: ATLAS_GROUP_ID
-            valueFrom:
-              secretKeyRef:
-                name: atlas-api
-                key: group-id
-          - name: ATLAS_PUBLIC_KEY
-            valueFrom:
-              secretKeyRef:
-                name: atlas-api
-                key: public-key 
-          - name: ATLAS_PRIVATE_KEY
-            valueFrom:
-              secretKeyRef:
-                name: atlas-api
-                key: private-key
+            - name: BROKER_HOST
+              value: "0.0.0.0"
+
+---
+# Service to expose the service broker inside the cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlas-service-broker
+  labels:
+    app: atlas-service-broker
+spec:
+  selector:
+    # Will match pods deployed by the "atlas-service-broker" deployment.
+    app: atlas-service-broker
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4000

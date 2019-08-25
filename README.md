@@ -12,33 +12,17 @@ For instructions on how to install and use the MongoDB Atlas Service Broker plea
 
 ## Configuration
 
-Configuration is handled with environment variables.
-
-### Atlas API
+Configuration is handled with environment variables. Logs are written to
+`stderr` and each line is in a structured JSON format.
 
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
-| ATLAS_GROUP_ID | **Required** | Group in which to provision new clusters |
-| ATLAS_PUBLIC_KEY | **Required** | Public part of the Atlas API key |
-| ATLAS_PRIVATE_KEY | **Required** | Private part of the Atlas API key |
 | ATLAS_BASE_URL | `https://cloud.mongodb.com` | Base URL used for Atlas API connections |
-
-### Broker API Server
-
-| Variable | Default | Description |
-| -------- | ------- | ----------- |
-| BROKER_USERNAME | **Required** | Username for basic auth against broker |
-| BROKER_PASSWORD | **Required** | Password for basic auth against broker |
 | BROKER_HOST | `127.0.0.1` | Address which the broker server listens on |
 | BROKER_PORT | `4000` | Port which the broker server listens on |
-
-### Logs
-
-Logs are written to `stderr` and each line is in a structured JSON format.
-
-| Variable | Default | Description |
-| -------- | ------- | ----------- |
 | BROKER_LOG_LEVEL | `INFO` | Accepted values: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+| BROKER_TLS_CERT_FILE | | Path to a certificate file to use for TLS. Leave empty to disable TLS. |
+| BROKER_TLS_KEY_FILE | | Path to private key file to use for TLS. Leave empty to disable TLS. |
 
 ## License
 

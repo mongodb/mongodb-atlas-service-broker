@@ -26,8 +26,13 @@ func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 
 	services := make([]brokerapi.Service, len(providerNames))
 
+	client, err := atlasClientFromContext(ctx)
+	if err != nil {
+		return services, err
+	}
+
 	for i, providerName := range providerNames {
-		provider, err := b.atlas.GetProvider(providerName)
+		provider, err := client.GetProvider(providerName)
 		if err != nil {
 			return services, err
 		}
@@ -52,9 +57,9 @@ func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	return services, nil
 }
 
-func (b Broker) findProviderByServiceID(serviceID string) (*atlas.Provider, error) {
+func findProviderByServiceID(client atlas.Client, serviceID string) (*atlas.Provider, error) {
 	for _, providerName := range providerNames {
-		provider, err := b.atlas.GetProvider(providerName)
+		provider, err := client.GetProvider(providerName)
 		if err != nil {
 			return nil, err
 		}

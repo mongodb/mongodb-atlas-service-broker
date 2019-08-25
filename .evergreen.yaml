@@ -1,8 +1,13 @@
+---
 functions:
   "fetch_source":
     - command: git.get_project
       params:
         directory: src/atlas-service-broker
+    - command: shell.exec
+      params:
+        script: mkdir bin
+
   "go_unit_tests":
     - command: shell.exec
       type: system
@@ -13,6 +18,7 @@ functions:
     - command: gotest.parse_files
       params:
         files: ["src/atlas-service-broker/unit_result.suite"]
+
   "go_vet":
     - command: shell.exec
       type: system
@@ -20,6 +26,7 @@ functions:
         working_dir: src/atlas-service-broker
         script: |
           go vet ./...
+
   "setup_snyk":
     - command: shell.exec
       type: system
@@ -28,6 +35,7 @@ functions:
           mkdir bin
           curl -L -o bin/snyk https://github.com/snyk/snyk/releases/download/v1.216.0/snyk-linux
           chmod +x bin/snyk
+
   "snyk_snapshot":
     - command: shell.exec
       type: system
@@ -37,6 +45,7 @@ functions:
           export PATH="${workdir}/bin:$PATH"
           snyk auth ${snyk-evergreen-upload-atlas-service-broker}
           snyk monitor
+
   "integration_tests":
     - command: shell.exec
       params:
@@ -46,10 +55,11 @@ functions:
           export ATLAS_GROUP_ID=${atlas_group_id}
           export ATLAS_PUBLIC_KEY=${atlas_public_key}
           export ATLAS_PRIVATE_KEY=${atlas_private_key}
-          go test -timeout 1h -v ./test | tee int_result.suite
+          go test -timeout 1h -v ./test/integration | tee int_result.suite
     - command: gotest.parse_files
       params:
         files: ["src/atlas-service-broker/int_result.suite"]
+
   "get_tagged_version":
     - command: shell.exec
       params:
@@ -65,18 +75,52 @@ functions:
       params:
         ignore_missing_file: true
         file: src/atlas-service-broker/version_expansion.yaml
+
   "build_binaries":
     - command: shell.exec
       params:
         working_dir: src/atlas-service-broker
         script: |
           ./dev/scripts/build-production-binary.sh artifacts/atlas-service-broker-linux-arm64-${version}
+
+  # Upload integration test binary to S3. MMS will use this binary as part of the Atlas test suite.
+  "upload_test_binary":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          # Output build info to metadata file
+          echo '{ "master": { "int_test": "artifacts/${revision}/int-test", "git_hash": "${revision}" } }' > builds.json
+
+          go test -v -timeout 1h -c -o artifacts/${revision}/int-test ./test/integration
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/atlas-service-broker/artifacts/${revision}/int-test
+        remote_file: atlas-service-broker/artifacts/${revision}/int-test
+        bucket: mciuploads
+        content_type: application/octet-stream
+        permissions: public-read
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/atlas-service-broker/builds.json
+        remote_file: atlas-service-broker/builds.json
+        bucket: mciuploads
+        content_type: application/json
+        permissions: public-read
+
   "setup_hub":
     - command: shell.exec
       params:
         script: |
-          sudo pacman  --refresh --noconfirm -S hub
+          curl -LO https://github.com/github/hub/releases/download/v2.12.3/hub-linux-amd64-2.12.3.tgz
+          tar -zxvf hub-linux-amd64-2.12.3.tgz
+          mv hub-linux-amd64-2.12.3/bin/hub bin/
           echo "Installed Hub CLI"
+
   "publish_github_release":
     - command: shell.exec
       params:
@@ -85,21 +129,31 @@ functions:
           export GITHUB_TOKEN=${github_token}
 
           # Get all artifacts and turn them into a list with --attach flags
-          export ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
+          ARTIFACTS_ATTACH=$(ls artifacts | xargs -I {} echo "--attach artifacts/{} ")
+          export ARTIFACTS_ATTACH
 
-          hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
+          ${workdir}/bin/hub release create --message "Atlas Service Broker ${version}" $ARTIFACTS_ATTACH v${version}
   "setup_docker":
     - command: shell.exec
       params:
         script: |
           sudo pacman --refresh --noconfirm -S community/docker
           systemctl start docker.service
+
+  "teardown_docker":
+    - command: shell.exec
+      params:
+        script: |
+          # Remove all Docker images
+          docker rmi -f $(docker images -a -q) &> /dev/null || true
+
   "build_docker":
     - command: shell.exec
       params:
         working_dir: src/atlas-service-broker
         script: |
-          docker build . -t ${docker_repo}/${docker_name}:${version}
+          docker build . -t ${docker_repo}/${docker_name}
+
   "publish_docker":
     - command: shell.exec
       params:
@@ -107,11 +161,48 @@ functions:
         script: |
           docker login --username ${docker_username} --password ${docker_password} ${docker_repo}
 
+          docker image tag ${docker_repo}/${docker_name} ${docker_repo}/${docker_name}:${version}
           docker push ${docker_repo}/${docker_name}:${version}
+
+          # Tag image as "latest" if version is stable.
           if [[ ${version} =~ [0-9]+.[0-9]+.[0-9]+$ ]]; then
             docker image tag ${docker_repo}/${docker_name}:${version} ${docker_repo}/${docker_name}:latest
             docker push ${docker_repo}/${docker_name}:latest
           fi
+
+  "setup_kubernetes":
+    - command: shell.exec
+      params:
+        script: |
+          # Setup local Kubernetes cluster
+          ./src/atlas-service-broker/dev/scripts/evergreen-kubernetes-setup.sh ${workdir}/bin ${docker_repo}/${docker_name}
+
+  "teardown_kubernetes":
+    - command: shell.exec
+      params:
+        script: |
+          export PATH="${workdir}/bin:$PATH"
+          kind delete cluster
+
+  "e2e_tests_kubernetes":
+    - command: shell.exec
+      params:
+        working_dir: src/atlas-service-broker
+        script: |
+          export PATH="${workdir}/bin:$PATH"
+
+          export ATLAS_BASE_URL=${atlas_base_url}
+          export ATLAS_GROUP_ID=${atlas_group_id}
+          export ATLAS_PUBLIC_KEY=${atlas_public_key}
+          export ATLAS_PRIVATE_KEY=${atlas_private_key}
+          export DOCKER_IMAGE="${docker_repo}/${docker_name}:e2e-test"
+          KUBECONFIG=$(kind get kubeconfig-path)
+          export KUBECONFIG
+
+          go test -timeout 1h -v ./test/e2e | tee e2e_kubernetes_result.suite
+    - command: gotest.parse_files
+      params:
+        files: ["src/atlas-service-broker/e2e_kubernetes_result.suite"]
 
 tasks:
   - name: unit_tests
@@ -127,6 +218,11 @@ tasks:
   - name: integration_tests
     commands:
       - func: "integration_tests"
+  - name: upload_test_binary
+    patch_only: true
+    commands:
+      - func: "fetch_source"
+      - func: "upload_test_binary"
   - name: release_github
     patch_only: true
     commands:
@@ -145,6 +241,9 @@ tasks:
       - func: "setup_docker"
       - func: "build_docker"
       - func: "publish_docker"
+  - name: e2e_tests_kubernetes
+    commands:
+      - func: "e2e_tests_kubernetes"
 
 task_groups:
   - name: code_health_task_group
@@ -159,6 +258,17 @@ task_groups:
     tasks:
       - unit_tests
       - integration_tests
+  - name: e2e_task_group
+    setup_group:
+      - func: "fetch_source"
+      - func: "setup_docker"
+      - func: "build_docker"
+      - func: "setup_kubernetes"
+    tasks:
+      - e2e_tests_kubernetes
+    teardown_group:
+      - func: "teardown_kubernetes"
+      - func: "teardown_docker"
 
 buildvariants:
   - name: test
@@ -166,6 +276,7 @@ buildvariants:
     run_on: archlinux-test
     tasks:
       - test_task_group
+      - e2e_task_group
   - name: code_health
     display_name: code_health
     run_on: archlinux-test
@@ -175,5 +286,6 @@ buildvariants:
     display_name: release
     run_on: archlinux-test
     tasks:
+      - upload_test_binary
       - release_github
       - release_docker
