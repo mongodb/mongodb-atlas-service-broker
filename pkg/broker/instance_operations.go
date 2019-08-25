@@ -69,41 +69,35 @@ func (b Broker) Provision(ctx context.Context, instanceID string, details broker
 
 // CompareAndReturnAppropiateResponseCode converts structs to maps and afterwards returns the appropiate response code
 func compareInstances(localCluster *atlas.Cluster, remoteCluster *atlas.Cluster) bool {
-	//Convert to maps
-	var remoteClusterMap map[string]interface{}
-	var localClusterMap map[string]interface{}
-
-	inrec, err := json.Marshal(remoteCluster)
-	if err != nil {
+	if *localCluster.BackupEnabled != *remoteCluster.BackupEnabled {
+		fmt.Println("backupenabled")
 		return false
-	}
-	json.Unmarshal(inrec, &remoteClusterMap)
-
-	inrec, err = json.Marshal(localCluster)
-	if err != nil {
+	} else if !reflect.DeepEqual(localCluster.AutoScaling, remoteCluster.AutoScaling) {
+		fmt.Println("autoscaling")
 		return false
-	}
-	json.Unmarshal(inrec, &localClusterMap)
-
-	if localCluster.BackupEnabled == nil || localClusterMap["backupEnabled"] != remoteClusterMap["backupEnabled"] {
+	} else if !reflect.DeepEqual(localCluster.BIConnector, remoteCluster.BIConnector) {
+		fmt.Println("biconnector")
 		return false
-	} else if !reflect.DeepEqual(localClusterMap["autoScaling"], remoteClusterMap["autoScaling"]) {
+	} else if localCluster.ClusterType != remoteCluster.ClusterType {
+		fmt.Println("clustertype")
 		return false
-	} else if !reflect.DeepEqual(localClusterMap["biConnector"], remoteClusterMap["biConnector"]) {
+	} else if localCluster.DiskSizeGB != remoteCluster.DiskSizeGB {
+		fmt.Println("disksizegb")
 		return false
-	} else if _, exist := localClusterMap["clusterType"]; !exist || localClusterMap["clusterType"] != localClusterMap["clusterType"] {
+	} else if localCluster.EncryptionAtRestProvider != remoteCluster.EncryptionAtRestProvider {
+		fmt.Println("encryptionatrestprovider")
 		return false
-	} else if _, exist := localClusterMap["diskSizeGB"]; !exist || localClusterMap["diskSizeGB"] != remoteClusterMap["diskSizeGB"] {
+	} else if localCluster.MongoDBMajorVersion != remoteCluster.MongoDBMajorVersion {
+		fmt.Println("mongodbmajorversion")
 		return false
-	} else if _, exist := localClusterMap["encryptionAtRestProvider"]; !exist || localClusterMap["encryptionAtRestProvider"] != remoteClusterMap["encryptionAtRestProvider"] {
+	} else if localCluster.NumShards != remoteCluster.NumShards {
+		fmt.Println("numshards")
 		return false
-	} else if _, exist := localClusterMap["mongoDBMajorVersion"]; !exist || localClusterMap["mongoDBMajorVersion"] != remoteClusterMap["mongoDBMajorVersion"] {
+	} else if !reflect.DeepEqual(localCluster.ReplicationSpecs, remoteCluster.ReplicationSpecs) {
+		fmt.Println("replicationspecs")
 		return false
-	} else if _, exist := localClusterMap["numShards"]; !exist || localClusterMap["numShards"] != remoteClusterMap["numShards"] {
-		return false
-	} else if !reflect.DeepEqual(localClusterMap["replicationSpecs"], remoteClusterMap["replicationSpecs"]) {
-		return false
-	} else if !reflect.DeepEqual(localClusterMap["providerSettings"], remoteClusterMap["providerSettings"]) {
+	} else if !reflect.DeepEqual(localCluster.ProviderSettings, remoteCluster.ProviderSettings) {
+		fmt.Println("providersettings")
 		return false
 	}
 

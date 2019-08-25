@@ -174,21 +174,28 @@ func TestProvisionParams(t *testing.T) {
 func TestProvisionAlreadyExisting(t *testing.T) {
 	broker, _ := setupTest()
 
+	params := `{
+		"cluster": {
+			"backupEnabled":true
+		}
+	}`
+
 	// Provision a first instance
 	instanceID := "instance"
 	broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    testPlanID,
-		ServiceID: testServiceID,
+		PlanID:        testPlanID,
+		ServiceID:     testServiceID,
+		RawParameters: []byte(params),
 	}, true)
 
 	// Try provisioning a second instance with the same ID
 	_, err := broker.Provision(context.Background(), instanceID, brokerapi.ProvisionDetails{
-		PlanID:    testPlanID,
-		ServiceID: testServiceID,
+		PlanID:        testPlanID,
+		ServiceID:     testServiceID,
+		RawParameters: []byte(params),
 	}, true)
 
-	assert.NotNil(t, err)
-	// assert.Equal(t, err.Error()., http.StatusConflict)
+	assert.Nil(t, err)
 }
 
 func TestUpdate(t *testing.T) {
