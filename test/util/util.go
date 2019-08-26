@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v2"
-
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 )
 
 // Poll will run f every 10 seconds until it returns true or the timout is reached.
@@ -45,7 +43,7 @@ func GetEnvOrPanic(name string) string {
 }
 
 // ReadInYAMLFileAndConvert reads in the yaml file given by the path given
-func ReadInYAMLFileAndConvert(pathToYamlFile string) v1beta1.ServiceBroker {
+func ReadInYAMLFileAndConvert(pathToYamlFile string, crd interface{}) interface{} {
 	// Read in the yaml file at the path given
 	yamlFile, err := ioutil.ReadFile(pathToYamlFile)
 	if err != nil {
@@ -67,13 +65,11 @@ func ReadInYAMLFileAndConvert(pathToYamlFile string) v1beta1.ServiceBroker {
 		panic(err)
 	}
 
-	// Map to service broker struct
-	serviceBroker := v1beta1.ServiceBroker{}
-	if err := json.Unmarshal(jsonFormat, &serviceBroker); err != nil {
+	if err := json.Unmarshal(jsonFormat, &crd); err != nil {
 		panic(err)
 	}
 
-	return serviceBroker
+	return crd
 }
 
 // ConvertYAMLtoJSONHelper converts the yaml to json recursively

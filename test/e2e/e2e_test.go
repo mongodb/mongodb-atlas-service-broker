@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	servicecatalog "github.com/kubernetes-sigs/service-catalog/pkg/client/clientset_generated/clientset"
 	testutil "github.com/mongodb/mongodb-atlas-service-broker/test/util"
 	"github.com/stretchr/testify/assert"
@@ -219,25 +220,26 @@ func registerBroker(namespace string) error {
 
 	// Create secret to hold the basic auth credentials for the broker.
 	// The broker expects Atlas API credentials as part of the basic auth.
-	kubeClient.CoreV1().Secrets(namespace).Create(&v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: authSecretName,
-		},
-		Data: map[string][]byte{
-			"username": []byte(username),
-			"password": []byte(password),
-		},
-	})
+	secret := &v1.Secret{}
+	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/atlas-service-broker-auth.yaml", &secret)
+	kubeClient.CoreV1().Secrets(namespace).Create(secret)
+	secret.ObjectMeta.Name = authSecretName
+	secret.Data = map[string][]byte{
+		"username": []byte(username),
+		"password": []byte(password),
+	}
 
 	// Register broker with the service catalog. The URL points towards the
 	// internal DNS name of the broker service.
 	url := fmt.Sprintf("http://%s.%s", "atlas-service-broker", namespace)
-	serviceBroker := testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/service-broker.yaml")
-	serviceBroker.ObjectMeta.Name = name
-	serviceBroker.Spec.CommonServiceBrokerSpec.URL = url
-	serviceBroker.Spec.AuthInfo.Basic.SecretRef.Name = authSecretName
 
-	_, err := svcatClient.ServicecatalogV1beta1().ServiceBrokers(namespace).Create(&serviceBroker)
+	servicebroker := v1beta1.ServiceBroker{}
+	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/service-broker.yaml", &servicebroker)
+	servicebroker.ObjectMeta.Name = name
+	servicebroker.Spec.CommonServiceBrokerSpec.URL = url
+	servicebroker.Spec.AuthInfo.Basic.SecretRef.Name = authSecretName
+
+	_, err := svcatClient.ServicecatalogV1beta1().ServiceBrokers(namespace).Create(&servicebroker)
 
 	return err
 }
