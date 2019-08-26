@@ -90,7 +90,7 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	}
 
 	if compareBindings(user, resultingUser) {
-		return
+		return brokerapi.Binding{}, nil
 	}
 	return brokerapi.Binding{}, apiresponses.NewFailureResponse(errors.New("Bindings differ in their attributes"), http.StatusConflict, "")
 }
