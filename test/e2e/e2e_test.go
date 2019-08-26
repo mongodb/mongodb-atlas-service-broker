@@ -1,17 +1,11 @@
 package e2e
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"testing"
 
-	"gopkg.in/yaml.v2"
-
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	servicecatalog "github.com/kubernetes-sigs/service-catalog/pkg/client/clientset_generated/clientset"
 	testutil "github.com/mongodb/mongodb-atlas-service-broker/test/util"
 	"github.com/stretchr/testify/assert"
@@ -238,7 +232,7 @@ func registerBroker(namespace string) error {
 	// Register broker with the service catalog. The URL points towards the
 	// internal DNS name of the broker service.
 	url := fmt.Sprintf("http://%s.%s", "atlas-service-broker", namespace)
-	serviceBroker := readInYAMLFile("../../samples/kubernetes/service-broker.yaml")
+	serviceBroker := testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/service-broker.yaml")
 	serviceBroker.ObjectMeta.Name = name
 	serviceBroker.Spec.CommonServiceBrokerSpec.URL = url
 	serviceBroker.Spec.AuthInfo.Basic.SecretRef.Name = authSecretName
@@ -246,53 +240,4 @@ func registerBroker(namespace string) error {
 	_, err := svcatClient.ServicecatalogV1beta1().ServiceBrokers(namespace).Create(&serviceBroker)
 
 	return err
-}
-
-func readInYAMLFile(pathToYamlFile string) v1beta1.ServiceBroker {
-	// Read in the yaml file at the path given
-	yamlFile, err := ioutil.ReadFile(pathToYamlFile)
-	if err != nil {
-		log.Printf("Error while parsing YAML file %v, error: %s", pathToYamlFile, err)
-	}
-
-	// Map yamlFile to interface
-	var body interface{}
-	if err := yaml.Unmarshal([]byte(yamlFile), &body); err != nil {
-		panic(err)
-	}
-
-	// Convert yaml to its json counterpart
-	body = convertYAMLtoJSON(body)
-
-	// Generate json string from data structure
-	jsonFormat, err := json.Marshal(body)
-	if err != nil {
-		panic(err)
-	}
-
-	// Map to service broker struct
-	serviceBroker := v1beta1.ServiceBroker{}
-	if err := json.Unmarshal(jsonFormat, &serviceBroker); err != nil {
-		panic(err)
-	}
-
-	return serviceBroker
-}
-
-func convertYAMLtoJSON(i interface{}) interface{} {
-	// Algorithm for conversion
-	switch item := i.(type) {
-	case map[interface{}]interface{}:
-		document := map[string]interface{}{}
-		for k, v := range item {
-			document[k.(string)] = convertYAMLtoJSON(v)
-		}
-		return document
-	case []interface{}:
-		for i, arr := range item {
-			item[i] = convertYAMLtoJSON(arr)
-		}
-	}
-
-	return i
 }
