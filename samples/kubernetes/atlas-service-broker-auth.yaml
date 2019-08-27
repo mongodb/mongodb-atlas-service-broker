@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: atlas-service-broker-auth
+type: Opaque
+data:
+  # username = username
+  username: Q0tJVVRLTkNANWQxOWU3NTgzYmY5OTQxZGE3M2NhMTNl
+  # password = password
+  password: NjM5ODMzZWYtZmQ5Ni00Njk0LWEzMGQtZjJiZTNhYWI0NDM5
