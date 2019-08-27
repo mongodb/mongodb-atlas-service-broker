@@ -147,9 +147,22 @@ func deployBroker(namespace string) error {
 // Create secret and registerBroker will register the broker deployed in deployBroker with the
 // service catalog.
 func registerBroker(namespace string) error {
-	secret := &v1.Secret{}
-	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/atlas-service-broker-auth.yaml", &secret)
-	kubeClient.CoreV1().Secrets(namespace).Create(secret)
+	authSecretName := name + "-auth"
+
+	username := atlasPublicKey + "@" + atlasGroupID
+	password := atlasPrivateKey
+
+	// Create secret to hold the basic auth credentials for the broker.
+	// The broker expects Atlas API credentials as part of the basic auth.
+	kubeClient.CoreV1().Secrets(namespace).Create(&v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: authSecretName,
+		},
+		Data: map[string][]byte{
+			"username": []byte(username),
+			"password": []byte(password),
+		},
+	})
 
 	servicebroker := v1beta1.ServiceBroker{}
 	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/service-broker.yaml", &servicebroker)
