@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: atlas-service-broker
-          image: quay.io/mongodb/mongodb-atlas-service-broker:latest
+          image: quay.io/mongodb/mongodb-atlas-service-broker:e2e-test
           imagePullPolicy: Never
           ports:
             - containerPort: 4000
