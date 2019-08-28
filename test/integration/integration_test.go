@@ -142,6 +142,118 @@ func TestProvision(t *testing.T) {
 	assert.Equal(t, expectedCluster, cluster)
 }
 
+func TestProvisioM2Size(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	clusterName := brokerlib.NormalizeClusterName(instanceID)
+
+	// Setting up our Expected cluster
+	var expectedCluster = &atlas.Cluster{
+		Name: clusterName,
+		ProviderSettings: &atlas.ProviderSettings{
+			BackingProviderName: "AWS",
+			InstanceSizeName:    "M2",
+			ProviderName:        "TENANT",
+			RegionName:          "US_EAST_1",
+		},
+	}
+
+	// Setting up the params for the body request
+	paramsByte, marshalErr := json.Marshal(expectedCluster)
+	assert.NoError(t, marshalErr)
+
+	params := `{"cluster":` + string(paramsByte) + `}`
+
+	_, err := broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "aosb-cluster-service-tenant",
+		PlanID:        "aosb-cluster-plan-tenant-m2",
+		RawParameters: []byte(params),
+	}, true)
+
+	defer teardownInstance(instanceID)
+
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure the cluster is being created.
+	cluster, err := client.GetCluster(clusterName)
+	assert.NoError(t, err)
+	assert.Equal(t, atlas.ClusterStateCreating, cluster.StateName)
+
+	// Wait a maximum of 20 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	cluster, err = client.GetCluster(clusterName)
+	assert.NoError(t, err)
+
+	// Ensure response is equal to request cluster
+	assert.Equal(t, expectedCluster.ProviderSettings.BackingProviderName, cluster.ProviderSettings.BackingProviderName)
+	assert.Equal(t, expectedCluster.ProviderSettings.ProviderName, cluster.ProviderSettings.ProviderName)
+	assert.Equal(t, expectedCluster.ProviderSettings.InstanceSizeName, cluster.ProviderSettings.InstanceSizeName)
+	assert.Equal(t, expectedCluster.ProviderSettings.RegionName, cluster.ProviderSettings.RegionName)
+}
+
+func TestProvisioM5Size(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	clusterName := brokerlib.NormalizeClusterName(instanceID)
+
+	// Setting up our Expected cluster
+	var expectedCluster = &atlas.Cluster{
+		Name: clusterName,
+		ProviderSettings: &atlas.ProviderSettings{
+			BackingProviderName: "AWS",
+			InstanceSizeName:    "M5",
+			ProviderName:        "TENANT",
+			RegionName:          "US_EAST_1",
+		},
+	}
+
+	// Setting up the params for the body request
+	paramsByte, marshalErr := json.Marshal(expectedCluster)
+	assert.NoError(t, marshalErr)
+
+	params := `{"cluster":` + string(paramsByte) + `}`
+
+	_, err := broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "aosb-cluster-service-tenant",
+		PlanID:        "aosb-cluster-plan-tenant-m5",
+		RawParameters: []byte(params),
+	}, true)
+
+	defer teardownInstance(instanceID)
+
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure the cluster is being created.
+	cluster, err := client.GetCluster(clusterName)
+	assert.NoError(t, err)
+	assert.Equal(t, atlas.ClusterStateCreating, cluster.StateName)
+
+	// Wait a maximum of 20 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	cluster, err = client.GetCluster(clusterName)
+	assert.NoError(t, err)
+
+	// Ensure response is equal to request cluster
+	assert.Equal(t, expectedCluster.ProviderSettings.BackingProviderName, cluster.ProviderSettings.BackingProviderName)
+	assert.Equal(t, expectedCluster.ProviderSettings.ProviderName, cluster.ProviderSettings.ProviderName)
+	assert.Equal(t, expectedCluster.ProviderSettings.InstanceSizeName, cluster.ProviderSettings.InstanceSizeName)
+	assert.Equal(t, expectedCluster.ProviderSettings.RegionName, cluster.ProviderSettings.RegionName)
+}
+
 func TestUpdate(t *testing.T) {
 	t.Parallel()
 

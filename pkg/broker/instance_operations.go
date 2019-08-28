@@ -17,6 +17,8 @@ const (
 	OperationProvision   = "provision"
 	OperationDeprovision = "deprovision"
 	OperationUpdate      = "update"
+	InstanceSizeNameM2   = "M2"
+	InstanceSizeNameM5   = "M5"
 )
 
 // Provision will create a new Atlas cluster with the instance ID as its name.
@@ -249,27 +251,29 @@ func clusterFromParams(client atlas.Client, instanceID string, serviceID string,
 	// If the plan ID is specified we construct the provider object from the service and plan.
 	// The plan ID is optional during updates but not during creation.
 	if planID != "" {
-		provider, err := findProviderByServiceID(client, serviceID)
-		if err != nil {
-			return nil, err
-		}
-
-		instanceSize, err := findInstanceSizeByPlanID(provider, planID)
-		if err != nil {
-			return nil, err
-		}
-
 		if params.Cluster.ProviderSettings == nil {
 			params.Cluster.ProviderSettings = &atlas.ProviderSettings{}
 		}
 
-		// Configure provider based on service and plan.
-		params.Cluster.ProviderSettings.ProviderName = provider.Name
-		params.Cluster.ProviderSettings.InstanceSizeName = instanceSize.Name
+		instanceSizeName := params.Cluster.ProviderSettings.InstanceSizeName
+		if instanceSizeName != InstanceSizeNameM2 && instanceSizeName != InstanceSizeNameM5 {
+			provider, err := findProviderByServiceID(client, serviceID)
+			if err != nil {
+				return nil, err
+			}
+
+			instanceSize, err := findInstanceSizeByPlanID(provider, planID)
+			if err != nil {
+				return nil, err
+			}
+
+			// Configure provider based on service and plan.
+			params.Cluster.ProviderSettings.ProviderName = provider.Name
+			params.Cluster.ProviderSettings.InstanceSizeName = instanceSize.Name
+		}
 	}
 
 	// Add the instance ID as the name of the cluster.
 	params.Cluster.Name = NormalizeClusterName(instanceID)
-
 	return params.Cluster, nil
 }
