@@ -91,6 +91,35 @@ func TestCatalog(t *testing.T) {
 	assert.NotEmpty(t, plans.Items, "Expected service plans to exist")
 }
 
+func TestProvision(t *testing.T) {
+	t.Parallel()
+
+	namespace := setupTest(t)
+	defer cleanupTest(t)
+
+	serviceinstance := &v1beta1.ServiceInstance{}
+	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/instance.yaml", &serviceinstance)
+
+	// Provision instance from the CRD using the service catalog
+	cluster, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Create(serviceinstance)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Wait up to 20 minutes for the service instance to have been provisioned.
+	err = testutil.Poll(20, func() (bool, error) {
+		// Get the instance created by the service catalog
+		instance, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(cluster.GetName(), metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		return v1beta1.ServiceInstanceProvisionStatus("Provisioned") == instance.Status.ProvisionStatus, nil
+	})
+
+	assert.NoError(t, err, "Expected instance to have been provisioned")
+}
+
 // setupTest will create a new namespace for a single test and deploy the
 // broker inside.
 func setupTest(t *testing.T) string {
