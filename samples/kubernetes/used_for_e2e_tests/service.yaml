@@ -1,0 +1,15 @@
+# Service to expose the service broker inside the cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlas-service-broker
+  labels:
+    app: atlas-service-broker
+spec:
+  selector:
+    # Will match pods deployed by the "atlas-service-broker" deployment.
+    app: atlas-service-broker
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4000

@@ -1,0 +1,26 @@
+# Deployment to run the service broker.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atlas-service-broker
+  labels:
+    app: atlas-service-broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: atlas-service-broker
+  template:
+    metadata:
+      labels:
+        app: atlas-service-broker
+    spec:
+      containers:
+        - name: atlas-service-broker
+          image: quay.io/mongodb/mongodb-atlas-service-broker:e2e-test
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 4000
+          env:
+            - name: BROKER_HOST
+              value: "0.0.0.0"
