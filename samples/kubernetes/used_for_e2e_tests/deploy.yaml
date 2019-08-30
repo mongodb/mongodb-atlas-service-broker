@@ -24,3 +24,5 @@ spec:
           env:
             - name: BROKER_HOST
               value: "0.0.0.0"
+            - name: ATLAS_BASE_URL
+              value: "https://cloud-qa.mongodb.com/"

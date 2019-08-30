@@ -35,6 +35,13 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	fmt.Println("\n#############What the E2E is using")
+	fmt.Println("ATLAS_BASE_URL: ", atlasBaseURL)
+	fmt.Println("ATLAS_GROUP_ID: ", atlasGroupID)
+	fmt.Println("ATLAS_PUBLIC_KEY: ", atlasPublicKey)
+	fmt.Println("ATLAS_PRIVATE_KEY: ", atlasPrivateKey)
+	fmt.Println("DOCKER_IMAGE: ", image)
+
 	// Load Kubernetes client config.
 	kubeConfigPath := testutil.GetEnvOrPanic("KUBECONFIG")
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -68,8 +75,8 @@ func TestCatalog(t *testing.T) {
 		return
 	}
 
-	// Wait up to five minutes for the service catalog to have been fetched and updated.
-	err := testutil.Poll(5, func() (bool, error) {
+	// Wait up to 20 minutes for the service catalog to have been fetched and updated.
+	err := testutil.Poll(20, func() (bool, error) {
 		// The catalog will create a ServiceClass object for each service
 		// offered by our broker.
 		classes, err := svcatClient.ServicecatalogV1beta1().ServiceClasses(namespace).List(metav1.ListOptions{})
@@ -97,31 +104,132 @@ func TestProvision(t *testing.T) {
 	namespace := setupTest(t)
 	defer cleanupTest(t)
 
-	serviceinstance := &v1beta1.ServiceInstance{}
-	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/instance.yaml", &serviceinstance)
+	_, err := setupServiceInstance(t, namespace)
+	assert.NoError(t, err, "Expected instance to have been provisioned")
+}
 
-	// Provision instance from the CRD using the service catalog
-	cluster, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Create(serviceinstance)
+func TestUpdate(t *testing.T) {
+	t.Parallel()
+
+	namespace := setupTest(t)
+	defer cleanupTest(t)
+
+	// Create service instance with plan size M10
+	serviceinstance, err := setupServiceInstance(t, namespace)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	// Wait up to 20 minutes for the service instance to have been provisioned.
-	err = testutil.Poll(20, func() (bool, error) {
+	// Ensure cluster is in the correct state
+	cluster, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(serviceinstance.GetName(), metav1.GetOptions{})
+	if !assert.NoError(t, err) {
+		return
+	}
+	assert.Equal(t, "M10", cluster.Spec.ClusterServicePlanExternalName)
+
+	// Make changes in the service instance
+	serviceinstance.Spec.ClusterServicePlanExternalName = "M20"
+
+	// Update the service instance with this change
+	updatedServiceInstance, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Update(serviceinstance)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Wait up to 25 minutes for the service instance to have been updated.
+	err = testutil.Poll(25, func() (bool, error) {
 		// Get the instance created by the service catalog
-		instance, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(cluster.GetName(), metav1.GetOptions{})
+		instanceOnRemote, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(updatedServiceInstance.GetName(), metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 
-		return v1beta1.ServiceInstanceProvisionStatus("Provisioned") == instance.Status.ProvisionStatus, nil
+		assert.Equal(t, "M20", instanceOnRemote.Spec.ClusterServicePlanExternalName)
+
+		return true, nil
 	})
 
-	assert.NoError(t, err, "Expected instance to have been provisioned")
+	assert.NoError(t, err, "Expected instance to have been Updated")
 }
 
-// setupTest will create a new namespace for a single test and deploy the
-// broker inside.
+func TestDeprovision(t *testing.T) {
+	t.Parallel()
+
+	namespace := setupTest(t)
+	defer cleanupTest(t)
+
+	serviceinstance, err := setupServiceInstance(t, namespace)
+
+	// Deprovision service instance
+	err = svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Delete(serviceinstance.GetName(), &metav1.DeleteOptions{})
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Wait up to 25 minutes for the service instance to have been deprovisioned.
+	err = testutil.Poll(25, func() (bool, error) {
+		// Get the instance created by the service catalog
+		_, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(serviceinstance.GetName(), metav1.GetOptions{})
+		return false, err
+	})
+
+	assert.Error(t, err, "Expected the service instance to not be found")
+}
+
+func TestBind(t *testing.T) {
+	t.Parallel()
+
+	namespace := setupTest(t)
+	defer cleanupTest(t)
+
+	servicebinding, err := setupServiceBinding(t, namespace)
+	if assert.NoError(t, err) {
+		return
+	}
+
+	// Wait up to 2 minute for the service binding to have been created
+	err = testutil.Poll(2, func() (bool, error) {
+		// Get the service binding
+		bindingOnRemote, err := svcatClient.ServicecatalogV1beta1().ServiceBindings(namespace).Get(servicebinding.GetName(), metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		assert.Equal(t, servicebinding.ObjectMeta.GetName(), bindingOnRemote.ObjectMeta.GetName())
+
+		return true, nil
+	})
+
+	assert.NoError(t, err, "Expected the service binding to have been created")
+}
+
+func TestUnBind(t *testing.T) {
+	t.Parallel()
+
+	namespace := setupTest(t)
+	defer cleanupTest(t)
+
+	servicebinding, err := setupServiceBinding(t, namespace)
+	if assert.NoError(t, err) {
+		return
+	}
+
+	err = svcatClient.ServicecatalogV1beta1().ServiceBindings(namespace).Delete(servicebinding.GetName(), &metav1.DeleteOptions{})
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Wait up to 2 minute for the service binding to have been created
+	err = testutil.Poll(2, func() (bool, error) {
+		// Get the service binding
+		_, err = svcatClient.ServicecatalogV1beta1().ServiceBindings(namespace).Get(servicebinding.GetName(), metav1.GetOptions{})
+		return false, nil
+	})
+
+	assert.Error(t, err, "Expected the service binding to not be found")
+}
+
+// setupTest will create a new namespace for a single test and deploy the broker inside.
 func setupTest(t *testing.T) string {
 	namespace := namespaceForTest(t)
 
@@ -145,7 +253,7 @@ func setupTest(t *testing.T) string {
 	return namespace
 }
 
-// cleanupTest will destroy a test namespace and all its resources.
+// cleanupTest will destroy a test namespace and all of its resources.
 func cleanupTest(t *testing.T) {
 	namespace := namespaceForTest(t)
 
@@ -165,7 +273,7 @@ func deployBroker(namespace string) error {
 	deploy := &appsv1.Deployment{}
 	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/used_for_e2e_tests/deploy.yaml", &deploy)
 
-	// Environment Variable
+	// Add environment Variable
 	deploy.Spec.Template.Spec.Containers[0].Env = append(deploy.Spec.Template.Spec.Containers[0].Env, v1.EnvVar{
 		Name:  "ATLAS_BASE_URL",
 		Value: atlasBaseURL,
@@ -212,4 +320,47 @@ func registerBroker(namespace string) error {
 	_, err := svcatClient.ServicecatalogV1beta1().ServiceBrokers(namespace).Create(&servicebroker)
 
 	return err
+}
+
+// setupInstance will create an instance for each test case in their own unique namespace
+func setupServiceInstance(t *testing.T, namespace string) (*v1beta1.ServiceInstance, error) {
+	// cluster resource definition interface for service instance
+	crd := &v1beta1.ServiceInstance{}
+	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/instance.yaml", &crd)
+
+	// Provision instance from the CRD using the service catalog
+	provisionedCRD, err := svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Create(crd)
+	if !assert.NoError(t, err) {
+		return nil, err
+	}
+
+	// Naming convention used in kubernetes
+	serviceinstance := &v1beta1.ServiceInstance{}
+	// Wait up to 25 minutes for the service instance to have been provisioned.
+	err = testutil.Poll(25, func() (bool, error) {
+		// Get the instance created by the service catalog
+		serviceinstance, err = svcatClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(provisionedCRD.GetName(), metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		return v1beta1.ServiceInstanceProvisionStatus("Provisioned") == serviceinstance.Status.ProvisionStatus, nil
+	})
+
+	return serviceinstance, err
+}
+
+// setupServiceBinding will create a binding for each test case in their own unique namespace
+func setupServiceBinding(t *testing.T, namespace string) (*v1beta1.ServiceBinding, error) {
+	// cluster resource definition interface for service binding
+	crd := &v1beta1.ServiceBinding{}
+	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/binding.yaml", &crd)
+
+	// Bind user to service instance
+	servicebinding, err := svcatClient.ServicecatalogV1beta1().ServiceBindings(namespace).Create(crd)
+	if !assert.NoError(t, err) {
+		return nil, err
+	}
+
+	return servicebinding, nil
 }
