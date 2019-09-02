@@ -32,19 +32,23 @@ func (c *HTTPClient) GetProvider(name string) (*Provider, error) {
 
 	// First check to see if any of the providers have been set by the administrator of the cluster
 	provider, isSet, err := setupProviders(name)
+	if err != nil {
+		return &provider, err
+	}
 	if isSet {
 		return &provider, err
 	}
 
-	// Otherwise we make a request to the private atlas API
+	// Otherwise we make a request to the private atlas API when it's not set
 	err = c.requestPrivate(http.MethodGet, path, nil, &provider)
 	return &provider, err
 }
 
-// setupProvidors will setup all of the available providors together with their plans/sizes.
-// Users may want to set their local providor, and combine that with a remote provider.
+// setupProviders will setup all of the available providors together with their plans/sizes.
+// Users may want to set their local providor, and combine that with a remote provider that isn't set locally.
 func setupProviders(name string) (provider Provider, isSet bool, err error) {
-	file, err := ioutil.ReadFile("/Users/victor/atlas-service-broker/pkg/atlas/providers.json")
+	// Load in json file
+	file, err := ioutil.ReadFile("pkg/atlas/providers.json")
 	if err != nil {
 		return
 	}
