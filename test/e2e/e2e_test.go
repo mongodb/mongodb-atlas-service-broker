@@ -68,8 +68,8 @@ func TestCatalog(t *testing.T) {
 		return
 	}
 
-	// Wait up to five minutes for the service catalog to have been fetched and updated.
-	err := testutil.Poll(5, func() (bool, error) {
+	// Wait up to 10 minutes for the service catalog to have been fetched and updated.
+	err := testutil.Poll(10, func() (bool, error) {
 		// The catalog will create a ServiceClass object for each service
 		// offered by our broker.
 		classes, err := svcatClient.ServicecatalogV1beta1().ServiceClasses(namespace).List(metav1.ListOptions{})

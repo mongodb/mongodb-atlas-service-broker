@@ -32,6 +32,9 @@ func TestMain(m *testing.M) {
 	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 	ctx = context.WithValue(ctx, brokerlib.ContextKeyAtlasClient, client)
 
+	// path to local providers
+	atlas.PathToProviderJSON = "../../providers.json"
+
 	// Setup the broker which will be used
 	broker = brokerlib.NewBroker(zap.NewNop().Sugar())
 

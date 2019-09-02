@@ -1,0 +1,34 @@
+{
+    "providers" : [
+        {
+            "UNSET": {
+                "@provider": "GCP",
+                "InstanceSizes": {
+                    "M10": {"name": "M10"},
+                    "M20": {"name": "M20"},
+                    "M200": {"name": "M200"}
+                }
+            }
+        },
+        {
+            "UNSET": {
+                "@provider": "AWS",
+                "InstanceSizes": {
+                    "M10": {"name": "M10"},
+                    "M100": {"name": "M100"},
+                    "M140": {"name": "M140"}
+                }
+            }
+        },
+        {
+            "UNSET": {
+                "@provider": "AZURE",
+                "InstanceSizes": {
+                    "M10": {"name": "M10"},
+                    "M20": {"name": "M20"},
+                    "M200": {"name": "M200"}
+                }
+            }
+        }
+    ]
+  }

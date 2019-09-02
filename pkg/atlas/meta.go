@@ -7,6 +7,9 @@ import (
 	"net/http"
 )
 
+// PathToProviderJSON is the path to the json file
+var PathToProviderJSON = "providers.json"
+
 // ProvidersFile represents all of the providers that have been set in the provider.json file
 type ProvidersFile struct {
 	Providers []map[string]Provider `json:"providers,omitempty"`
@@ -30,7 +33,7 @@ func (c *HTTPClient) GetProvider(name string) (*Provider, error) {
 	path := fmt.Sprintf("cloudProviders/%s/options", name)
 	var provider Provider
 
-	// First check to see if any of the providers have been set by the administrator of the cluster
+	// First check to see if any of the providers have been set by the administrator of the cluster locally
 	provider, isSet, err := setupProviders(name)
 	if err != nil {
 		return &provider, err
@@ -48,7 +51,7 @@ func (c *HTTPClient) GetProvider(name string) (*Provider, error) {
 // Users may want to set their local providor, and combine that with a remote provider that isn't set locally.
 func setupProviders(name string) (provider Provider, isSet bool, err error) {
 	// Load in json file
-	file, err := ioutil.ReadFile("pkg/atlas/providers.json")
+	file, err := ioutil.ReadFile(PathToProviderJSON)
 	if err != nil {
 		return
 	}
@@ -66,5 +69,6 @@ func setupProviders(name string) (provider Provider, isSet bool, err error) {
 		}
 	}
 
+	// None SET
 	return Provider{}, false, err
 }
