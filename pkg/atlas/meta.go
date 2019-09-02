@@ -54,31 +54,13 @@ func setupProviders(name string) (provider Provider, isSet bool, err error) {
 	if err != nil {
 		return
 	}
-	fmt.Println("INTERFACE: ", providersFile)
 
 	for _, document := range providersFile.Providers {
-		if val, ok := document["SET"]; ok {
-			fmt.Println("VAL", val)
-			return val, true, err
+		// each item (provider) has a name and instancesizes
+		if item, ok := document["SET"]; ok && item.Name == name {
+			return item, true, err
 		}
 	}
 
 	return Provider{}, false, err
 }
-
-// fmt.Println("FILE: ", string(file))
-// fmt.Println("INTERFACE: ", providersFile)
-// if json file is SET
-// just call err := c.requestPrivate(http.MethodGet, path, nil, &provider)
-// else load in the json specified by the administrators
-// _, err := setupProviders()
-// if err != nil {
-// 	return nil, err
-// }
-
-// b, err := json.Marshal(provider)
-// if err != nil {
-// 	fmt.Println(err)
-// 	return nil, err
-// }
-// fmt.Println("PROVIDOR: ", string(b))

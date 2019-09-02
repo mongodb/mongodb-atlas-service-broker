@@ -1,7 +1,7 @@
 {
     "providers" : [
         {
-            "SET": {
+            "UNSET": {
                 "@provider": "GCP",
                 "InstanceSizes": {
                     "M10": {"name": "M10"},
@@ -12,7 +12,7 @@
             }
         },
         {
-            "UNSET": {
+            "SET": {
                 "@provider": "AWS",
                 "InstanceSizes": {
                     "M10": {"name": "M10"},
