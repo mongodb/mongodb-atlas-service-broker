@@ -1,0 +1,39 @@
+{
+    "providers" : [
+        {
+            "SET": {
+                "@provider": "GCP",
+                "InstanceSizes": {
+                    "M10": {"name": "M10"},
+                    "M20": {"name": "M20"},
+                    "M200": {"name": "M200"},
+                    "M30": {"name": "M30"}
+                }
+            }
+        },
+        {
+            "UNSET": {
+                "@provider": "AWS",
+                "InstanceSizes": {
+                    "M10": {"name": "M10"},
+                    "M100": {"name": "M100"},
+                    "M140": {"name": "M140"},
+                    "M20": {"name": "M20"},
+                    "M200": {"name": "M200"},
+                    "M200_NVME": {"name": "M200_NVME"}
+                }
+            }
+        },
+        {
+            "UNSET": {
+                "@provider": "AZURE",
+                "InstanceSizes": {
+                    "M10": {"name": "M10"},
+                    "M20": {"name": "M20"},
+                    "M200": {"name": "M200"},
+                    "M30": {"name": "M30"}
+                }
+            }
+        }
+    ]
+  }
