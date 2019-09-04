@@ -29,7 +29,6 @@ type Broker struct {
 // NewBroker creates a new Broker with a logger.
 func NewBroker(logger *zap.SugaredLogger, pathToFile string) *Broker {
 	providersConfig = pathToFile
-
 	return &Broker{
 		logger: logger,
 	}

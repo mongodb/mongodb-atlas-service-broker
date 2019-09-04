@@ -29,14 +29,16 @@ func TestMain(m *testing.M) {
 	groupID := testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
 	publicKey := testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
 	privateKey := testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
-	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
+
+	// Using this instead of the environment variable, because the
+	// E2E tests will use the environment variable.
+	providerConfig := "../../providersConfigExample.json"
+
+	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey, providerConfig)
 	ctx = context.WithValue(ctx, brokerlib.ContextKeyAtlasClient, client)
 
-	// path to local providers
-	atlas.PathToProviderJSON = "../../providers.json"
-
 	// Setup the broker which will be used
-	broker = brokerlib.NewBroker(zap.NewNop().Sugar())
+	broker = brokerlib.NewBroker(zap.NewNop().Sugar(), providerConfig)
 
 	result := m.Run()
 
@@ -143,6 +145,40 @@ func TestProvision(t *testing.T) {
 
 	// Ensure response is equal to request cluster
 	assert.Equal(t, expectedCluster, cluster)
+
+	// The following parts tests non-existent plans not set by the administrator when provisioning
+	instanceID = uuid.New().String()
+	clusterName = brokerlib.NormalizeClusterName(instanceID)
+
+	// Setting up our Expected cluster
+	params = `{
+		"cluster": {
+			"providerSettings": {
+                "regionName": "EU_WEST_1"
+            }
+		}
+	}`
+
+	_, err = broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "aosb-cluster-service-aws",
+		PlanID:        "aosb-cluster-plan-aws-m60",
+		RawParameters: []byte(params),
+	}, true)
+	assert.Error(t, atlas.ErrPlanIDNotFound, err)
+
+	_, err = broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "aosb-cluster-service-gcp",
+		PlanID:        "aosb-cluster-plan-gcp-m60",
+		RawParameters: []byte(params),
+	}, true)
+	assert.Error(t, atlas.ErrPlanIDNotFound, err)
+
+	_, err = broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "aosb-cluster-service-azure",
+		PlanID:        "aosb-cluster-plan-azure-m60",
+		RawParameters: []byte(params),
+	}, true)
+	assert.Error(t, atlas.ErrPlanIDNotFound, err)
 }
 
 func TestProvisioM2Size(t *testing.T) {
@@ -285,9 +321,18 @@ func TestUpdate(t *testing.T) {
 		}
 	}`
 
+	// Try to update to a plan that doesn't exist
 	_, err = broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
 		ServiceID:     "aosb-cluster-service-aws",
-		PlanID:        "aosb-cluster-plan-aws-m20",
+		PlanID:        "aosb-cluster-plan-aws-m60",
+		RawParameters: []byte(params),
+	}, true)
+
+	assert.Error(t, atlas.ErrPlanIDNotFound, err)
+
+	_, err = broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
+		ServiceID:     "aosb-cluster-service-aws",
+		PlanID:        "aosb-cluster-plan-aws-m10",
 		RawParameters: []byte(params),
 	}, true)
 
@@ -308,7 +353,7 @@ func TestUpdate(t *testing.T) {
 
 	// Ensure instance size is now "M20" and backups are enabled.
 	assert.Equal(t, atlas.ClusterStateIdle, cluster.StateName)
-	assert.Equal(t, "M20", cluster.ProviderSettings.InstanceSizeName)
+	assert.Equal(t, "M10", cluster.ProviderSettings.InstanceSizeName)
 	assert.True(t, cluster.BackupEnabled)
 }
 

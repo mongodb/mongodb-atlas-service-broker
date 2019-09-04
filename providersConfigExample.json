@@ -26,8 +26,8 @@
     {
         "@provider": "TENANT",
         "InstanceSizes": {
-            "M2": {"name": "M10"},
-            "M5": {"name": "M20"}
+            "M2": {"name": "M2"},
+            "M5": {"name": "M5"}
         }
     }
 ]
