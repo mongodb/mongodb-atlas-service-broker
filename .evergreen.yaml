@@ -195,6 +195,7 @@ functions:
           export ATLAS_GROUP_ID=${atlas_group_id}
           export ATLAS_PUBLIC_KEY=${atlas_public_key}
           export ATLAS_PRIVATE_KEY=${atlas_private_key}
+          export PROVIDERS_CONFIG_FILE=${providers_config_file}
           export DOCKER_IMAGE="${docker_repo}/${docker_name}:e2e-test"
           KUBECONFIG=$(kind get kubeconfig-path)
           export KUBECONFIG
