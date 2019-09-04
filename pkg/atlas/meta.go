@@ -53,7 +53,7 @@ func (c *HTTPClient) GetProvider(name string) (*Provider, error) {
 }
 
 // getLocalProvider will setup all of the available providors together with their plans/sizes.
-// Users may want to set their local providor, and combine that with a remote provider that isn't set locally.
+// Users may want to set their local provider, and combine that with a remote provider that isn't set locally.
 func getLocalProvider(name string, pathToFile string) (provider Provider, isSet bool, err error) {
 	// Load in json file
 	file, err := ioutil.ReadFile(pathToFile)
