@@ -75,6 +75,9 @@ Docker Image: quay.io/mongodb/mongodb-atlas-service-broker`
 }
 
 func startBrokerServer() {
+	// Administrators can control what providers/plans are available to users
+	providersConfig := getEnvOrDefault("PROVIDERS_CONFIG_FILE", "")
+
 	logLevel := getEnvOrDefault("BROKER_LOG_LEVEL", DefaultLogLevel)
 	logger, err := createLogger(logLevel)
 	if err != nil {
@@ -82,7 +85,7 @@ func startBrokerServer() {
 	}
 	defer logger.Sync() // Flushes buffer, if any
 
-	broker := atlasbroker.NewBroker(logger)
+	broker := atlasbroker.NewBroker(logger, providersConfig)
 
 	router := mux.NewRouter()
 	brokerapi.AttachRoutes(router, broker, NewLagerZapLogger(logger))
@@ -142,7 +145,7 @@ func getEnvOrPanic(name string) string {
 	return value
 }
 
-// getEnvOrPanic will try getting an environment variable and return a default
+// getEnvOrDefault will try getting an environment variable and return a default
 // value in case it doesn't exist.
 func getEnvOrDefault(name string, def string) string {
 	value, exists := os.LookupEnv(name)

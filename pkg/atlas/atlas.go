@@ -28,10 +28,11 @@ type Client interface {
 // HTTPClient is the main implementation of the Client interface which
 // communicates with the Atlas API.
 type HTTPClient struct {
-	BaseURL    string
-	GroupID    string
-	PublicKey  string
-	PrivateKey string
+	BaseURL         string
+	GroupID         string
+	PublicKey       string
+	PrivateKey      string
+	ProvidersConfig string
 
 	HTTP *http.Client
 }
@@ -53,13 +54,14 @@ const (
 )
 
 // NewClient will create a new HTTPClient with the specified connection details.
-func NewClient(baseURL string, groupID string, publicKey string, privateKey string) *HTTPClient {
+func NewClient(baseURL string, groupID string, publicKey string, privateKey string, providersConfig string) *HTTPClient {
 	return &HTTPClient{
-		BaseURL:    baseURL,
-		GroupID:    groupID,
-		PublicKey:  publicKey,
-		PrivateKey: privateKey,
-		HTTP:       &http.Client{},
+		BaseURL:         baseURL,
+		GroupID:         groupID,
+		PublicKey:       publicKey,
+		PrivateKey:      privateKey,
+		ProvidersConfig: providersConfig,
+		HTTP:            &http.Client{},
 	}
 }
 

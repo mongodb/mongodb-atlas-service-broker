@@ -16,6 +16,9 @@ import (
 // Ensure broker adheres to the ServiceBroker interface.
 var _ brokerapi.ServiceBroker = Broker{}
 
+// File containing settings for providers and their plans
+var providersConfig string
+
 // Broker is responsible for translating OSB calls to Atlas API calls.
 // Implements the brokerapi.ServiceBroker interface making it easy to spin up
 // an API server.
@@ -24,7 +27,9 @@ type Broker struct {
 }
 
 // NewBroker creates a new Broker with a logger.
-func NewBroker(logger *zap.SugaredLogger) *Broker {
+func NewBroker(logger *zap.SugaredLogger, pathToFile string) *Broker {
+	providersConfig = pathToFile
+
 	return &Broker{
 		logger: logger,
 	}
@@ -63,7 +68,7 @@ func AuthMiddleware(baseURL string) mux.MiddlewareFunc {
 
 			// Create a new client with the extracted API credentials and
 			// attach it to the request context.
-			client := atlas.NewClient(baseURL, splitUsername[1], splitUsername[0], password)
+			client := atlas.NewClient(baseURL, splitUsername[1], splitUsername[0], password, providersConfig)
 			ctx := context.WithValue(r.Context(), ContextKeyAtlasClient, client)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
