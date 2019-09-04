@@ -3,9 +3,9 @@ kind: ClusterServiceBroker
 metadata:
   name: atlas-service-broker
 spec:
-  url: http://atlas-service-broker.atlas
+  url: http://atlas-service-broker.aosb-e2e-testcatalog
   authInfo:
     basic:
       secretRef:
         name: atlas-service-broker-auth
-        namespace: atlas
+        namespace: aosb-e2e-testcatalog

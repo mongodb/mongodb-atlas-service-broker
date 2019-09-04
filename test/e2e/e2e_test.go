@@ -136,14 +136,7 @@ func deployBroker(namespace string) error {
 	deploy := &appsv1.Deployment{}
 	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/used_for_e2e_tests/deploy.yaml", &deploy)
 
-	// Environment Variable
-	deploy.Spec.Template.Spec.Containers[0].Env = append(deploy.Spec.Template.Spec.Containers[0].Env, v1.EnvVar{
-		Name:  "ATLAS_BASE_URL",
-		Value: atlasBaseURL,
-	})
-
 	_, err := kubeClient.AppsV1().Deployments(namespace).Create(deploy)
-
 	if err != nil {
 		return err
 	}
@@ -176,11 +169,11 @@ func registerBroker(namespace string) error {
 		},
 	})
 
-	servicebroker := v1beta1.ServiceBroker{}
+	servicebroker := &v1beta1.ClusterServiceBroker{}
 	testutil.ReadInYAMLFileAndConvert("../../samples/kubernetes/service-broker.yaml", &servicebroker)
 	servicebroker.Spec.URL = fmt.Sprintf("http://%s.%s", "atlas-service-broker", namespace)
 
-	_, err := svcatClient.ServicecatalogV1beta1().ServiceBrokers(namespace).Create(&servicebroker)
+	_, err := svcatClient.ServicecatalogV1beta1().ClusterServiceBrokers().Create(servicebroker)
 
 	return err
 }
