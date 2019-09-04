@@ -19,6 +19,7 @@ func setupTest(t *testing.T, expectedPath string, method string, status int, res
 	const groupID = "group"
 	const publicKey = "pubkey"
 	const privateKey = "privkey"
+	const providerConfig = ""
 
 	fullPath := fmt.Sprintf("%s/groups/%s%s", publicAPIPath, groupID, expectedPath)
 
@@ -42,7 +43,7 @@ func setupTest(t *testing.T, expectedPath string, method string, status int, res
 		}
 	}))
 
-	atlas := NewClient(s.URL, groupID, publicKey, privateKey)
+	atlas := NewClient(s.URL, groupID, publicKey, privateKey, providerConfig)
 	atlas.HTTP = s.Client()
 
 	return atlas, s
