@@ -3,9 +3,12 @@ package integration
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 
 	"github.com/google/uuid"
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
@@ -13,9 +16,6 @@ import (
 	testutil "github.com/mongodb/mongodb-atlas-service-broker/test/util"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
 )
 
@@ -31,16 +31,43 @@ func TestMain(m *testing.M) {
 	publicKey := testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
 	privateKey := testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
 
-	// Using this instead of the environment variable, because the
-	// E2E tests will use the environment variable.
-	pathToFile := "../../providersConfigExample.json"
-	providersConfig, err := getLocalProviders(pathToFile)
-	if err != nil {
-		panic(err)
-	}
-
 	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 	ctx = context.WithValue(ctx, brokerlib.ContextKeyAtlasClient, client)
+
+	providersConfig := []*atlas.Provider{}
+	providerAWS := &atlas.Provider{
+		Name: "AWS",
+		InstanceSizes: map[string]atlas.InstanceSize{
+			"M10": atlas.InstanceSize{
+				Name: "M10",
+			},
+			"M20": atlas.InstanceSize{
+				Name: "M20",
+			},
+		},
+	}
+	providerGCP := &atlas.Provider{
+		Name: "GCP",
+		InstanceSizes: map[string]atlas.InstanceSize{
+			"M10": atlas.InstanceSize{
+				Name: "M10",
+			},
+		},
+	}
+	providerTENANT := &atlas.Provider{
+		Name: "TENANT",
+		InstanceSizes: map[string]atlas.InstanceSize{
+			"M2": atlas.InstanceSize{
+				Name: "M2",
+			},
+			"M5": atlas.InstanceSize{
+				Name: "M5",
+			},
+		},
+	}
+	providersConfig = append(providersConfig, providerAWS)
+	providersConfig = append(providersConfig, providerTENANT)
+	providersConfig = append(providersConfig, providerGCP)
 
 	// Setup the broker which will be used
 	broker = brokerlib.NewBrokerWithProvidersConfig(zap.NewNop().Sugar(), providersConfig)
@@ -150,40 +177,65 @@ func TestProvision(t *testing.T) {
 
 	// Ensure response is equal to request cluster
 	assert.Equal(t, expectedCluster, cluster)
+}
 
-	// The following parts tests non-existent plans not set by the administrator when provisioning
-	instanceID = uuid.New().String()
-	clusterName = brokerlib.NormalizeClusterName(instanceID)
+func TestProvisionProvidersConfig(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	clusterName := brokerlib.NormalizeClusterName(instanceID)
 
 	// Setting up our Expected cluster
-	params = `{ 
+	params := `{
 		"cluster": {
 			"providerSettings": {
-                "regionName": "EU_WEST_1"
-            }
+				"regionName": "EU_WEST_1"
+			}
 		}
 	}`
 
-	_, err = broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
-		ServiceID:     "aosb-cluster-service-aws",
-		PlanID:        "aosb-cluster-plan-aws-m60",
+	// We try to provision something that the adminstrator didn't create
+	_, err := broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "aosb-cluster-service-azure",
+		PlanID:        "aosb-cluster-plan-azure-m10",
 		RawParameters: []byte(params),
 	}, true)
 	assert.Error(t, atlas.ErrPlanIDNotFound, err)
 
+	// One the administrator did create
+	// Setting up our Expected cluster
+	params = `{
+			"cluster": {
+				"providerSettings": {
+					"regionName": "EUROPE_WEST_2"
+				}
+			}
+	}`
 	_, err = broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
 		ServiceID:     "aosb-cluster-service-gcp",
-		PlanID:        "aosb-cluster-plan-gcp-m60",
+		PlanID:        "aosb-cluster-plan-gcp-m10",
 		RawParameters: []byte(params),
 	}, true)
-	assert.Error(t, atlas.ErrPlanIDNotFound, err)
 
-	_, err = broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
-		ServiceID:     "aosb-cluster-service-azure",
-		PlanID:        "aosb-cluster-plan-azure-m60",
-		RawParameters: []byte(params),
-	}, true)
-	assert.Error(t, atlas.ErrPlanIDNotFound, err)
+	defer teardownInstance(instanceID)
+
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure the cluster is being created.
+	cluster, err := client.GetCluster(clusterName)
+	assert.NoError(t, err)
+	assert.Equal(t, atlas.ClusterStateCreating, cluster.StateName)
+
+	// Wait a maximum of 20 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	_, err = client.GetCluster(clusterName)
+	assert.NoError(t, err)
 }
 
 func TestProvisioM2Size(t *testing.T) {
@@ -326,7 +378,7 @@ func TestUpdate(t *testing.T) {
 		}
 	}`
 
-	// Try to update to a plan that doesn't exist
+	// Try to update to a plan to a plan that doesn't exist
 	_, err = broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
 		ServiceID:     "aosb-cluster-service-aws",
 		PlanID:        "aosb-cluster-plan-aws-m60",
@@ -337,7 +389,7 @@ func TestUpdate(t *testing.T) {
 
 	_, err = broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
 		ServiceID:     "aosb-cluster-service-aws",
-		PlanID:        "aosb-cluster-plan-aws-m10",
+		PlanID:        "aosb-cluster-plan-aws-m20",
 		RawParameters: []byte(params),
 	}, true)
 
@@ -358,7 +410,7 @@ func TestUpdate(t *testing.T) {
 
 	// Ensure instance size is now "M20" and backups are enabled.
 	assert.Equal(t, atlas.ClusterStateIdle, cluster.StateName)
-	assert.Equal(t, "M10", cluster.ProviderSettings.InstanceSizeName)
+	assert.Equal(t, "M20", cluster.ProviderSettings.InstanceSizeName)
 	assert.True(t, cluster.BackupEnabled)
 }
 
@@ -592,39 +644,4 @@ func teardownInstance(instanceID string) {
 
 func teardownBinding(bindingID string) {
 	client.DeleteUser(bindingID)
-}
-
-// getLocalProviders will read in the json file and return a provider struct, keeping the format the same as
-// the one from atlas.
-func getLocalProviders(pathToFile string) (providersConfig []*atlas.Provider, err error) {
-	// Panic if path is invalid
-	file, err := ioutil.ReadFile(pathToFile)
-	if err != nil {
-		panic(err)
-	}
-
-	var mapOfProviders map[string]map[string][]string
-	// Panic if json is in wrong format or file is empty
-	err = json.Unmarshal([]byte(file), &mapOfProviders)
-	if err != nil {
-		panic(err)
-	}
-
-	for provider, document := range mapOfProviders {
-		var singleProvider = &atlas.Provider{
-			Name:          provider,
-			InstanceSizes: map[string]atlas.InstanceSize{},
-		}
-		for _, instancesizes := range document {
-			for _, plan := range instancesizes {
-				instanceSize := atlas.InstanceSize{
-					Name: plan,
-				}
-				singleProvider.InstanceSizes[plan] = instanceSize
-			}
-		}
-
-		providersConfig = append(providersConfig, singleProvider)
-	}
-	return
 }
