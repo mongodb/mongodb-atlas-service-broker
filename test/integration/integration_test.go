@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -32,13 +33,17 @@ func TestMain(m *testing.M) {
 
 	// Using this instead of the environment variable, because the
 	// E2E tests will use the environment variable.
-	providerConfig := "../../providersConfigExample.json"
+	pathToFile := "../../providersConfigExample.json"
+	providersConfig, err := getLocalProviders(pathToFile)
+	if err != nil {
+		panic(err)
+	}
 
-	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey, providerConfig)
+	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 	ctx = context.WithValue(ctx, brokerlib.ContextKeyAtlasClient, client)
 
 	// Setup the broker which will be used
-	broker = brokerlib.NewBroker(zap.NewNop().Sugar(), providerConfig)
+	broker = brokerlib.NewBrokerWithProvidersConfig(zap.NewNop().Sugar(), providersConfig)
 
 	result := m.Run()
 
@@ -151,7 +156,7 @@ func TestProvision(t *testing.T) {
 	clusterName = brokerlib.NormalizeClusterName(instanceID)
 
 	// Setting up our Expected cluster
-	params = `{
+	params = `{ 
 		"cluster": {
 			"providerSettings": {
                 "regionName": "EU_WEST_1"
@@ -587,4 +592,39 @@ func teardownInstance(instanceID string) {
 
 func teardownBinding(bindingID string) {
 	client.DeleteUser(bindingID)
+}
+
+// getLocalProviders will read in the json file and return a provider struct, keeping the format the same as
+// the one from atlas.
+func getLocalProviders(pathToFile string) (providersConfig []*atlas.Provider, err error) {
+	// Panic if path is invalid
+	file, err := ioutil.ReadFile(pathToFile)
+	if err != nil {
+		panic(err)
+	}
+
+	var mapOfProviders map[string]map[string][]string
+	// Panic if json is in wrong format or file is empty
+	err = json.Unmarshal([]byte(file), &mapOfProviders)
+	if err != nil {
+		panic(err)
+	}
+
+	for provider, document := range mapOfProviders {
+		var singleProvider = &atlas.Provider{
+			Name:          provider,
+			InstanceSizes: map[string]atlas.InstanceSize{},
+		}
+		for _, instancesizes := range document {
+			for _, plan := range instancesizes {
+				instanceSize := atlas.InstanceSize{
+					Name: plan,
+				}
+				singleProvider.InstanceSizes[plan] = instanceSize
+			}
+		}
+
+		providersConfig = append(providersConfig, singleProvider)
+	}
+	return
 }
