@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +15,7 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	atlasbroker "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
 	"github.com/pivotal-cf/brokerapi"
 )
@@ -75,9 +78,6 @@ Docker Image: quay.io/mongodb/mongodb-atlas-service-broker`
 }
 
 func startBrokerServer() {
-	// Administrators can control what providers/plans are available to users
-	providersConfig := getEnvOrDefault("PROVIDERS_CONFIG_FILE", "")
-
 	logLevel := getEnvOrDefault("BROKER_LOG_LEVEL", DefaultLogLevel)
 	logger, err := createLogger(logLevel)
 	if err != nil {
@@ -85,7 +85,18 @@ func startBrokerServer() {
 	}
 	defer logger.Sync() // Flushes buffer, if any
 
-	broker := atlasbroker.NewBroker(logger, providersConfig)
+	// Administrators can control what providers/plans are available to users
+	pathToFile := getEnvOrDefault("PROVIDERS_CONFIG_FILE", "")
+	var broker *atlasbroker.Broker
+	if pathToFile == "" {
+		broker = atlasbroker.NewBroker(logger)
+	} else {
+		providersConfig, err := getLocalProviders(pathToFile)
+		if err != nil {
+			panic(err)
+		}
+		broker = atlasbroker.NewBrokerWithProvidersConfig(logger, providersConfig)
+	}
 
 	router := mux.NewRouter()
 	brokerapi.AttachRoutes(router, broker, NewLagerZapLogger(logger))
@@ -101,7 +112,11 @@ func startBrokerServer() {
 	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
 
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL)
+	// Replace with NONE if not set
+	if pathToFile == "" {
+		pathToFile = "NONE"
+	}
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL, "providers_config_file", pathToFile)
 
 	// Start broker HTTP server.
 	address := host + ":" + strconv.Itoa(port)
@@ -117,6 +132,41 @@ func startBrokerServer() {
 	if serverErr != nil {
 		logger.Fatal(serverErr)
 	}
+}
+
+// getLocalProviders will read in the json file and return a provider struct, keeping the format the same as
+// the one from atlas.
+func getLocalProviders(pathToFile string) (providersConfig []*atlas.Provider, err error) {
+	// Panic if path is invalid
+	file, err := ioutil.ReadFile(pathToFile)
+	if err != nil {
+		panic(err)
+	}
+
+	var mapOfProviders map[string]map[string][]string
+	// Panic if json is in wrong format or file is empty
+	err = json.Unmarshal([]byte(file), &mapOfProviders)
+	if err != nil {
+		panic(err)
+	}
+
+	for provider, document := range mapOfProviders {
+		var singleProvider = &atlas.Provider{
+			Name:          provider,
+			InstanceSizes: map[string]atlas.InstanceSize{},
+		}
+		for _, instancesizes := range document {
+			for _, plan := range instancesizes {
+				instanceSize := atlas.InstanceSize{
+					Name: plan,
+				}
+				singleProvider.InstanceSizes[plan] = instanceSize
+			}
+		}
+
+		providersConfig = append(providersConfig, singleProvider)
+	}
+	return
 }
 
 func getTLSConfig(logger *zap.SugaredLogger) (bool, string, string) {

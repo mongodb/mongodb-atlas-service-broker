@@ -124,10 +124,7 @@ func setupTest() (*Broker, MockAtlasClient, context.Context) {
 	}
 	ctx := context.WithValue(context.Background(), ContextKeyAtlasClient, client)
 
-	// provider config file
-	providerConfig := ""
-
-	broker := NewBroker(zap.NewNop().Sugar(), providerConfig)
+	broker := NewBroker(zap.NewNop().Sugar())
 	return broker, client, ctx
 }
 
