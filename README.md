@@ -23,7 +23,7 @@ Configuration is handled with environment variables. Logs are written to
 | BROKER_LOG_LEVEL | `INFO` | Accepted values: `DEBUG`, `INFO`, `WARN`, `ERROR` |
 | BROKER_TLS_CERT_FILE | | Path to a certificate file to use for TLS. Leave empty to disable TLS. |
 | BROKER_TLS_KEY_FILE | | Path to private key file to use for TLS. Leave empty to disable TLS. |
-| PROVIDERS_CONFIG_FILE | | Path to a json file containing limitations for providers and their plans |
+| PROVIDERS_CONFIG_FILE | | Path to a JSON file containing limitations for providers and their plans |
 
 ## License
 
