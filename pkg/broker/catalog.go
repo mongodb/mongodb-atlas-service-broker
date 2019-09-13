@@ -46,29 +46,38 @@ var (
 	}
 )
 
+// applyWhitelist filters a given service, returning the service with only the
+// whitelisted plans.
+func applyWhitelist(svc brokerapi.Service, whitelistedPlans []string) brokerapi.Service {
+	whitelistedSvc := svc
+	plans := []brokerapi.ServicePlan{}
+	for _, plan := range whitelistedSvc.Plans {
+		for _, name := range whitelistedPlans {
+			if plan.Name == name {
+				plans = append(plans, plan)
+				break
+			}
+		}
+	}
+
+	whitelistedSvc.Plans = plans
+	return whitelistedSvc
+}
+
 // Services generates the service catalog which will be presented to consumers of the API.
 func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	b.logger.Info("Retrieving service catalog")
 
-	var services []brokerapi.Service
-	if b.ProvidersConfig != nil {
-		services = make([]brokerapi.Service, len(b.ProvidersConfig))
-		for i, singleprovider := range b.ProvidersConfig {
-			services[i] = service(singleprovider)
-		}
-
-		return services, nil
-	}
-
-	services = make([]brokerapi.Service, len(providerNames))
+	services := []brokerapi.Service{}
 	client, err := atlasClientFromContext(ctx)
 	if err != nil {
 		return services, err
 	}
 
-	for i, providerName := range providerNames {
+	for _, providerName := range providerNames {
+		var svc brokerapi.Service
 		if providerName == "TENANT" {
-			services[i] = sharedService
+			svc = sharedService
 		} else {
 
 			provider, err := client.GetProvider(providerName)
@@ -76,7 +85,15 @@ func (b Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 				return services, err
 			}
 
-			services[i] = service(provider)
+			svc = service(provider)
+		}
+
+		whitelistedPlans, isWhitelisted := b.whitelist[providerName]
+		if b.whitelist == nil || isWhitelisted {
+			if isWhitelisted {
+				svc = applyWhitelist(svc, whitelistedPlans)
+			}
+			services = append(services, svc)
 		}
 	}
 

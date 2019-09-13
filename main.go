@@ -86,16 +86,16 @@ func startBrokerServer() {
 	defer logger.Sync() // Flushes buffer, if any
 
 	// Administrators can control what providers/plans are available to users
-	pathToFile := getEnvOrDefault("PROVIDERS_CONFIG_FILE", "")
+	pathToWhitelistFile, hasWhitelist := os.LookupEnv("PROVIDERS_WHITELIST_FILE")
 	var broker *atlasbroker.Broker
-	if pathToFile == "" {
+	if !hasWhitelist {
 		broker = atlasbroker.NewBroker(logger)
 	} else {
-		providersConfig, err := getLocalProviders(pathToFile)
+		whitelist, err := atlasbroker.ReadWhitelistFile(pathToWhitelistFile)
 		if err != nil {
 			panic(err)
 		}
-		broker = atlasbroker.NewBrokerWithProvidersConfig(logger, providersConfig)
+		broker = atlasbroker.NewBrokerWithWhitelist(logger, whitelist)
 	}
 
 	router := mux.NewRouter()
@@ -113,10 +113,10 @@ func startBrokerServer() {
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
 
 	// Replace with NONE if not set
-	if pathToFile == "" {
-		pathToFile = "NONE"
+	if !hasWhitelist {
+		pathToWhitelistFile = "NONE"
 	}
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL, "providers_config_file", pathToFile)
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL, "providers_config_file", pathToWhitelistFile)
 
 	// Start broker HTTP server.
 	address := host + ":" + strconv.Itoa(port)
@@ -136,9 +136,9 @@ func startBrokerServer() {
 
 // getLocalProviders will read in the json file and return a provider struct, keeping the format the same as
 // the one from atlas.
-func getLocalProviders(pathToFile string) (providersConfig []*atlas.Provider, err error) {
+func getLocalProviders(pathToWhitelistFile string) (providersConfig []*atlas.Provider, err error) {
 	// Panic if path is invalid
-	file, err := ioutil.ReadFile(pathToFile)
+	file, err := ioutil.ReadFile(pathToWhitelistFile)
 	if err != nil {
 		panic(err)
 	}

@@ -1,6 +1,0 @@
-{
-    "GCP": {"InstanceSizes": ["M10", "M20", "M200"]},
-    "AWS": {"InstanceSizes": ["M10", "M20", "M100", "M140", "M140"]},
-    "AZURE": {"InstanceSizes": ["M10","M20","M200"]},
-    "TENANT": {"InstanceSizes": ["M2","M5"]}
-}
