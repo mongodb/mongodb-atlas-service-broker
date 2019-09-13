@@ -20,7 +20,6 @@ type InstanceSize struct {
 // GetProvider will find a provider by name using the private API.
 // GET /cloudProviders/{NAME}/options
 func (c *HTTPClient) GetProvider(name string) (*Provider, error) {
-	// Otherwise we make a request to the private atlas API when it's not set
 	path := fmt.Sprintf("cloudProviders/%s/options", name)
 	var provider Provider
 
