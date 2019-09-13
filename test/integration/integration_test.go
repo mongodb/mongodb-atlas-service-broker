@@ -6,16 +6,15 @@ import (
 	"os"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-
 	"github.com/google/uuid"
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	brokerlib "github.com/mongodb/mongodb-atlas-service-broker/pkg/broker"
 	testutil "github.com/mongodb/mongodb-atlas-service-broker/test/util"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
 )
 
@@ -34,43 +33,14 @@ func TestMain(m *testing.M) {
 	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 	ctx = context.WithValue(ctx, brokerlib.ContextKeyAtlasClient, client)
 
-	providersConfig := []*atlas.Provider{}
-	providerAWS := &atlas.Provider{
-		Name: "AWS",
-		InstanceSizes: map[string]atlas.InstanceSize{
-			"M10": atlas.InstanceSize{
-				Name: "M10",
-			},
-			"M20": atlas.InstanceSize{
-				Name: "M20",
-			},
-		},
+	whitelist := brokerlib.Whitelist{
+		"AWS":    []string{"M10", "M20"},
+		"GCP":    []string{"M10"},
+		"TENANT": []string{"M2", "M5"},
 	}
-	providerGCP := &atlas.Provider{
-		Name: "GCP",
-		InstanceSizes: map[string]atlas.InstanceSize{
-			"M10": atlas.InstanceSize{
-				Name: "M10",
-			},
-		},
-	}
-	providerTENANT := &atlas.Provider{
-		Name: "TENANT",
-		InstanceSizes: map[string]atlas.InstanceSize{
-			"M2": atlas.InstanceSize{
-				Name: "M2",
-			},
-			"M5": atlas.InstanceSize{
-				Name: "M5",
-			},
-		},
-	}
-	providersConfig = append(providersConfig, providerAWS)
-	providersConfig = append(providersConfig, providerTENANT)
-	providersConfig = append(providersConfig, providerGCP)
 
 	// Setup the broker which will be used
-	broker = brokerlib.NewBrokerWithProvidersConfig(zap.NewNop().Sugar(), providersConfig)
+	broker = brokerlib.NewBrokerWithWhitelist(zap.NewNop().Sugar(), whitelist)
 
 	result := m.Run()
 
@@ -294,7 +264,7 @@ func TestProvisioM2Size(t *testing.T) {
 	assert.Equal(t, expectedCluster.ProviderSettings.RegionName, cluster.ProviderSettings.RegionName)
 }
 
-func TestProvisioM5Size(t *testing.T) {
+func TestProvisionM5Size(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
@@ -494,8 +464,8 @@ func TestBind(t *testing.T) {
 
 	// Try connecting to the cluster to ensure that the credentials are
 	// valid. There is sometimes a slight delay before the user is ready so this
-	// will try to connect for up to 5 minutes.
-	err = testutil.Poll(5, func() (bool, error) {
+	// will try to connect for up to 10 minutes.
+	err = testutil.Poll(10, func() (bool, error) {
 		client, err := mongo.NewClient(conn)
 		if err != nil {
 			return false, nil
