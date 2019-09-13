@@ -113,7 +113,7 @@ func startBrokerServer() {
 	if !hasWhitelist {
 		pathToWhitelistFile = "NONE"
 	}
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL, "providers_config_file", pathToWhitelistFile)
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL, "whitelist_file", pathToWhitelistFile)
 
 	// Start broker HTTP server.
 	address := host + ":" + strconv.Itoa(port)
