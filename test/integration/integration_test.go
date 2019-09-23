@@ -348,7 +348,7 @@ func TestUpdate(t *testing.T) {
 		}
 	}`
 
-	// Try to update to a plan to a plan that doesn't exist
+	// Try to update to a plan that doesn't exist
 	_, err = broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
 		ServiceID:     "aosb-cluster-service-aws",
 		PlanID:        "aosb-cluster-plan-aws-m60",
