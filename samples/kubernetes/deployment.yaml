@@ -24,6 +24,7 @@ spec:
           env:
             - name: BROKER_HOST
               value: "0.0.0.0"
+
 ---
 # Service to expose the service broker inside the cluster.
 apiVersion: v1
