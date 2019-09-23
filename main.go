@@ -82,7 +82,18 @@ func startBrokerServer() {
 	}
 	defer logger.Sync() // Flushes buffer, if any
 
-	broker := atlasbroker.NewBroker(logger)
+	// Administrators can control what providers/plans are available to users
+	pathToWhitelistFile, hasWhitelist := os.LookupEnv("PROVIDERS_WHITELIST_FILE")
+	var broker *atlasbroker.Broker
+	if !hasWhitelist {
+		broker = atlasbroker.NewBroker(logger)
+	} else {
+		whitelist, err := atlasbroker.ReadWhitelistFile(pathToWhitelistFile)
+		if err != nil {
+			panic(err)
+		}
+		broker = atlasbroker.NewBrokerWithWhitelist(logger, whitelist)
+	}
 
 	router := mux.NewRouter()
 	brokerapi.AttachRoutes(router, broker, NewLagerZapLogger(logger))
@@ -98,7 +109,11 @@ func startBrokerServer() {
 	host := getEnvOrDefault("BROKER_HOST", DefaultServerHost)
 	port := getIntEnvOrDefault("BROKER_PORT", DefaultServerPort)
 
-	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL)
+	// Replace with NONE if not set
+	if !hasWhitelist {
+		pathToWhitelistFile = "NONE"
+	}
+	logger.Infow("Starting API server", "releaseVersion", releaseVersion, "host", host, "port", port, "tls_enabled", tlsEnabled, "atlas_base_url", baseURL, "whitelist_file", pathToWhitelistFile)
 
 	// Start broker HTTP server.
 	address := host + ":" + strconv.Itoa(port)
@@ -142,7 +157,7 @@ func getEnvOrPanic(name string) string {
 	return value
 }
 
-// getEnvOrPanic will try getting an environment variable and return a default
+// getEnvOrDefault will try getting an environment variable and return a default
 // value in case it doesn't exist.
 func getEnvOrDefault(name string, def string) string {
 	value, exists := os.LookupEnv(name)

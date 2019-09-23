@@ -31,7 +31,6 @@ var (
 	atlasGroupID    = testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
 	atlasPublicKey  = testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
 	atlasPrivateKey = testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
-	image           = testutil.GetEnvOrPanic("DOCKER_IMAGE")
 )
 
 func TestMain(m *testing.M) {

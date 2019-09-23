@@ -38,6 +38,8 @@ type HTTPClient struct {
 
 // Different errors the api may return.
 var (
+	ErrPlanIDNotFound = errors.New("plan-id not in the catalog")
+
 	ErrUnauthorized = errors.New("Invalid API key")
 
 	ErrClusterNotFound      = errors.New("Cluster not found")

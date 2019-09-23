@@ -21,8 +21,8 @@ type InstanceSize struct {
 // GET /cloudProviders/{NAME}/options
 func (c *HTTPClient) GetProvider(name string) (*Provider, error) {
 	path := fmt.Sprintf("cloudProviders/%s/options", name)
-
 	var provider Provider
+
 	err := c.requestPrivate(http.MethodGet, path, nil, &provider)
 	return &provider, err
 }

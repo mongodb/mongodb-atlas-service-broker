@@ -20,13 +20,23 @@ var _ brokerapi.ServiceBroker = Broker{}
 // Implements the brokerapi.ServiceBroker interface making it easy to spin up
 // an API server.
 type Broker struct {
-	logger *zap.SugaredLogger
+	logger    *zap.SugaredLogger
+	whitelist Whitelist
 }
 
 // NewBroker creates a new Broker with a logger.
 func NewBroker(logger *zap.SugaredLogger) *Broker {
 	return &Broker{
 		logger: logger,
+	}
+}
+
+// NewBrokerWithWhitelist creates a new Broker with a given logger and a
+// whitelist for allowed providers and their plans.
+func NewBrokerWithWhitelist(logger *zap.SugaredLogger, whitelist Whitelist) *Broker {
+	return &Broker{
+		logger:    logger,
+		whitelist: whitelist,
 	}
 }
 

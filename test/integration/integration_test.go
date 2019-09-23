@@ -29,11 +29,18 @@ func TestMain(m *testing.M) {
 	groupID := testutil.GetEnvOrPanic("ATLAS_GROUP_ID")
 	publicKey := testutil.GetEnvOrPanic("ATLAS_PUBLIC_KEY")
 	privateKey := testutil.GetEnvOrPanic("ATLAS_PRIVATE_KEY")
+
 	client = atlas.NewClient(baseURL, groupID, publicKey, privateKey)
 	ctx = context.WithValue(ctx, brokerlib.ContextKeyAtlasClient, client)
 
+	whitelist := brokerlib.Whitelist{
+		"AWS":    []string{"M10", "M20"},
+		"GCP":    []string{"M10"},
+		"TENANT": []string{"M2", "M5"},
+	}
+
 	// Setup the broker which will be used
-	broker = brokerlib.NewBroker(zap.NewNop().Sugar())
+	broker = brokerlib.NewBrokerWithWhitelist(zap.NewNop().Sugar(), whitelist)
 
 	result := m.Run()
 
@@ -142,7 +149,66 @@ func TestProvision(t *testing.T) {
 	assert.Equal(t, expectedCluster, cluster)
 }
 
-func TestProvisioM2Size(t *testing.T) {
+func TestProvisionProvidersConfig(t *testing.T) {
+	t.Parallel()
+
+	instanceID := uuid.New().String()
+	clusterName := brokerlib.NormalizeClusterName(instanceID)
+
+	// Setting up our Expected cluster
+	params := `{
+		"cluster": {
+			"providerSettings": {
+				"regionName": "EU_WEST_1"
+			}
+		}
+	}`
+
+	// We try to provision something that the adminstrator didn't create
+	_, err := broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "aosb-cluster-service-azure",
+		PlanID:        "aosb-cluster-plan-azure-m10",
+		RawParameters: []byte(params),
+	}, true)
+	assert.Error(t, atlas.ErrPlanIDNotFound, err)
+
+	// One the administrator did create
+	// Setting up our Expected cluster
+	params = `{
+			"cluster": {
+				"providerSettings": {
+					"regionName": "EUROPE_WEST_2"
+				}
+			}
+	}`
+	_, err = broker.Provision(ctx, instanceID, brokerapi.ProvisionDetails{
+		ServiceID:     "aosb-cluster-service-gcp",
+		PlanID:        "aosb-cluster-plan-gcp-m10",
+		RawParameters: []byte(params),
+	}, true)
+
+	defer teardownInstance(instanceID)
+
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Ensure the cluster is being created.
+	cluster, err := client.GetCluster(clusterName)
+	assert.NoError(t, err)
+	assert.Equal(t, atlas.ClusterStateCreating, cluster.StateName)
+
+	// Wait a maximum of 20 minutes for cluster to reach state idle.
+	err = waitForLastOperation(broker, instanceID, brokerlib.OperationProvision, 20)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	_, err = client.GetCluster(clusterName)
+	assert.NoError(t, err)
+}
+
+func TestProvisionM2Size(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
@@ -198,7 +264,7 @@ func TestProvisioM2Size(t *testing.T) {
 	assert.Equal(t, expectedCluster.ProviderSettings.RegionName, cluster.ProviderSettings.RegionName)
 }
 
-func TestProvisioM5Size(t *testing.T) {
+func TestProvisionM5Size(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
@@ -281,6 +347,15 @@ func TestUpdate(t *testing.T) {
 			"backupEnabled": true
 		}
 	}`
+
+	// Try to update to a plan that doesn't exist
+	_, err = broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
+		ServiceID:     "aosb-cluster-service-aws",
+		PlanID:        "aosb-cluster-plan-aws-m60",
+		RawParameters: []byte(params),
+	}, true)
+
+	assert.Error(t, atlas.ErrPlanIDNotFound, err)
 
 	_, err = broker.Update(ctx, instanceID, brokerapi.UpdateDetails{
 		ServiceID:     "aosb-cluster-service-aws",
@@ -389,8 +464,8 @@ func TestBind(t *testing.T) {
 
 	// Try connecting to the cluster to ensure that the credentials are
 	// valid. There is sometimes a slight delay before the user is ready so this
-	// will try to connect for up to 5 minutes.
-	err = testutil.Poll(5, func() (bool, error) {
+	// will try to connect for up to 10 minutes.
+	err = testutil.Poll(10, func() (bool, error) {
 		client, err := mongo.NewClient(conn)
 		if err != nil {
 			return false, nil
