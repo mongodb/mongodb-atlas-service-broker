@@ -208,7 +208,7 @@ func TestProvisionProvidersConfig(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestProvisioM2Size(t *testing.T) {
+func TestProvisionM2Size(t *testing.T) {
 	t.Parallel()
 
 	instanceID := uuid.New().String()
