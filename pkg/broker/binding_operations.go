@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
@@ -14,9 +15,10 @@ import (
 
 // ConnectionDetails will be returned when a new binding is created.
 type ConnectionDetails struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	URI      string `json:"uri"`
+	Username         string `json:"username"`
+	Password         string `json:"password"`
+	URI              string `json:"uri"`
+	ConnectionString string `json:"connection_string"`
 }
 
 // Bind will create a new database user with a username matching the binding ID
@@ -73,12 +75,20 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 	}
 
 	b.logger.Infow("Successfully created Atlas database user", "instance_id", instanceID, "binding_id", bindingID)
+	srvURL, err := url.Parse(cluster.SrvAddress)
+	if err != nil {
+		b.logger.Errorw("Failed to parse Atlas SRV address URL", "error", err, "instance_id", instanceID, "binding_id", bindingID)
+		err = atlasToAPIError(err)
+		return
+	}
+	srvURL.User = url.UserPassword(bindingID, password)
 
 	spec = brokerapi.Binding{
 		Credentials: ConnectionDetails{
-			Username: bindingID,
-			Password: password,
-			URI:      cluster.SrvAddress,
+			Username:         bindingID,
+			Password:         password,
+			URI:              cluster.SrvAddress,
+			ConnectionString: srvURL.String(),
 		},
 	}
 	return
