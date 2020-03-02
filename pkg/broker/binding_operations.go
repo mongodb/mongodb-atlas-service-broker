@@ -5,18 +5,29 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
 
 	"github.com/mongodb/mongodb-atlas-service-broker/pkg/atlas"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pkg/errors"
 )
 
 // ConnectionDetails will be returned when a new binding is created.
 type ConnectionDetails struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	URI      string `json:"uri"`
+	Username         string `json:"username"`
+	Password         string `json:"password"`
+	URI              string `json:"uri"`
+	ConnectionString string `json:"connection_string"`
+}
+
+// ConnectionStringParams will store connectionString parameters from SeviceBinding
+type ConnectionStringParams struct {
+	SkipCredentials bool                   `json:"skipCredentials,omitempty"`
+	Database        string                 `json:"database,omitempty"`
+	Options         map[string]interface{} `json:"options,omitempty"`
+	Format          string                 `json:"format,omitempty"`
 }
 
 // Bind will create a new database user with a username matching the binding ID
@@ -74,11 +85,25 @@ func (b Broker) Bind(ctx context.Context, instanceID string, bindingID string, d
 
 	b.logger.Infow("Successfully created Atlas database user", "instance_id", instanceID, "binding_id", bindingID)
 
+	connectionStringParams, err := connectionStringParamsFromParams(details.RawParameters)
+	if err != nil {
+		b.logger.Errorw("Couldn't read connection string parameters from the passed parameters", "error", err, "instance_id", instanceID, "binding_id", bindingID, "details", details)
+		return
+	}
+	b.logger.Debugw("Read connectionString from parameters", "connectionStringParams", connectionStringParams)
+
+	connectionString, err := buildConnectionString(connectionStringParams, cluster, bindingID, password)
+	if err != nil {
+		b.logger.Errorw("Couldn't build connection string URL", "error", err, "instance_id", instanceID, "binding_id", bindingID, "details", details)
+		return
+	}
+
 	spec = brokerapi.Binding{
 		Credentials: ConnectionDetails{
-			Username: bindingID,
-			Password: password,
-			URI:      cluster.SrvAddress,
+			Username:         bindingID,
+			Password:         password,
+			URI:              cluster.SrvAddress,
+			ConnectionString: connectionString,
 		},
 	}
 	return
@@ -177,4 +202,64 @@ func userFromParams(bindingID string, password string, rawParams []byte) (*atlas
 	}
 
 	return params.User, nil
+}
+
+func connectionStringParamsFromParams(rawParams []byte) (*ConnectionStringParams, error) {
+	params := struct {
+		ConnectionStringParams *ConnectionStringParams `json:"connectionString"`
+	}{
+		&ConnectionStringParams{},
+	}
+
+	if len(rawParams) > 0 {
+		err := json.Unmarshal(rawParams, &params)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return params.ConnectionStringParams, nil
+}
+
+func buildConnectionString(connectionStringParams *ConnectionStringParams, cluster *atlas.Cluster, bindingID, password string) (string, error) {
+	var clusterAddress string
+
+	if connectionStringParams.Format == "standard" {
+		clusterAddress = cluster.MongoURIWithOptions
+	} else {
+		clusterAddress = cluster.SrvAddress
+	}
+
+	connectionStringURL, err := url.Parse(clusterAddress)
+	if err != nil {
+		return "", errors.Wrap(err, "Couldn't parse Atlas address URL")
+	}
+
+	if !connectionStringParams.SkipCredentials {
+		connectionStringURL.User = url.UserPassword(bindingID, password)
+	}
+
+	if len(connectionStringParams.Database) > 0 {
+		connectionStringURL.Path = connectionStringParams.Database
+	}
+
+	if len(connectionStringParams.Options) > 0 {
+		q := connectionStringURL.Query()
+		for key, value := range connectionStringParams.Options {
+			switch v := value.(type) {
+			case string:
+				q.Set(key, v)
+			case float64:
+				q.Set(key, strconv.FormatInt(int64(v), 10))
+			case bool:
+				q.Set(key, strconv.FormatBool(v))
+			}
+		}
+		connectionStringURL.RawQuery = q.Encode()
+
+		if len(connectionStringURL.Path) == 0 {
+			connectionStringURL.Path = "/"
+		}
+	}
+
+	return connectionStringURL.String(), nil
 }
