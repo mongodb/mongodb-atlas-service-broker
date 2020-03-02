@@ -12,8 +12,10 @@ import (
 )
 
 var (
-	testServiceID = "aosb-cluster-service-aws"
-	testPlanID    = "aosb-cluster-plan-aws-m10"
+	testServiceID       = "aosb-cluster-service-aws"
+	testPlanID          = "aosb-cluster-plan-aws-m10"
+	srvAddress          = "mongodb+srv://host"
+	mongoURIWithOptions = "mongodb://shard-0.host:27017,shard-1.host:27017,shard-2.host:27017/?ssl=true&authSource=admin&replicaSet=shard"
 )
 
 type MockAtlasClient struct {
@@ -27,6 +29,8 @@ func (m MockAtlasClient) CreateCluster(cluster atlas.Cluster) (*atlas.Cluster, e
 	}
 
 	cluster.StateName = atlas.ClusterStateCreating
+	cluster.SrvAddress = srvAddress
+	cluster.MongoURIWithOptions = mongoURIWithOptions
 
 	m.Clusters[cluster.Name] = &cluster
 

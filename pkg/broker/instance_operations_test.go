@@ -157,6 +157,8 @@ func TestProvisionParams(t *testing.T) {
 			EncryptEBSVolume: true,
 			VolumeType:       "STANDARD",
 		},
+		SrvAddress:          srvAddress,
+		MongoURIWithOptions: mongoURIWithOptions,
 	}
 
 	cluster := client.Clusters[instanceID]

@@ -38,8 +38,9 @@ type Cluster struct {
 	ProviderSettings         *ProviderSettings `json:"providerSettings"`
 
 	// Read-only attributes
-	StateName  string `json:"stateName,omitempty"`
-	SrvAddress string `json:"srvAddress,omitempty"`
+	StateName           string `json:"stateName,omitempty"`
+	SrvAddress          string `json:"srvAddress,omitempty"`
+	MongoURIWithOptions string `json:"mongoURIWithOptions,omitempty"`
 }
 
 // AutoScalingConfig represents the autoscaling settings for a cluster.
