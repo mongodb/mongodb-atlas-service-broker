@@ -1,5 +1,5 @@
 # Deprecated
-*The MongoDB Atlas Service Broker is now deprecated. We do not recommend it for new use. To control your Atlas deployments from Kubernetes, consider adopting the [MongoDB Atlas Operator](https://github.com/mongodb/mongodb-atlas-kubernetes) instead.*
+**The MongoDB Atlas Service Broker is now deprecated. We do not recommend it for new use. To control your Atlas deployments from Kubernetes, consider adopting the [MongoDB Atlas Operator](https://github.com/mongodb/mongodb-atlas-kubernetes) instead.**
 
 # MongoDB Atlas Service Broker
 
