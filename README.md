@@ -1,3 +1,6 @@
+# Deprecated
+**The MongoDB Atlas Service Broker is now deprecated. We do not recommend it for new use. To control your Atlas deployments from Kubernetes, consider adopting the [MongoDB Atlas Operator](https://github.com/mongodb/mongodb-atlas-kubernetes) instead.**
+
 # MongoDB Atlas Service Broker
 
 Use the Atlas Service Broker to connect to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) from any platform which supports the [Open Service Broker API](https://www.openservicebrokerapi.org/), such as [Kubernetes](https://kubernetes.io/) and [Pivotal Cloud Foundry](https://pivotal.io/open-service-broker).
